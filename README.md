@@ -5,7 +5,7 @@ BLE Repeater in Zigbee on TLRS825x
 
 Используется модуль TB-03F-KIT или TB-04-KIT
 
-* Программа для настройки BLE [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/ BLE2Zigbee.html)
+* Программа для настройки BLE [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
 * [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
 * [Файлы прошивки и Zigbee OTA](https://github.com/pvvx/TLB2Z/tree/master/fw)
 
