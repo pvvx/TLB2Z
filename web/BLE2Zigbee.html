@@ -678,7 +678,7 @@ function showConfig() {
 function parseBlkCustom(value) {
 	let len = value.byteLength;
 	if(len == 0) return;
-	console.log('blk: ' + dump8(value, len));
+	//console.log('blk: ' + dump8(value, len));
 	let blkId = value.getUint8(0);
 	if((blkId == 0x00) && (len > 3)) {	// CMD_ID_DEVID Get dev id, version, services
 		devSrv.board = value.getUint8(1);
@@ -698,6 +698,7 @@ function parseBlkCustom(value) {
 	    	let vbat = value.getUint8(7) / 10.0;
 	    	let s = "T: "+temp.toFixed(2)+"°C, H: "+humi.toFixed(2)+"%, B: "+lbat.toFixed(1)+"%, V: "+vbat.toFixed(1)+"V";
 			$("lblMeasure"+nn).innerHTML = s;
+			console.log("Dev"+(nn+1)+" "+s);
 		}
 	} else if(blkId == 0x18 && len > 1) { // Get/set bindkeys
 		let nn = value.getUint8(1);
