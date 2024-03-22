@@ -3,7 +3,7 @@ Low cost BLE Advertisements Repeater into Zigbee on TLRS825x
 
 # Ретранслятор до 3-х BLE термометров в Zigbee v3 на модуле с чипом TLSR825x.
 
-Используется модуль TB-03F-KIT или TB-04-KIT
+Используется модуль TB-03F-KIT или TB-04-KIT ($3)
 
 * Программа для настройки BLE [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
 * [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
