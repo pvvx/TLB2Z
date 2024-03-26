@@ -84,6 +84,9 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
+* Если используется менее 3-х BLE термометров или BLE термометр не передает какой параметр, тогда нет необходимости связывать данные кластеры в Zigbee координаторе.
+* Если протокол BLE рекламы (Xiaomi, Qingping) термометра не предусматривает передачу напряжения батареи, тогда при приеме процентов заряда в напряжение батареи подставляется значение 3.0В.
+
 ### Default Report Setting:
 
 | Name | Tmin | Tmax | Change |
