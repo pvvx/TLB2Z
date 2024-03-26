@@ -3,7 +3,7 @@ Low cost BLE Advertisements Repeater into Zigbee on TLRS825x
 
 # Ретранслятор до 3-х BLE термометров в Zigbee v3 на модуле с чипом TLSR825x.
 
-Используется модуль TB-03F-KIT или TB-04-KIT
+Используется модуль TB-03F-KIT или TB-04-KIT ($3)
 
 * Программа для настройки BLE [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
 * [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
@@ -12,11 +12,11 @@ Low cost BLE Advertisements Repeater into Zigbee on TLRS825x
 ## Основные технические характеристики
 
 * Прием BLE рекламы до 3-х термометров-гигрометров и перевод показаний в виде конечного устройства Zigbee.
-* Zigbee устройство использует 3 endpoint для каждого BLE термометра-гигрометра.
+* Zigbee устройство использует 3 endpoint. По одному для каждого BLE термометра-гигрометра.
 * Zigbee TX +10 дБм, BLE TX +0 дБм (BLE используется только для настройки).
 * Поддержка Zigbee OTA.
-* Поддержка рекламных BLE форматов Xiaomi, Qingping, BTHome v2, Custom.
-* Поддержка зашифрованной рекламы BLE с помощью bindkey.
+* Поддержка рекламных BLE форматов Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
+* Поддержка вариантов зашифрованной рекламы BLE с помощью bindkey.
 * Среднее потребление при работе модуля TB-03F-KIT от USB (5V): 10 мА
 
 ## Настройка модуля
