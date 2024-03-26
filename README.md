@@ -66,3 +66,30 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 ### Желтый светодиод отображает состояние BLE. 
 
 * Коротко мигает при ожидании BLE подключения
+
+## TLB2Z Reportable:
+
+| Endpoint | Cluster | Attribute | NN BLE device |
+| --- | --- | --- | --- |
+| 1 | 0x0001 Power Configuration | 0x0020 BatteryVoltage | 1 |
+| 1 | 0x0001 Power Configuration | 0x0021 BatteryPercentageRemaining | 1 |
+| 1 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 1 |
+| 1 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 1 |
+| 2 | 0x0001 Power Configuration | 0x0020 BatteryVoltage | 2 |
+| 2 | 0x0001 Power Configuration | 0x0021 BatteryPercentageRemaining | 2 |
+| 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
+| 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
+| 3 | 0x0001 Power Configuration | 0x0020 BatteryVoltage | 3 |
+| 3 | 0x0001 Power Configuration | 0x0021 BatteryPercentageRemaining | 3 |
+| 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
+| 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
+
+### Default Report Setting:
+
+| Name | Tmin | Tmax | Change |
+| --- | --- | --- | --- |
+| BatteryVoltage | 360 sec | 3600 sec | 0 |
+| BatteryPercentageRemaining | 360 sec | 3600 sec | 0 |
+| Temperature Measurement | 30 sec | 180 sec | 10 (0.1 C) |
+| Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
+
