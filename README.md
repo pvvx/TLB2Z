@@ -40,6 +40,9 @@ Low cost BLE Advertisements Repeater into Zigbee on TLRS825x
 
 ![b2z_zha.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_zha.gif)
 
+![grf.gif](https://github.com/pvvx/TLB2Z/blob/master/web/grf.gif)
+
+
 ## LED индикация
 
 ### Светодиод RGB коротко мигает при приеме данных от BLE устройств.
