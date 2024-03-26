@@ -1,7 +1,7 @@
 # TLB2Z
-Low cost BLE Advertisements Repeater into Zigbee on TLRS825x
+Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
-# Ретранслятор до 3-х BLE термометров в Zigbee v3 на модуле с чипом TLSR825x.
+# Ретранслятор до 3-х BLE термометров в Zigbee 3.0 на модуле с чипом TLSR825x.
 
 ![b2z.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z.gif)
 
