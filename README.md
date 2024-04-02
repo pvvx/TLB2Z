@@ -6,6 +6,7 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 ![b2z.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z.gif)
 
 Используется модуль **TB-03F-KIT** или **TB-04-KIT** ($3)
+
 ![tb-03f-kit.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f-kit.gif)
 
 Альтернативное исполнение на модуле **TB-03F** (~$1.5):
