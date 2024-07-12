@@ -1,74 +1,78 @@
-# TLB2Z
-Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
+[![english](https://img.shields.io/badge/language-english-C1C1C1?style=for-the-badge)](README.md)
+[![russian](https://img.shields.io/badge/also%20available%20in-russian-blue?style=for-the-badge)](README.ru.md)
 
-# Ретранслятор до 3-х BLE термометров в Zigbee 3.0 на модуле с чипом TLSR825x.
+# TLB2Z
+Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x. 
+
+# Repeat up to 3 BLE thermometer in Zigbee 3.0 on a Module with TLSR825x Chip
 
 ![b2z.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z.gif)
 
-Используется модуль **[TB-03F-KIT](https://docs.ai-thinker.com/en/blue_tooth)** или **[TB-04-KIT](https://docs.ai-thinker.com/en/blue_tooth)** ($3)
+Use this **[TB-03F-KIT](https://docs.ai-thinker.com/en/blue_tooth)** or **[TB-04-KIT](https://docs.ai-thinker.com/en/blue_tooth)** ($3)
 
 ![tb-03f-kit.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f-kit.gif)
 
-Альтернативное исполнение на модуле **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5):
+Alternative  **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5), lacking LEDs, USB UART, LDO. Above options are easier to set up.
 
 ![tb-03f.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f.gif)
 
-* Программа для настройки BLE [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
-* [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
-* [Файлы прошивки и Zigbee OTA](https://github.com/pvvx/TLB2Z/tree/master/fw)
+* BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
+* Initial programming (https://github.com/pvvx/TLB2Z/tree/master/pgm)
+* Firmware and Zigbee OTA files (https://github.com/pvvx/TLB2Z/tree/master/fw)
 
-## Основные технические характеристики
+## Main Specifications
 
-* Прием BLE рекламы до 3-х термометров-гигрометров и перевод показаний в виде конечного устройства Zigbee.
-* Рекламные объявления BLE принимаются 99.5% времени: опрос Zigbee происходит 16 мс каждые 4 секунды. Это обеспечивает минимальные потери приема от BLE устройств.
-* Zigbee устройство использует 3 endpoint. По одному для каждого BLE термометра-гигрометра.
-* Zigbee TX +10 дБм, BLE TX +0 дБм (BLE используется только для настройки).
-* Поддержка Zigbee OTA.
-* Поддержка рекламных BLE форматов Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
-* Поддержка вариантов зашифрованной рекламы BLE с помощью bindkey.
-* Среднее потребление при работе модуля TB-03F-KIT от USB (5V): 10 мА
+* Receive BLE advertisements from up to 3 thermometer-hygrometers and translate the readings as a Zigbee end device.
+* BLE advertisements are received 99.5% of the time: Zigbee polling occurs 16ms every 4 seconds. This ensures minimal reception loss from BLE devices.
+* Zigbee device uses 3 endpoints. One for each BLE thermometer-hygrometer.
+* Zigbee TX +10dBm, BLE TX +0dBm (BLE is used for customization only).
+* Zigbee OTA support.
+* Support advertising BLE formats Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
+* Support encrypted BLE advertising options with bindkey.
+* Average consumption when operating the TB-03F-KIT module from USB (5V): 10 mA
 
-## Настройка модуля
+# Customizing the module
 
-1.	Подключите запрограммированный модуль к питанию
-2.	Загрузите [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
-3.	На 1 секунду нажмите кнопку с надписью “PROG”. Это действие переключит модуль на работу в режим ожидания подключения по BLE. Время ожидания BLE подключения до 80 секунд.
-4.	В [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html) произведите подключение к BLE устройству “B2Z-xxxxxx”.
-5.	Введите MAC термометров и по необходимости используемые BindKey.
-6.	Проследите, что данные принимаются:
+1.  Connect the programmed module to the power supply
+2.  Open [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
+3. Press the button labeled "PROG" for 1 second. This action will switch the module to the BLE connection standby mode. The waiting time for BLE connection is up to 80 seconds.
+4.  In [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html) make a connection to the BLE device "B2Z-xxxxxxx".
+5.  Enter the MAC of the thermometers and the BindKey used if necessary.
+6.  Verify that the data is being received:
 
 ![b2z_html.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_html.gif)
 
-7.	Закройте [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html).
+7.  Close [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html).
 
-## Сопряжение модуля с Zigbee
+Note: On the TB-03F, for PROG, connect SWS to ground
 
-1.	Включите режим сопряжения на Zigbee координаторе или роутере.
-2.	Нажмите и удерживайте кнопку на модуле с надписью “PROG” в течении 8 секунд. Это действие сбросит привязки и настройки Zigbee.
-3.	Проследите сопряжение кластеров температуры, влажности и батареи. Установите желаемые значения для “Report”.
+## Pairing the module with Zigbee
+
+1.  Enable pairing mode on the Zigbee coordinator or router.
+2.  Press and hold the button on the module labeled "PROG" for 8 seconds. This action will reset the Zigbee bindings and settings.
+3.  Trace the pairing of the temperature, humidity, and battery clusters. Set the desired values for "Report".
 
 ![b2z_zha.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_zha.gif)
 
 ![grf.gif](https://github.com/pvvx/TLB2Z/blob/master/web/grf.gif)
 
+## LED indication
 
-## LED индикация
+### RGB LED blinks briefly when receiving data from BLE devices.
 
-### Светодиод RGB коротко мигает при приеме данных от BLE устройств.
+* Red LED color - reception from the 1st thermometer
+* Green color LED - reception from 2nd thermometer
+### Blue LED color - reception from the 3rd thermometer.
 
-* Красный цвет светодиода – прием от 1-го термометра
-* Зеленый цвет светодиода – прием от 2-го термометра
-* Синий цвет светодиода – прием от 3-го термометра
+### White LED indicates Zigbee status. 
 
-### Белый светодиод отображает состояние Zigbee. 
+* Lights up constantly if there is no pairing
+* Blinks 7 times when pairing
+### Blinks on "Identify" command
 
-* Светится постоянно, если сопряжения нет
-* Мигает 7 раз при сопряжении
-* Мигает по команде “Identify”
+### Yellow LED indicates BLE status. 
 
-### Желтый светодиод отображает состояние BLE. 
-
-* Коротко мигает при ожидании BLE подключения
+* Blinks briefly when waiting for BLE connection
 
 ## TLB2Z Reportable:
 
@@ -87,9 +91,9 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
-* Если используется менее 3-х BLE термометров-гигрометров или термометр-гигрометр не передает какой параметр, тогда нет необходимости связывать данные кластеры в Zigbee координаторе.
-* Если протокол BLE рекламы (Xiaomi, Qingping) термометра не предусматривает передачу напряжения батареи, тогда при приеме процентов заряда в напряжение батареи подставляется значение 3.0В.
-* ZHA не умеет принимать 3 батарейки. Т.е. не имеет полной поддержки Zigbee 3.0, как пишет в совей рекламе.
+* If less than 3 BLE thermometer-hygrometers are used or the thermometer-hygrometer does not transmit any parameter, then there is no need to link these clusters in the Zigbee coordinator.
+* If the BLE advertising protocol (Xiaomi, Qingping) of the thermometer does not provide for the transmission of battery voltage, then the battery voltage is substituted with 3.0V when receiving percent of charge.
+* ZHA does not know how to accept 3 batteries. I.e. does not have full support for Zigbee 3.0, as it says in its advertising.
 
 ### Default Report Setting:
 
@@ -100,4 +104,4 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 | Temperature Measurement | 30 sec | 180 sec | 10 (0.1 C) |
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 
-* Xiaomi термометры-гигрометры используют большой интервал передачи данных, длительностями в десятки минут. Для исключения лишних дублирующих точек на графиках желательно устанавливать соответствующие (кратные) интервалы в Zigbee репорт.
+* Xiaomi thermometer-hygrometers use a large data transmission interval, lasting tens of minutes. To avoid unnecessary duplicate points on the graphs, it is desirable to set appropriate (multiple) intervals in the Zigbee report.
