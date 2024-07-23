@@ -62,7 +62,7 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 * Red LED color - reception from the 1st thermometer
 * Green color LED - reception from 2nd thermometer
-### Blue LED color - reception from the 3rd thermometer.
+* Blue LED color - reception from the 3rd thermometer
 
 ### White LED indicates Zigbee status. 
 
