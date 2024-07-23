@@ -68,7 +68,7 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 * Lights up constantly if there is no pairing
 * Blinks 7 times when pairing
-### Blinks on "Identify" command
+* Blinks on "Identify" command
 
 ### Yellow LED indicates BLE status. 
 
