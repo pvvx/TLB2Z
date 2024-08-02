@@ -35,5 +35,23 @@ Write Flash data 0x00000000 to 0x00026393...
 (1) Warning
 ```
 
+---
+
+Another option:
+
+Connect the TX output from the USB-UART adapter to the SWS module and use [USBCOMFlashTx.html](https://pvvx.github.io/ATC_MiThermometer/USBCOMFlashTx.html)
+
+Description can be found here: https://github.com/pvvx/ATC_MiThermometer?tab=readme-ov-file#the-usb-com-adapter-writes-the-firmware-in-explorer-web-version
+
+---
+
+If the module has a standard program, then [TelinkOTA](https://pvvx.github.io/ATC_MiThermometer/TelinkOTA.html) may work.
+
+Firmware from Ai-Thinker usually has its own program for the programmer:  https://github.com/Ai-Thinker-Open/TBXX_Flash_Tool
+
+This is made from https://github.com/pvvx/TlsrComSwireWriter .
+
+
+
 
 
