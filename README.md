@@ -16,7 +16,7 @@ Alternative  **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5), la
 
 ![tb-03f.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f.gif)
 
-* BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
+* BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 * Initial programming (https://github.com/pvvx/TLB2Z/tree/master/pgm)
 * Firmware and Zigbee OTA files (https://github.com/pvvx/TLB2Z/tree/master/fw)
 
@@ -34,15 +34,15 @@ Alternative  **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5), la
 # Customizing the module
 
 1.  Connect the programmed module to the power supply
-2.  Open [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
+2.  Open [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 3. Press the button labeled "PROG" for 1 second. This action will switch the module to the BLE connection standby mode. The waiting time for BLE connection is up to 80 seconds.
-4.  In [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html) make a connection to the BLE device "B2Z-xxxxxxx".
+4.  In [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html) make a connection to the BLE device "B2Z-xxxxxxx".
 5.  Enter the MAC of the thermometers and the BindKey used if necessary.
 6.  Verify that the data is being received:
 
 ![b2z_html.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_html.gif)
 
-7.  Close [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html).
+7.  Close [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html).
 
 Note: On the TB-03F, for PROG, connect SWS to ground
 
