@@ -6,6 +6,8 @@ How to write program to TB-03F-KIT or TB-04-KIT.
 
 ![SCH](https://github.com/pvvx/TlsrComProg825x/blob/main/Doc/img/TB-03F-KIT-PGM.gif)
 
+![SCH](https://github.com/pvvx/TlsrComProg825x/blob/main/Doc/img/TB-04-KIT-PGM.gif)
+
 Как записать программу в TB-03F-KIT или TB-04-KIT.
 
 1. Временно подключите вывод SWS к выводу 2 CH340.
