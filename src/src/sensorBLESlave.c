@@ -1,0 +1,819 @@
+/********************************************************************************************************
+ * @file    sampleSwitchBLESlave_8258.c
+ *
+ * @brief   This is the source file for sampleSwitchBLESlave_8258
+ *
+ * @author  Zigbee Group
+ * @date    2021
+ *
+ * @par     Copyright (c) 2021, Telink Semiconductor (Shanghai) Co., Ltd. ("TELINK")
+ *
+ *          Licensed under the Apache License, Version 2.0 (the "License");
+ *          you may not use this file except in compliance with the License.
+ *          You may obtain a copy of the License at
+ *
+ *              http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *          Unless required by applicable law or agreed to in writing, software
+ *          distributed under the License is distributed on an "AS IS" BASIS,
+ *          WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *          See the License for the specific language governing permissions and
+ *          limitations under the License.
+ *******************************************************************************************************/
+
+#include "tl_common.h"
+#include "device.h"
+#include "stack/ble/ble.h"
+#include "ble_cfg.h"
+#include "flash.h"
+#include "scaning.h"
+
+#include "zigbee_ble_switch.h"
+#include "flash_eep.h"
+#include "drv_uart.h"
+#include "cmd_parser.h"
+#include "app_ui.h"
+
+//#include "vendor/common/blt_led.h"
+//#include "vendor/common/blt_common.h"
+
+
+#define RX_FIFO_SIZE	                   64
+#define RX_FIFO_NUM		                   8
+
+#define TX_FIFO_SIZE	                   40
+#define TX_FIFO_NUM		                   16
+
+//int RxTxWrite(void * p);
+extern void bls_set_advertise_prepare(void *p); // add ll_adv.h
+
+typedef struct{
+	/** Minimum value for the connection event (interval. 0x0006 - 0x0C80 * 1.25 ms) */
+	u16 intervalMin;
+	/** Maximum value for the connection event (interval. 0x0006 - 0x0C80 * 1.25 ms) */
+	u16 intervalMax;
+	/** Number of LL latency connection events (0x0000 - 0x03e8) */
+	u16 latency;
+	/** Connection Timeout (0x000A - 0x0C80 * 10 ms) */
+	u16 timeout;
+} gap_periConnectParams_t;
+
+typedef struct _tbl_scanRsp_t {
+	u8 size;
+	u8 id;
+	u8 name[10];
+} tbl_scanRsp_t;
+
+typedef struct __attribute__((packed)) _tbl_advData_t {
+	u8 flag[3];
+	u8 sz;
+	u8 id;
+	u16 uuid[2];
+} tbl_advData_t;
+
+u8  mac_public[6];
+
+//////////////////////////////////////////////////////////////////////////////
+//	 Adv Packet, Response Packet
+//////////////////////////////////////////////////////////////////////////////
+tbl_scanRsp_t tbl_scanRsp;
+static tbl_advData_t tbl_advData = {
+	.flag = {0x02, 0x01, 0x06},
+	.sz = 3,
+	.id = 2,
+	.uuid = { 0x180f, 0xFCD2 } // incomplete list of service class UUIDs
+};
+
+
+/* various */
+const u16 clientCharacterCfgUUID = GATT_UUID_CLIENT_CHAR_CFG;
+const u16 characterPresentFormatUUID = GATT_UUID_CHAR_PRESENT_FORMAT;
+const u16 my_primaryServiceUUID = GATT_UUID_PRIMARY_SERVICE;
+static const u16 my_characterUUID = GATT_UUID_CHARACTER;
+const u16 my_devServiceUUID = SERVICE_UUID_DEVICE_INFORMATION;
+const u16 my_PnPUUID = CHARACTERISTIC_UUID_PNP_ID;
+const u16 my_devNameUUID = GATT_UUID_DEVICE_NAME;
+
+//device information
+const u16 my_gapServiceUUID = SERVICE_UUID_GENERIC_ACCESS;
+// Appearance Characteristic Properties
+const u16 my_appearanceUIID = 0x2a01;
+const u16 my_periConnParamUUID = 0x2a04;
+u16 my_appearance = GAP_APPEARE_UNKNOWN;
+gap_periConnectParams_t my_periConnParameters = {20, 40, 0, 1000};
+
+#if USE_DEVICE_INFO_CHR_UUID
+
+//#define CHARACTERISTIC_UUID_SYSTEM_ID			0x2A23 // System ID
+#define CHARACTERISTIC_UUID_MODEL_NUMBER		0x2A24 // Model Number String: LYWSD03MMC
+#define CHARACTERISTIC_UUID_SERIAL_NUMBER		0x2A25 // Serial Number String: F1.0-CFMK-LB-ZCXTJ--
+#define CHARACTERISTIC_UUID_FIRMWARE_REV		0x2A26 // Firmware Revision String: 1.0.0_0109
+#define CHARACTERISTIC_UUID_HARDWARE_REV		0x2A27 // Hardware Revision String: B1.4
+#define CHARACTERISTIC_UUID_SOFTWARE_REV		0x2A28 // Software Revision String: 0x109
+#define CHARACTERISTIC_UUID_MANUFACTURER_NAME	0x2A29 // Manufacturer Name String: miaomiaoce.com
+
+//// device Information  attribute values
+//static const u16 my_UUID_SYSTEM_ID		    = CHARACTERISTIC_UUID_SYSTEM_ID;
+static const u16 my_UUID_MODEL_NUMBER	    = CHARACTERISTIC_UUID_MODEL_NUMBER;
+static const u16 my_UUID_SERIAL_NUMBER	    = CHARACTERISTIC_UUID_SERIAL_NUMBER;
+static const u16 my_UUID_FIRMWARE_REV	    = CHARACTERISTIC_UUID_FIRMWARE_REV;
+static const u16 my_UUID_HARDWARE_REV	    = CHARACTERISTIC_UUID_HARDWARE_REV;
+static const u16 my_UUID_SOFTWARE_REV	    = CHARACTERISTIC_UUID_SOFTWARE_REV;
+static const u16 my_UUID_MANUFACTURER_NAME  = CHARACTERISTIC_UUID_MANUFACTURER_NAME;
+static const u8 my_ModCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_HardRev_DP_H), U16_HI(DeviceInformation_HardRev_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_HARDWARE_REV), U16_HI(CHARACTERISTIC_UUID_HARDWARE_REV)
+};
+static const u8 my_SerialCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_FirmRev_DP_H), U16_HI(DeviceInformation_FirmRev_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_SERIAL_NUMBER), U16_HI(CHARACTERISTIC_UUID_SERIAL_NUMBER)
+};
+static const u8 my_FirmCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_FirmRev_DP_H), U16_HI(DeviceInformation_FirmRev_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_FIRMWARE_REV), U16_HI(CHARACTERISTIC_UUID_FIRMWARE_REV)
+};
+static const u8 my_HardCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_HardRev_DP_H), U16_HI(DeviceInformation_HardRev_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_HARDWARE_REV), U16_HI(CHARACTERISTIC_UUID_HARDWARE_REV)
+};
+static const u8 my_SoftCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_SoftRev_DP_H), U16_HI(DeviceInformation_SoftRev_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_SOFTWARE_REV), U16_HI(CHARACTERISTIC_UUID_SOFTWARE_REV)
+};
+static const u8 my_ManCharVal[5] = {
+	CHAR_PROP_READ,
+	U16_LO(DeviceInformation_ManName_DP_H), U16_HI(DeviceInformation_ManName_DP_H),
+	U16_LO(CHARACTERISTIC_UUID_MANUFACTURER_NAME), U16_HI(CHARACTERISTIC_UUID_MANUFACTURER_NAME)
+};
+/////////////// RxTx/CMD Char ///////////////
+#define  COMMAND_UUID16_SERVICE 0xFFFE
+#define  COMMAND_UUID16_CHARACTERISTIC 0xFF01
+const u8 my_RxTx_Data[] = {CMD_ID_DEV_ID, BOARD, APP_BUILD, APP_RELEASE};
+u16 RxTxValueInCCC;
+static const  u16 my_RxTx_ServiceUUID		= COMMAND_UUID16_SERVICE;
+static const  u16 my_RxTxUUID				= COMMAND_UUID16_CHARACTERISTIC;
+//// RxTx attribute values
+static const u8 my_RxTxCharVal[5] = {
+	CHAR_PROP_READ | CHAR_PROP_NOTIFY | CHAR_PROP_WRITE_WITHOUT_RSP,
+	U16_LO(RxTx_CMD_OUT_DP_H), U16_HI(RxTx_CMD_OUT_DP_H),
+	U16_LO(COMMAND_UUID16_CHARACTERISTIC), U16_HI(COMMAND_UUID16_CHARACTERISTIC)
+};
+
+static const u8 my_FirmStr[] = {"github.com/pvvx"};
+static const u8 my_SoftStr[] = {'V','0'+(APP_RELEASE>>4),'.','0'+(APP_RELEASE&0x0f),'.','0'+(APP_BUILD>>4),'.','0'+(APP_BUILD&0x0f)}; // "0.1.1.2"
+u8 my_HardStr[3];
+#if USE_FLASH_SERIAL_UID
+u8 my_SerialStr[20]; // "556202-C86013-012345"
+#else
+static const u8 my_SerialStr[] = {"0001"};
+#endif
+#if BOARD == BOARD_MJWSD05MMC
+static const u8 my_ModelStr[] = {"MJWSD05MMC"};
+static const u8 my_ManStr[] = {"miaomiaoce.com"};
+#elif BOARD == BOARD_MHO_C401
+static const u8 my_ModelStr[] = {"MHO-C401"};
+static const u8 my_ManStr[] = {"miaomiaoce.com"};
+#elif BOARD == BOARD_MHO_C401N
+static const u8 my_ModelStr[] = {"MHO-C401N"};
+static const u8 my_ManStr[] = {"miaomiaoce.com"};
+#elif BOARD == BOARD_LYWSD03MMC
+static const u8 my_ModelStr[] = {"LYWSD03MMC"};
+static const u8 my_ManStr[] = {"miaomiaoce.com"};
+#elif BOARD == BOARD_CGG1
+static const u8 my_ModelStr[] = {"CGG1"};
+static const u8 my_ManStr[] = {"Qingping Technology (Beijing) Co., Ltd."};
+#elif BOARD == BOARD_CGDK2
+static const u8 my_ModelStr[] = {"CGDK2"};
+static const u8 my_ManStr[] = {"Qingping Technology (Beijing) Co., Ltd."};
+#elif BOARD == BOARD_MHO_C122
+static const u8 my_ModelStr[] = {"MHO-C122"};
+static const u8 my_ManStr[] = {"MiaoMiaoCe Technology (Beijing) Co., Ltd."};
+#elif BOARD == BOARD_TS0201_TZ3000
+static const u8 my_ModelStr[] = {"TS0201"};
+static const u8 my_ManStr[] = {"Tuya"};
+#elif BOARD == BOARD_TH03Z
+static const u8 my_ModelStr[] = {"TH03Z"};
+static const u8 my_ManStr[] = {"Tuya"};
+#elif BOARD == BOARD_TB03F_KIT
+static const u8 my_ModelStr[] = {"TB03F"};
+static const u8 my_ManStr[] = {"DIY"};
+#elif BOARD == BOARD_TS0001_TZ3000_RBZ
+static const u8 my_ModelStr[] = {"REL-BZ01"};
+static const u8 my_ManStr[] = {"DIY"};
+#else
+#error "DEVICE_TYPE = ?"
+#endif
+//------------------
+#endif // USE_DEVICE_INFO_CHR_UUID
+
+
+const u16 my_gattServiceUUID = SERVICE_UUID_GENERIC_ATTRIBUTE;
+const u16 serviceChangeUIID = GATT_UUID_SERVICE_CHANGE;
+u16 serviceChangeVal[2] = {0};
+static u8 serviceChangeCCC[2]={0,0};
+
+
+const u8 PROP_READ = CHAR_PROP_READ;
+const u8 PROP_WRITE = CHAR_PROP_WRITE;
+const u8 PROP_INDICATE = CHAR_PROP_INDICATE;
+const u8 PROP_WRITE_NORSP = CHAR_PROP_WRITE_WITHOUT_RSP;
+const u8 PROP_READ_NOTIFY = CHAR_PROP_READ | CHAR_PROP_NOTIFY;
+const u8 PROP_READ_WRITE_NORSP = CHAR_PROP_READ | CHAR_PROP_WRITE_WITHOUT_RSP;
+const u8 PROP_READ_WRITE_WRITENORSP = CHAR_PROP_READ | CHAR_PROP_WRITE | CHAR_PROP_WRITE_WITHOUT_RSP;
+const u8 PROP_READ_WRITE = CHAR_PROP_READ | CHAR_PROP_WRITE;
+const u8 PROP_READ_WRITE_NORSP_NOTIFY = CHAR_PROP_READ | CHAR_PROP_WRITE_WITHOUT_RSP | CHAR_PROP_NOTIFY;
+
+
+//////////////////////////////////////////////////////////////////////////////
+//	 Adv Packet, Response Packet
+//////////////////////////////////////////////////////////////////////////////
+
+/*
+ * battery
+ * *
+const u16 my_batServiceUUID   	= SERVICE_UUID_BATTERY;
+const u16 my_batCharUUID        = CHARACTERISTIC_UUID_BATTERY_LEVEL;
+u8 my_batVal = 99;
+_attribute_custom_bss_ u16 batteryValueInCCC; */
+
+
+/*
+ * ota
+ * *
+const u8 my_OtaUUID[16]		= TELINK_SPP_DATA_OTA;
+const u8 my_OtaServiceUUID[16]		= TELINK_OTA_UUID_SERVICE;
+const u16 userdesc_UUID		= GATT_UUID_CHAR_USER_DESC;
+const u8  my_OtaName[]      = {'O', 'T', 'A'};
+u8	my_OtaData;
+*/
+
+
+// TM : to modify
+const attribute_t my_Attributes[] = {
+
+	{ATT_END_H - 1, 0,0,0,0,0},	// total num of attribute
+
+
+	// 0001 - 0007  gap
+	{7,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_gapServiceUUID), 0},
+		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_NOTIFY), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(tbl_scanRsp.name), (u8*)(&my_devNameUUID), (u8*)(tbl_scanRsp.name), 0},
+		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof (my_appearance), (u8*)(&my_appearanceUIID), 	(u8*)(&my_appearance), 0},
+		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof (my_periConnParameters),(u8*)(&my_periConnParamUUID), 	(u8*)(&my_periConnParameters), 0},
+
+
+	// 0008 - 000b gatt
+	{4,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_gattServiceUUID), 0},
+		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_INDICATE), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof (serviceChangeVal), (u8*)(&serviceChangeUIID), 	(u8*)(&serviceChangeVal), 0},
+		{0,ATT_PERMISSIONS_RDWR,2,sizeof (serviceChangeCCC),(u8*)(&clientCharacterCfgUUID), (u8*)(serviceChangeCCC), 0},
+
+
+#if USE_DEVICE_INFO_CHR_UUID
+	// 000c - 0018 Device Information Service
+	{13,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID),(u8*)(&my_devServiceUUID), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_ModCharVal),(u8*)(&my_characterUUID),(u8*)(my_ModCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_ModelStr),(u8*)(&my_UUID_MODEL_NUMBER),(u8*)(my_ModelStr), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_SerialCharVal),(u8*)(&my_characterUUID),(u8*)(my_SerialCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_SerialStr),(u8*)(&my_UUID_SERIAL_NUMBER),(u8*)(my_SerialStr), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_FirmCharVal),(u8*)(&my_characterUUID),(u8*)(my_FirmCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_FirmStr),(u8*)(&my_UUID_FIRMWARE_REV),(u8*)(my_FirmStr), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_HardCharVal),(u8*)(&my_characterUUID),(u8*)(my_HardCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_HardStr),(u8*)(&my_UUID_HARDWARE_REV),(u8*)(my_HardStr), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_SoftCharVal),(u8*)(&my_characterUUID),(u8*)(my_SoftCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_SoftStr),(u8*)(&my_UUID_SOFTWARE_REV),(u8*)(my_SoftStr), 0},
+
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_ManCharVal),(u8*)(&my_characterUUID),(u8*)(my_ManCharVal), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_ManStr),(u8*)(&my_UUID_MANUFACTURER_NAME),(u8*)(my_ManStr), 0},
+#endif
+
+/*
+	////////////////////////////////////// Battery Service /////////////////////////////////////////////////////
+	// 0019 - 001C
+	{4,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_batServiceUUID), 0},
+		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_NOTIFY), 0},				//prop
+		{0,ATT_PERMISSIONS_READ,2,sizeof(my_batVal),(u8*)(&my_batCharUUID), 	(u8*)(&my_batVal), 0},	//value
+		{0,ATT_PERMISSIONS_RDWR,2,sizeof(batteryValueInCCC),(u8*)(&clientCharacterCfgUUID), 	(u8*)(&batteryValueInCCC), 0},	//value
+
+	////////////////////////////////////// OTA /////////////////////////////////////////////////////
+	// 001D - 0021
+	{4,ATT_PERMISSIONS_READ, 2,16,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_OtaServiceUUID), 0},
+		{0,ATT_PERMISSIONS_READ, 2, 1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_WRITE_NORSP), 0},				//prop
+#if USE_BLE_OTA
+		{0,ATT_PERMISSIONS_RDWR,16,sizeof(my_OtaData),(u8*)(&my_OtaUUID),	(u8 *)(&my_OtaData), &app_bleOtaWrite, &otaRead},
+#else
+		{0,ATT_PERMISSIONS_RDWR,16,sizeof(my_OtaData),(u8*)(&my_OtaUUID),	(u8 *)(&my_OtaData), &app_bleOtaWrite, &app_bleOtaRead},
+#endif
+		{0,ATT_PERMISSIONS_READ, 2,sizeof (my_OtaName),(u8*)(&userdesc_UUID), (u8*)(my_OtaName), 0},
+*/
+		////////////////////////////////////// RxTx ////////////////////////////////////////////////////
+		// 002B - 002E RxTx Communication
+		{4,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_RxTx_ServiceUUID), 0},
+			{0,ATT_PERMISSIONS_READ, 2,sizeof(my_RxTxCharVal),(u8*)(&my_characterUUID),	(u8*)(my_RxTxCharVal), 0},				//prop
+			{0,ATT_PERMISSIONS_RDWR, 2,sizeof(my_RxTx_Data),(u8*)(&my_RxTxUUID), (u8*)&my_RxTx_Data, &RxTxWrite, 0},
+			{0,ATT_PERMISSIONS_RDWR, 2,sizeof(RxTxValueInCCC),(u8*)(&clientCharacterCfgUUID), 	(u8*)(&RxTxValueInCCC), 0}	//value
+
+
+};
+
+
+_attribute_data_retention_  u8 		 	blt_rxfifo_b[RX_FIFO_SIZE * RX_FIFO_NUM] = {0};
+_attribute_data_retention_	my_fifo_t	blt_rxfifo = {
+												RX_FIFO_SIZE,
+												RX_FIFO_NUM,
+												0,
+												0,
+												blt_rxfifo_b,};
+
+
+_attribute_data_retention_  u8 		 	blt_txfifo_b[TX_FIFO_SIZE * TX_FIFO_NUM] = {0};
+_attribute_data_retention_	my_fifo_t	blt_txfifo = {
+												TX_FIFO_SIZE,
+												TX_FIFO_NUM,
+												0,
+												0,
+												blt_txfifo_b,};
+
+
+_attribute_data_retention_	own_addr_type_t 	app_own_address_type = OWN_ADDRESS_PUBLIC;
+
+u8	g_ble_txPowerSet = BLE_DEFAULT_TX_POWER_IDX; // RF_POWER_P3p01dBm;
+_attribute_data_retention_	u8 device_in_connection_state;
+//_attribute_data_retention_	u32 advertise_begin_tick;
+_attribute_data_retention_	u32	interval_update_tick;
+#if (BLE_APP_PM_ENABLE)
+_attribute_data_retention_	u8	sendTerminate_before_enterDeep = 0;
+#endif
+#if (MTU_SIZE_SETTING)
+_attribute_data_retention_ 	int  mtuExchange_started_flg = 0;
+#endif
+volatile bool g_bleConnDoing = 0;
+/*
+ *  functions
+ *
+ *
+ *
+_attribute_ram_code_ int ble_rxfifo_empty(void){
+    if(blt_rxfifo.rptr == blt_rxfifo.wptr)    {
+        return 1;
+    }else {
+        return 0;
+    }
+}*/
+
+unsigned char * str_bin2hex(unsigned char *d, unsigned char *s, int len) {
+	static const char* hex_ascii = { "0123456789ABCDEF" };
+	while(len--) {
+		*d++ = hex_ascii[(*s >> 4) & 0xf];
+		*d++ = hex_ascii[(*s++ >> 0) & 0xf];
+	}
+	return d;
+}
+
+static void my_att_init(void){
+#if USE_FLASH_SERIAL_UID
+	u8 buf[16];
+	u32 mid;
+	u8 *p = my_SerialStr;
+	// Read SoC ID, version
+	buf[0] = REG_ADDR8(0x7f);
+	buf[1] = REG_ADDR8(0x7e);
+	buf[2] = REG_ADDR8(0x7d);
+	p = str_bin2hex(p, buf, 3);
+	*p++ = '-';
+	memset(buf, 0, sizeof(buf));
+	// Read flash ID and UID
+	flash_read_mid_uid_with_check(&mid, buf);
+	p = str_bin2hex(p, (unsigned char *)&mid, 3);
+	*p++ = '-';
+	memcpy(p, buf, 6);
+	//ser_uid_txt(p, &buf[4], 7);
+#endif
+
+	my_HardStr[0] = 'V';
+    str_bin2hex(&my_HardStr[1], &g_zcl_basicAttrs.hwVersion, 1);
+
+    bls_att_setAttributeTable ((u8 *)my_Attributes);
+}
+
+
+void app_switch_to_indirect_adv(u8 e, u8 *p, int n){
+	bls_ll_setAdvParam( DEF_ADV_INTERVAL_MIN, DEF_ADV_INTERVAL_MAX,
+						ADV_TYPE_CONNECTABLE_UNDIRECTED, OWN_ADDRESS_PUBLIC,
+						0,  NULL,
+						DEF_APP_ADV_CHANNEL,
+						ADV_FP_NONE);
+	bls_ll_setAdvEnable(BLC_ADV_ENABLE);  //must: set adv enable
+}
+
+
+void ble_remote_terminate(u8 e,u8 *p, int n){ //*p is terminate reason
+
+	device_in_connection_state = 0;
+	g_sensorAppCtx.adv_restore_count = 6;
+
+#if (MTU_SIZE_SETTING)
+	mtuExchange_started_flg = 0;
+#endif
+	if(*p == HCI_ERR_CONN_TIMEOUT){
+
+	}
+	else if(*p == HCI_ERR_REMOTE_USER_TERM_CONN){  //0x13
+
+	}
+	else if(*p == HCI_ERR_CONN_TERM_MIC_FAILURE){
+
+	}
+	else{
+
+	}
+#if (BLE_APP_PM_ENABLE)
+	 //user has push terminate pkt to ble TX buffer before deepsleep
+	if(sendTerminate_before_enterDeep == 1){
+		sendTerminate_before_enterDeep = 2;
+	}
+#endif
+
+}
+
+//_attribute_ram_code_
+void	user_set_rf_power (u8 e, u8 *p, int n){
+	rf_set_power_level_index(g_ble_txPowerSet);
+}
+
+
+void task_connect (u8 e, u8 *p, int n){
+
+	bls_l2cap_requestConnParamUpdate (DEF_CON_PAR_UPDATE);
+
+	device_in_connection_state = 1;//
+
+	interval_update_tick = clock_time() | 1; //none zero
+
+	g_sensorAppCtx.adv_restore_count = 6;
+}
+
+
+void	task_conn_update_req (u8 e, u8 *p, int n){
+	device_in_connection_state |= 2;
+	g_sensorAppCtx.adv_restore_count = 6;
+}
+
+void	task_conn_update_done (u8 e, u8 *p, int n){
+	device_in_connection_state |= 4;
+	g_sensorAppCtx.adv_restore_count = 6;
+}
+
+void blc_initMacAddress(int flash_addr, u8 *mac_public, u8 *mac_random_static){
+	u8 mac_read[8];
+	u8 value_rand[5];
+	flash_read_page(flash_addr, 8, mac_read);
+	u8 ff_six_byte[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	if ( memcmp(mac_read, ff_six_byte, sizeof(mac_read)) ) {
+		memcpy(mac_public, mac_read, 6);  //copy public address from flash
+	}
+	else {  //no public address on flash
+		generateRandomNum(sizeof(value_rand), value_rand);
+		mac_public[0] = value_rand[0];
+		mac_public[1] = value_rand[1];
+		mac_public[2] = value_rand[2];
+		mac_public[3] = 0x38;             //company id: 0xA4C138
+		mac_public[4] = 0xC1;
+		mac_public[5] = 0xA4;
+		mac_public[6] = value_rand[3];
+		mac_public[7] = value_rand[4];
+
+		flash_write_page (flash_addr, sizeof(mac_public), mac_public);
+	}
+
+	mac_random_static[0] = mac_public[0];
+	mac_random_static[1] = mac_public[1];
+	mac_random_static[2] = mac_public[2];
+	mac_random_static[3] = value_rand[3];
+	mac_random_static[4] = value_rand[4];
+	mac_random_static[5] = 0xC0; 			//for random static
+}
+
+bool ble_connection_doing(void){
+	return g_bleConnDoing;
+}
+
+int app_host_event_callback (u32 h, u8 *para, int n){
+	u8 event = h & 0xFF;
+
+	switch(event)
+	{
+		case GAP_EVT_SMP_PARING_BEAGIN:
+		{
+			g_bleConnDoing = 1;
+		}
+		break;
+
+		case GAP_EVT_SMP_PARING_SUCCESS:
+		{
+			g_bleConnDoing = 0;
+		}
+		break;
+
+		case GAP_EVT_SMP_PARING_FAIL:
+		{
+			g_bleConnDoing = 0;
+		}
+		break;
+
+		case GAP_EVT_SMP_CONN_ENCRYPTION_DONE:
+		{
+#if (MTU_SIZE_SETTING)
+			if(!mtuExchange_started_flg){  //master do not send MTU exchange request in time
+				blc_att_requestMtuSizeExchange(BLS_CONN_HANDLE, MTU_SIZE_SETTING);
+			}
+#endif
+		}
+		break;
+
+		case GAP_EVT_ATT_EXCHANGE_MTU:
+		{
+#if (MTU_SIZE_SETTING)
+//			gap_gatt_mtuSizeExchangeEvt_t *pEvt = (gap_gatt_mtuSizeExchangeEvt_t *)para;
+			mtuExchange_started_flg = 1;   //set MTU size exchange flag here
+#endif
+		}
+		break;
+
+
+		default:
+		break;
+	}
+
+	return 0;
+}
+
+/*
+void ble_start_adv(void) {
+	g_sensorAppCtx.adv_restore_count = 88; // 80 sec 80000/900
+	bls_ll_setAdvEnable(BLC_ADV_ENABLE);  // adv enable
+}
+*/
+
+//	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
+int app_advertise_prepare_handler(rf_packet_adv_t * p)	{
+	(void) p;
+	if(g_sensorAppCtx.adv_restore_count) {
+		if(--g_sensorAppCtx.adv_restore_count == 0) {
+			//blc_ll_setScanEnable(BLC_SCAN_DISABLE, DUP_FILTER_DISABLE);
+			g_sensorAppCtx.ble_on = 0;
+			bls_ll_setAdvEnable(BLC_ADV_DISABLE);  // adv disable
+			blc_ll_removeScanningFromAdvState();  //remove scan in adv state
+			blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
+		}
+	}
+	LED_E_ON();
+	return 1;		// = 1 ready to send ADV packet, = 0 not send ADV
+}
+
+void user_ble_normal_init(void){
+
+	bls_smp_configParingSecurityInfoStorageAddr(CFG_NV_START_FOR_BLE);
+	 //blc_app_loadCustomizedParameters();  //load customized freq_offset cap value
+
+////////////////// BLE stack initialization ////////////////////////////////////
+	u8  mac_random_static[6];
+	blc_initMacAddress(CFG_MAC_ADDRESS, mac_public, mac_random_static);
+
+#if(BLE_DEVICE_ADDRESS_TYPE == BLE_DEVICE_ADDRESS_RANDOM_STATIC)
+	blc_ll_setRandomAddr(mac_random_static);
+#endif
+
+	////// Controller Initialization  //////////
+	blc_ll_initBasicMCU();                      //mandatory
+	blc_ll_initStandby_module(mac_public);				//mandatory
+#if USE_SCAN
+	blc_ll_initScanning_module(mac_public);
+//	blc_ll_initInitiating_module();						//initiate module: 	 mandatory for BLE master,
+//	blc_ll_initConnection_module();						//connection module  mandatory for BLE slave/master
+//	blc_ll_initMasterRoleSingleConn_module();			//master module: 	 mandatory for BLE master,
+#endif
+	blc_ll_initAdvertising_module(mac_public); 	//adv module: 		 mandatory for BLE slave,
+	blc_ll_initSlaveRole_module();				//slave module: 	 mandatory for BLE slave,
+#if	1 //PM_ENABLE
+	blc_ll_initPowerManagement_module();        //pm module:      	 optional
+#endif
+	////// Host Initialization  //////////
+	blc_gap_peripheral_init();    //gap initialization
+	my_att_init(); //gatt initialization
+	blc_l2cap_register_handler (blc_l2cap_packet_receive);  	//l2cap initialization
+
+	//Smp Initialization may involve flash write/erase(when one sector stores too much information,
+	//   is about to exceed the sector threshold, this sector must be erased, and all useful information
+	//   should re_stored) , so it must be done after battery check
+#if (APP_SECURITY_ENABLE)
+	blc_smp_peripheral_init();
+#else
+	blc_smp_setSecurityLevel(No_Security);
+#endif
+
+	blc_gap_registerHostEventHandler( app_host_event_callback );
+	blc_gap_setEventMask( GAP_EVT_MASK_SMP_PARING_BEAGIN 			|  \
+						  GAP_EVT_MASK_SMP_PARING_SUCCESS   		|  \
+						  GAP_EVT_MASK_SMP_PARING_FAIL				|  \
+						  GAP_EVT_MASK_SMP_CONN_ENCRYPTION_DONE 	|  \
+						  GAP_EVT_MASK_ATT_EXCHANGE_MTU);
+
+
+
+///////////////////// USER application initialization ///////////////////
+
+
+	////////////////// config adv packet /////////////////////
+
+	tbl_scanRsp.size = sizeof(tbl_scanRsp.name) + sizeof(tbl_scanRsp.id) ;
+	tbl_scanRsp.id = GAP_ADTYPE_LOCAL_NAME_COMPLETE;
+#if BOARD == BOARD_MJWSD05MMC
+	tbl_scanRsp.name[0] = 'B';
+	tbl_scanRsp.name[1] = 'T';
+	tbl_scanRsp.name[2] = 'H';
+#elif BOARD == BOARD_MHO_C401
+	tbl_scanRsp.name[0] = 'M';
+	tbl_scanRsp.name[1] = 'H';
+	tbl_scanRsp.name[2] = 'O';
+#elif BOARD == BOARD_MHO_C401N
+	tbl_scanRsp.name[0] = 'M';
+	tbl_scanRsp.name[1] = 'H';
+	tbl_scanRsp.name[2] = 'O';
+#elif BOARD == BOARD_LYWSD03MMC
+	tbl_scanRsp.name[0] = 'A';
+	tbl_scanRsp.name[1] = 'T';
+	tbl_scanRsp.name[2] = 'C';
+#elif BOARD == BOARD_CGG1
+	tbl_scanRsp.name[0] = 'C';
+	tbl_scanRsp.name[1] = 'G';
+	tbl_scanRsp.name[2] = 'G';
+#elif BOARD == BOARD_CGDK2
+	tbl_scanRsp.name[0] = 'C';
+	tbl_scanRsp.name[1] = 'G';
+	tbl_scanRsp.name[2] = 'D';
+#elif BOARD == BOARD_MHO_C122
+	tbl_scanRsp.name[0] = 'M';
+	tbl_scanRsp.name[1] = 'H';
+	tbl_scanRsp.name[2] = 'O';
+#elif BOARD == BOARD_TS0201_TZ3000
+	tbl_scanRsp.name[0] = 'T';
+	tbl_scanRsp.name[1] = 'H';
+	tbl_scanRsp.name[2] = 'S';
+#elif BOARD == BOARD_TH03Z
+	tbl_scanRsp.name[0] = 'T';
+	tbl_scanRsp.name[1] = 'H';
+	tbl_scanRsp.name[2] = 'Z';
+#elif BOARD == BOARD_TB03F_KIT
+	tbl_scanRsp.name[0] = 'B';
+	tbl_scanRsp.name[1] = '2';
+	tbl_scanRsp.name[2] = 'Z';
+#elif BOARD == BOARD_TS0001_TZ3000_RBZ
+	tbl_scanRsp.name[0] = 'R';
+	tbl_scanRsp.name[1] = 'B';
+	tbl_scanRsp.name[2] = 'Z';
+#else
+#error "DEVICE_TYPE = ?"
+#endif
+
+	tbl_scanRsp.name[3] = '-';
+	tbl_scanRsp.name[4] = int_to_hex(mac_public[2] >> 4);
+	tbl_scanRsp.name[5] = int_to_hex(mac_public[2] & 0x0f);
+	tbl_scanRsp.name[6] = int_to_hex(mac_public[1] >> 4);
+	tbl_scanRsp.name[7] = int_to_hex(mac_public[1] & 0x0f);
+	tbl_scanRsp.name[8] = int_to_hex(mac_public[0] >> 4);
+	tbl_scanRsp.name[9] = int_to_hex(mac_public[0] & 0x0f);
+
+	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
+
+	bls_ll_setScanRspData((u8 *)&tbl_scanRsp, sizeof(tbl_scanRsp));
+	bls_ll_setAdvData( (u8 *)&tbl_advData, sizeof(tbl_advData) );
+	//	app_switch_to_indirect_adv(0,0,0); //adv enable
+	bls_ll_setAdvParam( CONNECT_ADV_INTERVAL_MIN, CONNECT_ADV_INTERVAL_MAX,
+						ADV_TYPE_CONNECTABLE_UNDIRECTED, OWN_ADDRESS_PUBLIC,
+						0,  NULL,
+						DEF_APP_ADV_CHANNEL,
+						ADV_FP_NONE);
+	bls_ll_setAdvEnable(BLC_ADV_DISABLE);
+
+#if USE_SCAN
+//	blc_ll_initScanning_module(mac_public);
+	blc_hci_le_setEventMask_cmd(HCI_LE_EVT_MASK_ADVERTISING_REPORT | HCI_LE_EVT_MASK_SCAN_REQUEST_RECEIVED | HCI_SUB_EVT_LE_DIRECT_ADVERTISE_REPORT);
+	blc_hci_registerControllerEventHandler(scanning_event_callback); //controller hci event to host all processed in this func
+	//set scan parameter and scan enable
+	blc_ll_setScanParameter(SCAN_TYPE_PASSIVE, SCAN_INTERVAL_50MS, SCAN_INTERVAL_50MS-4, // SCAN_INTERVAL_30MS
+							  OWN_ADDRESS_PUBLIC, SCAN_FP_ALLOW_ADV_ANY);
+	blc_ll_setScanWin(30000);//30ms
+	blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_ENABLE); // DUP_FILTER_DISABLE
+	//blc_ll_addScanningInAdvState();  //add scan in adv state
+	blc_ll_addScanningInConnSlaveRole();  //add scan in conn slave role
+#endif
+
+
+	//set rf power index, user must set it after every suspend wakeup, cause relative setting will be reset in suspend
+	user_set_rf_power(0, 0, 0);
+	bls_app_registerEventCallback (BLT_EV_FLAG_SUSPEND_EXIT, &user_set_rf_power);
+
+
+
+	//ble event call back
+	bls_app_registerEventCallback (BLT_EV_FLAG_CONNECT, &task_connect);
+	bls_app_registerEventCallback (BLT_EV_FLAG_TERMINATE, &ble_remote_terminate);
+//	bls_app_registerEventCallback (BLT_EV_FLAG_RX_DATA_ABANDOM, &ble_exception_data_abandom);
+
+
+//	bls_app_registerEventCallback (BLT_EV_FLAG_CONN_PARA_REQ, &task_conn_update_req);
+//	bls_app_registerEventCallback (BLT_EV_FLAG_CONN_PARA_UPDATE, &task_conn_update_done);
+
+	///////////////////// Power Management initialization///////////////////
+#if(BLE_APP_PM_ENABLE)
+	bls_pm_setSuspendMask(SUSPEND_ADV | SUSPEND_CONN);
+	//bls_app_registerEventCallback (BLT_EV_FLAG_SUSPEND_ENTER, &ble_remote_set_sleep_wakeup);
+#else
+	//bls_pm_setSuspendMask (SUSPEND_DISABLE);
+#endif
+//	advertise_begin_tick = clock_time();
+}
+
+void user_ble_init(bool isRetention){
+#if(BLE_APP_PM_ENABLE)
+	sendTerminate_before_enterDeep = 0;
+#endif
+	if(isRetention){
+		blc_ll_initBasicMCU();   //mandatory
+		rf_set_power_level_index(g_ble_txPowerSet);
+		blc_ll_recoverDeepRetention();
+	} else {
+		if (flash_supported_eep_ver(0, (APP_RELEASE<<8) | APP_BUILD)) { // next start
+			for(int i=0; i < MAX_SCAN_DEVS; i++) {
+				flash_read_cfg(dev_MAC[i], EEP_ID_DMAC(i), 6);
+#if USE_BINDKEY
+				flash_read_cfg(bindkey[i], EEP_ID_BKEY(i), 16);
+#endif
+			}
+		}
+		user_ble_normal_init();
+	}
+#if	USE_DEBUG_UART
+	init_uart(115200);
+#endif
+}
+
+typedef struct __attribute__((packed)) {
+	u8	id;
+	u8  nn;
+	s16	temperature; // x 0.01 degree
+	u16	humidity; // x 0.01 %
+	u8	battery_level; // 0..200 -> 0..100 %
+	u8	battery_v01; // x 0.1V
+} msg_notify_t;
+
+
+void task_ble(void) {
+	if(device_in_connection_state && RxTxValueInCCC) {
+		for(int n = 0; n < MAX_SCAN_DEVS; n++) {
+			if(update_enable[n] & FLG_UPDATE_FLG) {
+				update_enable[n] &= ~ FLG_UPDATE_FLG;
+				msg_notify_t msg;
+				msg.id = CMD_ID_MEASURE;
+				msg.nn = n;
+				msg.temperature = g_zcl_temperatureAttrs.measuredValue[n];
+				msg.humidity = g_zcl_relHumidityAttrs.measuredValue[n];
+				msg.battery_level = g_zcl_powerAttrs[n].batteryPercentage;
+				msg.battery_v01 = g_zcl_powerAttrs[n].batteryVoltage;
+				bls_att_pushNotifyData(RxTx_CMD_OUT_DP_H, (u8 *) &msg , sizeof(msg));
+			}
+		}
+	}
+}
+
+#if(BLE_APP_PM_ENABLE)
+
+int blt_pm_proc(void) {
+#if 0
+	if(sendTerminate_before_enterDeep == 1) {  //sending Terminate and wait for ack before enter deepsleep
+	}
+	else if(sendTerminate_before_enterDeep == 2) { //Terminate OK
+		return 1;
+	}
+	return 0;
+#else
+	return sendTerminate_before_enterDeep == 2;
+#endif
+}
+
+#endif
+
+
