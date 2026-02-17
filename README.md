@@ -8,6 +8,8 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x.
 
 ![b2z.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z.gif)
 
+![b2z1](https://github.com/pvvx/TLB2Z/blob/master/web/b2z1.jpg)
+
 Use this **[TB-03F-KIT](https://docs.ai-thinker.com/en/blue_tooth)** or **[TB-04-KIT](https://docs.ai-thinker.com/en/blue_tooth)** ($3)
 
 ![tb-03f-kit.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f-kit.gif)
