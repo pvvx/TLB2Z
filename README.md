@@ -12,9 +12,14 @@ Use this **[TB-03F-KIT](https://docs.ai-thinker.com/en/blue_tooth)** or **[TB-04
 
 ![tb-03f-kit.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f-kit.gif)
 
-Alternative  **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5), lacking LEDs, USB UART, LDO. Above options are easier to set up.
+Alternative 1: **[TB-03F](https://docs.ai-thinker.com/en/blue_tooth)** (~$1.5), lacking LEDs, USB UART, LDO. Above options are easier to set up.
 
 ![tb-03f.gif](https://github.com/pvvx/TLB2Z/blob/master/web/tb-03f.gif)
+
+Alternative 2: **[TS0001_TZ3000_gjrubzje](https://pvvx.github.io/TS0001_TZ3000/)**
+
+![ZigbeeSwitch](https://raw.githubusercontent.com/pvvx/pvvx.github.io/refs/heads/master/TS0001_TZ3000_fdxihpp7/img/ZigbeeSwitch.jpg)
+
 
 * BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 * Initial programming (https://github.com/pvvx/TLB2Z/tree/master/pgm)
