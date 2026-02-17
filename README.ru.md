@@ -17,6 +17,10 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 * [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
 * [Файлы прошивки и Zigbee OTA](https://github.com/pvvx/TLB2Z/tree/master/fw)
 
+И вариант на [TS0001_TZ3000_gjrubzje](https://pvvx.github.io/TS0001_TZ3000/)
+
+![ZigbeeSwitch](https://raw.githubusercontent.com/pvvx/pvvx.github.io/refs/heads/master/TS0001_TZ3000_fdxihpp7/img/ZigbeeSwitch.jpg)
+
 ## Основные технические характеристики
 
 * Прием BLE рекламы до 3-х термометров-гигрометров и перевод показаний в виде конечного устройства Zigbee.
