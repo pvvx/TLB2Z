@@ -1,10 +1,10 @@
 [
     {
         "fileVersion": 17182721,
-        "fileSize": 157154,
+        "fileSize": 157218,
         "manufacturerCode": 4417,
         "imageType": 8720,
-        "sha512": "f4d58cc9757a4580c4615170bbeb4407fbd29194186d849a9b4ffd4a0c717ae7f73895528ddd46fbc67d2618fa58551167d50cff1f8899bb0f85c0722d1ecfa4",
+        "sha512": "b5d5dbf0f166382928df798a34dabc275295ab0834530727eeb4f10d01c884a12ddbbbe2e84dcb695f7102f9ed62bcd87af8d865e9704d1b62c7d0a50410de68",
         "otaHeaderString": "B2Z:TB03F-bz",
         "modelId": "TB03F-bz",
         "manufacturerName": [
@@ -14,10 +14,10 @@
     },
     {
         "fileVersion": 17182721,
-        "fileSize": 157090,
+        "fileSize": 157170,
         "manufacturerCode": 4417,
         "imageType": 8747,
-        "sha512": "5d4287b49f15f0ed932cc94e646b2b8ef038d114aab000de602675ac4a364c0a42872827369fbbd4636cbdf1570b1acef6d0b6779cdb02d648a92e9f97f25012",
+        "sha512": "ad5e8f1449c6386582ce1b70380a7feb9adc14485c29280f45a2cbc78c4558ac61dbe8e358970874fdcbaf50d1bded9a0ce6f094a5f9227fbdf4df9413d716b6",
         "otaHeaderString": "B2Z:REL-BZ01",
         "modelId": "REL-BZ01",
         "manufacturerName": [

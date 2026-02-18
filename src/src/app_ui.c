@@ -146,12 +146,22 @@ void task_keys(void) {
 			if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 10000)) { // 10 ms
 				if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 7000 * 1000)) { // 7 sec
 					g_sensorAppCtx.keyPressedTime = clock_time();
-			        zb_factoryReset(); //	tl_bdbReset2FN();
+#ifdef GPIO_LED
+					for(int i = 0; i < 10; i++) {
+						gpio_write(GPIO_LED, LED_ON);
+						sleep_ms(100);
+						gpio_write(GPIO_LED, LED_OFF);
+						sleep_ms(100);
+					}
+#endif
+					if(!zb_isDeviceFactoryNew()) {
+						tl_bdbReset2FN();
+					}
 					light_off();
 #if 1
-					drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, 5*1000);
+					drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, clock_time() + 5 * CLOCK_16M_SYS_TIMER_CLK_1S);
 #else
-					zb_resetDevice();
+					SYSTEM_RESET();
 #endif
 				} else {
 					g_sensorAppCtx.key1flag = 1;

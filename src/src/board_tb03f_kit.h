@@ -11,8 +11,8 @@
 
 #if (BOARD == BOARD_TB03F_KIT)
 #define BLE_MODEL_STR 			{"TB03F"}
-#define BLE_MAN_STR 			{"B2Z"}
-#define BLE_NAME_PEFIX 			{"B2Z"}
+#define BLE_MAN_STR 			{"TLB2Z"}
+#define BLE_NAME_PEFIX 			{'B','2','Z','-'} // fix 4 char
 #define ZCL_BASIC_MODEL_ID		{8,'T','B','0','3','F','-','b','z'} // TB03F-bz
 #define ZCL_BASIC_MFG_NAME		{3,'B','2','Z'} // B2Z
 

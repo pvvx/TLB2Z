@@ -17,8 +17,7 @@ void battery_detect(void)
 	u16 battery_mv = get_adc_mv(0);
 	if(battery_mv < BATTERY_SAFETY_THRESHOLD){
 #if PM_ENABLE
-		sensor_go_sleep();
-		drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, 60*1000);
+		drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, clock_time() + 3 * CLOCK_16M_SYS_TIMER_CLK_1S);
 #else
 		SYSTEM_RESET();
 #endif

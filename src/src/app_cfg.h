@@ -88,16 +88,6 @@ extern "C" {
 #define READ_SENSOR_TIMER_SEC 	4 // second
 #define READ_SENSOR_TIMER_MS 	(READ_SENSOR_TIMER_SEC*1000) // msecond
 
-/* Voltage detect module */
-/* If VOLTAGE_DETECT_ENABLE is set,
- * 1) if MCU_CORE_826x is defined, the DRV_ADC_VBAT_MODE mode is used by default,
- * and there is no need to configure the detection IO port;
- * 2) if MCU_CORE_8258 or MCU_CORE_8278 is defined, the DRV_ADC_VBAT_MODE mode is used by default,
- * we need to configure the detection IO port, and the IO must be in a floating state.
- * 3) if MCU_CORE_B91 is defined, the DRV_ADC_BASE_MODE mode is used by default,
- * we need to configure the detection IO port, and the IO must be connected to the target under test,
- * such as VCC.
- */
 #define VOLTAGE_DETECT_ENABLE						0
 
 /* Watch dog module */

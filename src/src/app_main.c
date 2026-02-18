@@ -112,11 +112,16 @@ char int_to_hex(u8 num) {
 
 static void app_SysException(void)
 {
-#if 1
-	drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, 5*1000);
-#else
-	zb_resetDevice();
+#ifdef GPIO_LED
+	irq_disable();
+	for(int i = 0; i < 10; i++) {
+		gpio_write(GPIO_LED, LED_ON);
+		sleep_ms(100);
+		gpio_write(GPIO_LED, LED_OFF);
+		sleep_ms(100);
+	}
 #endif
+	SYSTEM_RESET();
 }
 
 /*********************************************************************
@@ -183,24 +188,6 @@ static void user_app_init(void)
 	}
 	/* Set default reporting configuration */
 	reportableChange = 0;
-    bdb_defaultReportingCfg(
-    	SENSOR_DEVICE_ENDPOINT1,
-		HA_PROFILE_ID,
-		ZCL_CLUSTER_GEN_POWER_CFG,
-		ZCL_ATTRID_BATTERY_VOLTAGE,
-		360,
-		3600,
-		(u8 *)&reportableChange
-	);
-    bdb_defaultReportingCfg(
-    	SENSOR_DEVICE_ENDPOINT1,
-		HA_PROFILE_ID,
-		ZCL_CLUSTER_GEN_POWER_CFG,
-		ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,
-		360,
-		3600,
-		(u8 *)&reportableChange
-	);
 #ifdef ZCL_ON_OFF
     /* OnOff */
     bdb_defaultReportingCfg(
@@ -212,6 +199,26 @@ static void user_app_init(void)
 		3600,
 		(uint8_t *)&reportableChange);
 #endif
+	for(int i = 0; i <= 0x40; i += 0x20) {
+		bdb_defaultReportingCfg(
+	    	SENSOR_DEVICE_ENDPOINT1,
+			HA_PROFILE_ID,
+			ZCL_CLUSTER_GEN_POWER_CFG,
+			i + ZCL_ATTRID_BATTERY_VOLTAGE,
+			360,
+			3600,
+			(u8 *)&reportableChange
+		);
+	    bdb_defaultReportingCfg(
+	    	SENSOR_DEVICE_ENDPOINT1,
+			HA_PROFILE_ID,
+			ZCL_CLUSTER_GEN_POWER_CFG,
+			i + ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,
+			360,
+			3600,
+			(u8 *)&reportableChange
+		);
+	}
     for(int i=SENSOR_DEVICE_ENDPOINT1; i <= SENSOR_DEVICE_ENDPOINT4; i++) {
         reportableChange = 10;
 		bdb_defaultReportingCfg(
@@ -275,23 +282,6 @@ void user_init(bool isRetention)
 }
 
 /**********************************************************************
- * @fn      time_sec_task
- *
- * @brief   Calculate time sec for report
- *
- * @param   None
- *
- * @return  None
- */
-void time_sec_task(void) {
-	while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
-		g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
-		g_sensorAppCtx.reportupsec++; // + 1 sec
-		//g_sensorAppCtx.utc_time_sec++;
-	}
-}
-
-/**********************************************************************
  * @fn      app_zb_task
  *
  * @brief   app_zb_task
@@ -302,24 +292,19 @@ void time_sec_task(void) {
  */
 static void app_zb_task(void)
 {
-	//u16 rep_uptime_sec;
-	//time_sec_task();
 	if(bdb_isIdle()){
 		// report handler
 		if(zb_isDeviceJoinedNwk()){
-			//if(!g_sensorAppCtx.timerLedEvt) light_off();
 			while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
 				g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
 				g_sensorAppCtx.reportupsec++; // + 1 sec
-//				g_sensorAppCtx.utc_time_sec++;
 			}
-			if(g_sensorAppCtx.reportupsec) {// >= READ_SENSOR_TIMER_SEC) {
+			if(g_sensorAppCtx.reportupsec) { // >= READ_SENSOR_TIMER_SEC ?
 				app_chk_report(g_sensorAppCtx.reportupsec);
 				g_sensorAppCtx.reportupsec = 0;
 			}
 		} else {
 			g_sensorAppCtx.reportupsec = 0;
-			// if(!g_sensorAppCtx.timerLedEvt) light_on();
 			light_blink_start(5, 500, 500);
 		}
 	}

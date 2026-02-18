@@ -11,8 +11,8 @@
 
 #if (BOARD == BOARD_TS0001_TZ3000_RBZ)
 #define BLE_MODEL_STR 			{"REL-BZ01"}
-#define BLE_MAN_STR 			{"B2Z"}
-#define BLE_NAME_PEFIX 			{"B2Z"}
+#define BLE_MAN_STR 			{"TLB2Z"}
+#define BLE_NAME_PEFIX 			{'B','2','Z','-'} // fix 4 char
 #define ZCL_BASIC_MODEL_ID		{8,'R','E','L','-','B','Z','0','1'} // REL-BZ01
 #define ZCL_BASIC_MFG_NAME		{3,'B','2','Z'} // B2Z
 

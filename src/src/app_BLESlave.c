@@ -33,9 +33,7 @@
 #include "drv_uart.h"
 #include "ble_cmd_parser.h"
 #include "app_ui.h"
-
-//#include "vendor/common/blt_led.h"
-//#include "vendor/common/blt_common.h"
+#include "adv_bthome.h"
 
 #define RX_FIFO_SIZE	                   64
 #define RX_FIFO_NUM		                   8
@@ -67,22 +65,30 @@ typedef struct __attribute__((packed)) _tbl_advData_t {
 	u8 flag[3];
 	u8 sz;
 	u8 id;
-	u16 uuid[2];
+	u16 uuid[1];
+	tbl_scanRsp_t nm;
 } tbl_advData_t;
 
 u8  mac_public[6];
 
-const u8  ble_name_prefix[3] = BLE_NAME_PEFIX;
+//const u8  ble_name_prefix[3] = BLE_NAME_PEFIX;
 
 //////////////////////////////////////////////////////////////////////////////
 //	 Adv Packet, Response Packet
 //////////////////////////////////////////////////////////////////////////////
-tbl_scanRsp_t tbl_scanRsp;
+
+//tbl_scanRsp_t tbl_scanRsp;
+
 static tbl_advData_t tbl_advData = {
-	.flag = {0x02, 0x01, 0x06},
+	.flag = {0x02, GAP_ADTYPE_FLAGS, 0x06},
 	.sz = 3,
-	.id = 2,
-	.uuid = { 0x180f, 0xFCD2 } // incomplete list of service class UUIDs
+	.id = GAP_ADTYPE_16BIT_INCOMPLETE,
+	.uuid = { ADV_BTHOME_UUID16 }, // incomplete list of service class UUIDs
+	.nm = {
+		.size = 11,
+		.id = GAP_ADTYPE_LOCAL_NAME_COMPLETE,
+		.name = BLE_NAME_PEFIX
+	}
 };
 
 
@@ -232,7 +238,7 @@ const attribute_t my_Attributes[] = {
 	// 0001 - 0007  gap
 	{7,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_gapServiceUUID), 0},
 		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_NOTIFY), 0},
-		{0,ATT_PERMISSIONS_READ,2,sizeof(tbl_scanRsp.name), (u8*)(&my_devNameUUID), (u8*)(tbl_scanRsp.name), 0},
+		{0,ATT_PERMISSIONS_READ,2,sizeof(tbl_advData.nm.name), (u8*)(&my_devNameUUID), (u8*)(tbl_advData.nm.name), 0},
 		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ), 0},
 		{0,ATT_PERMISSIONS_READ,2,sizeof (my_appearance), (u8*)(&my_appearanceUIID), 	(u8*)(&my_appearance), 0},
 		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ), 0},
@@ -532,13 +538,6 @@ int app_host_event_callback (u32 h, u8 *para, int n){
 	return 0;
 }
 
-/*
-void ble_start_adv(void) {
-	g_sensorAppCtx.adv_restore_count = 88; // 80 sec 80000/900
-	bls_ll_setAdvEnable(BLC_ADV_ENABLE);  // adv enable
-}
-*/
-
 //	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
 int app_advertise_prepare_handler(rf_packet_adv_t * p)	{
 	(void) p;
@@ -612,22 +611,16 @@ void user_ble_normal_init(void){
 
 	////////////////// config adv packet /////////////////////
 
-	tbl_scanRsp.size = sizeof(tbl_scanRsp.name) + sizeof(tbl_scanRsp.id) ;
-	tbl_scanRsp.id = GAP_ADTYPE_LOCAL_NAME_COMPLETE;
-	tbl_scanRsp.name[0] = ble_name_prefix[0];
-	tbl_scanRsp.name[1] = ble_name_prefix[1];
-	tbl_scanRsp.name[2] = ble_name_prefix[2];
-	tbl_scanRsp.name[3] = '-';
-	tbl_scanRsp.name[4] = int_to_hex(mac_public[2] >> 4);
-	tbl_scanRsp.name[5] = int_to_hex(mac_public[2] & 0x0f);
-	tbl_scanRsp.name[6] = int_to_hex(mac_public[1] >> 4);
-	tbl_scanRsp.name[7] = int_to_hex(mac_public[1] & 0x0f);
-	tbl_scanRsp.name[8] = int_to_hex(mac_public[0] >> 4);
-	tbl_scanRsp.name[9] = int_to_hex(mac_public[0] & 0x0f);
+	tbl_advData.nm.name[4] = int_to_hex(mac_public[2] >> 4);
+	tbl_advData.nm.name[5] = int_to_hex(mac_public[2] & 0x0f);
+	tbl_advData.nm.name[6] = int_to_hex(mac_public[1] >> 4);
+	tbl_advData.nm.name[7] = int_to_hex(mac_public[1] & 0x0f);
+	tbl_advData.nm.name[8] = int_to_hex(mac_public[0] >> 4);
+	tbl_advData.nm.name[9] = int_to_hex(mac_public[0] & 0x0f);
 
 	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
 
-	bls_ll_setScanRspData((u8 *)&tbl_scanRsp, sizeof(tbl_scanRsp));
+	bls_ll_setScanRspData((u8 *)&tbl_advData.nm, sizeof(tbl_advData.nm));
 	bls_ll_setAdvData( (u8 *)&tbl_advData, sizeof(tbl_advData) );
 	//	app_switch_to_indirect_adv(0,0,0); //adv enable
 	bls_ll_setAdvParam( CONNECT_ADV_INTERVAL_MIN, CONNECT_ADV_INTERVAL_MAX,
