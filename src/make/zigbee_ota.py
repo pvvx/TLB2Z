@@ -38,7 +38,7 @@ def main(args):
 		image_type = args.image_type or int.from_bytes(firmware[20:22], byteorder='little')
 		file_version = args.file_version or int.from_bytes(firmware[2:6], byteorder='little')
 		if len(hs) == 0:
-		   hs = str.encode('ZigbeeTLc OTA')
+		   hs = str.encode('ZigbeeTLc B2Zdevice OTA')
 		ota_hdr = ota_hdr_s.pack(
 			0xbeef11e,
 			0x100,  # header version is 0x0100

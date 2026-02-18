@@ -1,0 +1,227 @@
+#ifndef _DEVICE_H_
+#define _DEVICE_H_
+
+#include "zcl_include.h"
+
+/**********************************************************************
+ * CONSTANT
+ */
+#define SENSOR_DEVICE_ENDPOINT1  0x01
+#define SENSOR_DEVICE_ENDPOINT2  0x02
+#define SENSOR_DEVICE_ENDPOINT3  0x03
+#define SENSOR_DEVICE_ENDPOINT4  0x04
+
+/**********************************************************************
+ * TYPEDEFS
+ */
+typedef struct{
+	u8 keyType; /* ERTIFICATION_KEY or MASTER_KEY key for touch-link or distribute network
+	 	 	 	 SS_UNIQUE_LINK_KEY or SS_GLOBAL_LINK_KEY for distribute network */
+	u8 key[16];	/* the key used */
+}app_linkKey_info_t;
+
+typedef struct{
+	// key
+	u8  keyPressed;
+	u8  key1flag;
+	volatile u8  ble_on;
+	u8  adv_restore_count;
+	//
+//	u32 utc_time_sec;
+	u16 reportupsec; // report add (sec)
+	u32 secTimeTik; // used time_sec_task()
+	u32 keyPressedTime;
+	//	u32 readSensorTime; // read sensor timer (tik)
+	// timers
+	ev_timer_event_t *timerLedEvt;	// timer light blink
+	ev_timer_event_t *timerKeyEvt;	// timer key press
+#if REJOIN_FAILURE_TIMER
+	ev_timer_event_t *timerRejoinBackoffEvt;
+#endif
+	ev_timer_event_t *timerSteerEvt;
+#if REJOIN_FAILURE_TIMER
+	ev_timer_event_t *timerRejoinBackOffEvt;
+#endif
+#ifdef ZCL_IDENTIFY
+	ev_timer_event_t *timerIdentifyEvt;
+#endif
+
+	// light blink
+	u16 ledOnTime;
+	u16 ledOffTime;
+	u8 	oriSta;		// original state before blink
+	u8 	sta;		// current state in blink
+	u8 	times;		// blink times
+	u8  state;
+	//
+	app_linkKey_info_t tcLinkKey;
+} app_ctx_t;
+
+/**
+ *  @brief Defined for basic cluster attributes
+ */
+typedef struct{
+	u8 	zclVersion;
+	u8	appVersion;
+	u8	stackVersion;
+	u8	hwVersion;
+	u8	manuName[ZCL_BASIC_MAX_LENGTH];
+	u8	modelId[ZCL_BASIC_MAX_LENGTH];
+	u8	swBuildId[ZCL_BASIC_MAX_LENGTH];
+ 	u8  dateCode[ZCL_BASIC_MAX_LENGTH];
+	u8	powerSource;
+	u8	deviceEnable;
+}zcl_basicAttr_t;
+
+/**
+ *  @brief Defined for identify cluster attributes
+ */
+typedef struct{
+	u16	identifyTime;
+}zcl_identifyAttr_t;
+
+/**
+ *  @brief Defined for power configuration cluster attributes
+ */
+typedef struct{
+#ifdef POWER_MAINS
+	u16 mainsVoltage;
+	u8  mainsFrequency;
+#endif
+	u8  batteryVoltage;      //0x20
+	u8  batteryPercentage;   //0x21
+}zcl_powerAttr_t;
+
+/**
+ *  @brief Defined for on/off cluster attributes
+ */
+typedef struct{
+	u16	 onTime;
+	u16	 offWaitTime;
+	u8	 startUpOnOff;
+	bool onOff;
+	bool globalSceneControl;
+}zcl_onOffAttr_t;
+
+/**
+ *  @brief Defined for saving on/off attributes
+ */
+typedef struct _attribute_packed_{
+	u8	onOff;
+	u8	startUpOnOff;
+}zcl_nv_onOff_t;
+
+/**
+ *  @brief Defined for temperature cluster attributes
+ */
+typedef struct {
+	s16 measuredValue[4];
+	s16 minValue;
+	s16 maxValue;
+	u16 tolerance;
+}zcl_temperatureAttr_t;
+
+/**
+ *  @brief Defined for relative humidity cluster attributes
+ */
+typedef struct {
+	u16 measuredValue[4];
+	u16 minValue;
+	u16 maxValue;
+	u16 tolerance;
+}zcl_relHumidityAttr_t;
+
+/**
+ *  @brief  Defined for poll control cluster attributes
+ */
+typedef struct{
+	u32	chkInInterval;
+	u32	longPollInterval;
+	u32	chkInIntervalMin;
+	u32	longPollIntervalMin;
+	u16	shortPollInterval;
+	u16	fastPollTimeout;
+	u16	fastPollTimeoutMax;
+}zcl_pollCtrlAttr_t;
+
+
+/**********************************************************************
+ * GLOBAL VARIABLES
+ */
+extern app_ctx_t g_sensorAppCtx;
+
+extern bdb_appCb_t g_zbDemoBdbCb;
+
+extern bdb_commissionSetting_t g_bdbCommissionSetting;
+
+extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM1;
+extern const zcl_specClusterInfo_t g_sensorDeviceClusterList1[];
+extern const af_simple_descriptor_t app_simpleDesc1;
+extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM2;
+extern const zcl_specClusterInfo_t g_sensorDeviceClusterList2[];
+extern const af_simple_descriptor_t app_simpleDesc2;
+extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM3;
+extern const zcl_specClusterInfo_t g_sensorDeviceClusterList3[];
+extern const af_simple_descriptor_t app_simpleDesc3;
+
+
+/* Attributes */
+extern zcl_basicAttr_t g_zcl_basicAttrs;
+extern zcl_identifyAttr_t g_zcl_identifyAttrs;
+extern zcl_powerAttr_t g_zcl_powerAttrs[];
+#ifdef ZCL_TEMPERATURE_MEASUREMENT
+extern zcl_temperatureAttr_t g_zcl_temperatureAttrs;
+#endif
+#ifdef ZCL_RELATIVE_HUMIDITY_MEASUREMENT
+extern zcl_relHumidityAttr_t g_zcl_relHumidityAttrs;
+#endif
+extern zcl_pollCtrlAttr_t g_zcl_pollCtrlAttrs;
+#ifdef ZCL_ON_OFF
+extern zcl_onOffAttr_t g_zcl_onOffAttrs;
+#define zcl_onoffAttrGet()      &g_zcl_onOffAttrs
+#endif
+
+#define zcl_iasZoneAttrGet()	&g_zcl_iasZoneAttrs
+#define zcl_pollCtrlAttrGet()	&g_zcl_pollCtrlAttrs
+
+/**********************************************************************
+ * FUNCTIONS
+ */
+#if 0
+#define pm_wait_ms(t) cpu_stall_wakeup_by_timer0(t*CLOCK_16M_SYS_TIMER_CLK_1MS);
+#define pm_wait_us(t) cpu_stall_wakeup_by_timer0(t*CLOCK_16M_SYS_TIMER_CLK_1US);
+#else
+#define pm_wait_ms(t) sleep_us((t)*1000);
+#define pm_wait_us(t) sleep_us(t);
+#endif
+
+void switch_to_zb_context(void);
+
+void populate_date_code(void);
+void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg);
+
+status_t app_basicCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+status_t app_identifyCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+status_t app_iasZoneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+status_t app_powerCfgCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+void app_zclCheckInStart(void);
+
+void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf);
+void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd);
+void app_otaProcessMsgHandler(u8 evt, u8 status);
+
+status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
+void remoteCmdOnOff(u8 cmd);
+
+void scan_task(void);
+void sensors_task(void);
+void read_sensor_and_save(void);
+int blt_pm_proc(void);
+int zb_ble_ci_cmd_handler(u16 cmdId, u8 len, u8 *payload);
+char int_to_hex(u8 num);
+#if ZIGBEE_TUYA_OTA
+void tuya_zigbee_ota(void);
+#endif
+#endif /* _DEVICE_H_ */

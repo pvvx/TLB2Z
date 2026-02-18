@@ -33,32 +33,34 @@
 /**********************************************************************
  * TYPEDEFS
  */
-#if defined(GPIO_LED_R)
-#define TIMER_LED_R	(2*CLOCK_16M_SYS_TIMER_CLK_1S)
+#if LED_FLASH_RGBE
+
+#if defined(GPIO_LED_R) // rx device 1
+#define TIMER_LED_R	(128*CLOCK_16M_SYS_TIMER_CLK_1MS)
 #define	LED_R_ON()  { gpio_write(GPIO_LED_R, LED_ON); leds.tr = reg_system_tick; }
 #else
 #define	LED_R_ON()
 #endif
-#if defined(GPIO_LED_G)
+#if defined(GPIO_LED_G) // rx device 2
 #define TIMER_LED_G	(128*CLOCK_16M_SYS_TIMER_CLK_1MS)
 #define	LED_G_ON()  { gpio_write(GPIO_LED_G, LED_ON); leds.tg = reg_system_tick; }
 #else
 #define	LED_G_ON()
 #endif
-#if defined(GPIO_LED_B)
+#if defined(GPIO_LED_B) // rx device 3
 #define TIMER_LED_B	(128*CLOCK_16M_SYS_TIMER_CLK_1MS)
 #define	LED_B_ON()  { gpio_write(GPIO_LED_B, LED_ON); leds.tb = reg_system_tick; }
 #else
 #define	LED_B_ON()
 #endif
-#if 0 //defined(GPIO_LED_W) -> Zigbee GPIO_LED
+#if defined(GPIO_LED_W) //-> Zigbee GPIO_LED light_blink !
 #define TIMER_LED_W	(128*CLOCK_16M_SYS_TIMER_CLK_1MS)
 #define	LED_W_ON()  { gpio_write(GPIO_LED_W, LED_ON); leds.tw = reg_system_tick; }
 #else
 #define	LED_W_ON()
 #endif
-#if defined(GPIO_LED_E)
-#define TIMER_LED_E	(64*CLOCK_16M_SYS_TIMER_CLK_1MS)
+#if defined(GPIO_LED_E) // tx advertise
+#define TIMER_LED_E	(128*CLOCK_16M_SYS_TIMER_CLK_1MS)
 #define	LED_E_ON()  { gpio_write(GPIO_LED_E, LED_ON); leds.te = reg_system_tick; }
 #else
 #define	LED_E_ON()
@@ -74,7 +76,7 @@ typedef struct {
 #if defined(GPIO_LED_B)
 	u32 tb;
 #endif
-#if 0 //defined(GPIO_LED_W)
+#if defined(GPIO_LED_W)
 	u32 tw;
 #endif
 #if defined(GPIO_LED_E)
@@ -84,6 +86,9 @@ typedef struct {
 
 extern leds_tik_t leds;
 void task_leds(void);
+#else
+#define task_leds()
+#endif
 
 /**********************************************************************
  * FUNCTIONS
@@ -96,7 +101,5 @@ void light_on(void);
 void light_off(void);
 
 void task_keys(void);
-
-void read_sensor_start(u16 delayTime);
 
 #endif	/* _APP_UI_H_ */

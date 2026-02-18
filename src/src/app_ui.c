@@ -27,13 +27,12 @@
  * INCLUDES
  */
 #include "tl_common.h"
-#include "device.h"
+#include "app.h"
 #include "sensors.h"
 #include "zb_api.h"
 #include "zcl_include.h"
-#include "lcd.h"
 #include "app_ui.h"
-#include "reporting.h"
+#include "zb_reporting.h"
 #include "stack/ble/ble_8258/ble.h"
 #include "ble_cfg.h"
 
@@ -50,42 +49,30 @@
 /**********************************************************************
  * LOCAL FUNCTIONS
  */
-#if	USE_DISPLAY
-void light_on(void)
-{
-    show_ble_symbol(true);
-    update_lcd();
-}
-
-void light_off(void)
-{
-    show_ble_symbol(false);
-    update_lcd();
-}
-
-void light_init(void)
-{
-    show_ble_symbol(false);
-    update_lcd();
-}
-#else
 void light_on(void)
 {
 	gpio_write(GPIO_LED, LED_ON);
+#if PM_ENABLE
+#if LED_ON
 	gpio_setup_up_down_resistor(GPIO_LED, PM_PIN_PULLUP_10K);
+#else
+	gpio_setup_up_down_resistor(GPIO_LED, PM_PIN_PULLDOWN_100K);
+#endif
+#endif
 }
 
 void light_off(void)
 {
 	gpio_write(GPIO_LED, LED_OFF);
+#if PM_ENABLE
 	gpio_setup_up_down_resistor(GPIO_LED, PM_PIN_UP_DOWN_FLOAT);
+#endif
 }
 
 void light_init(void)
 {
 	light_off();
 }
-#endif
 
 s32 zclLightTimerCb(void *arg)
 {
@@ -107,9 +94,6 @@ s32 zclLightTimerCb(void *arg)
 		light_off();
 		interval = g_sensorAppCtx.ledOffTime;
 	}
-#ifdef USE_EPD
-		interval <<= 2;
-#endif
 	return interval;
 }
 
@@ -130,9 +114,6 @@ void light_blink_start(u8 times, u16 ledOnTime, u16 ledOffTime)
 		}
 		g_sensorAppCtx.ledOnTime = ledOnTime;
 		g_sensorAppCtx.ledOffTime = ledOffTime;
-#ifdef USE_EPD
-		interval <<= 2;
-#endif
 		g_sensorAppCtx.timerLedEvt = TL_ZB_TIMER_SCHEDULE(zclLightTimerCb, NULL, interval);
 	}
 }
@@ -152,36 +133,43 @@ void light_blink_stop(void)
 }
 
 void task_keys(void) {
-	u8 button_on = gpio_read(BUTTON1)? 0 : 1;
+	u8 button_on = gpio_read(BUTTON1)? BUTTON_ON : !BUTTON_ON;
 	if(button_on) {
 		// button on
-#if	!USE_DISPLAY
+		light_blink_stop();
 		light_on();
-#endif
 		if(!g_sensorAppCtx.keyPressed) {
 			// event button on
 			g_sensorAppCtx.keyPressedTime = clock_time();
-			//app_set_thb_report();
 			// set next adv. interval
 		} else {
 			if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 10000)) { // 10 ms
 				if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 7000 * 1000)) { // 7 sec
-								g_sensorAppCtx.keyPressedTime = clock_time();
-								tl_bdbReset2FN();
-								pm_wait_ms(2500);
-								zb_resetDevice();
+					g_sensorAppCtx.keyPressedTime = clock_time();
+			        zb_factoryReset(); //	tl_bdbReset2FN();
+					light_off();
+#if 1
+					drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, 5*1000);
+#else
+					zb_resetDevice();
+#endif
 				} else {
 					g_sensorAppCtx.key1flag = 1;
 					g_sensorAppCtx.ble_on = 1;
 				}
 			}
 		}
+	} else {
+		if(!g_sensorAppCtx.timerLedEvt)
+			light_off();
 	}
 	g_sensorAppCtx.keyPressed = button_on;
 #if PM_ENABLE
 	cpu_set_gpio_wakeup(BUTTON1, button_on , 1); // button_on: Level_Low=0, Level_High =1
 #endif
 }
+
+#if LED_FLASH_RGBE
 
 leds_tik_t leds;
 
@@ -218,3 +206,5 @@ void task_leds(void) {
 		}
 #endif
 }
+
+#endif

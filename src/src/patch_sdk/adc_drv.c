@@ -1,32 +1,11 @@
 #include "tl_common.h"
 //#include "sensors.h"
 
-#define USE_READ_ADC_CALIBRATION	0
-#define ADC_CALIBRATION_VREF		1175
-
-typedef struct {
-	unsigned short adc_vref; //default: 1175 mV
-	unsigned short adc_calib_en;
-}adc_vref_ctr_t;
+#ifndef ADC_BAT_VREF_MV
+#define ADC_BAT_VREF_MV		1175
+#endif
 
 #define ADC_BUF_COUNT	8
-
-//ADC reference voltage cfg
-adc_vref_ctr_t adc_vref_cfg = {
-	.adc_vref 		= 1175, //default ADC ref voltage (unit:mV)
-	.adc_calib_en	= 1 	//default enable
-};
-
-typedef struct {
-	u16 vref; //default: 1175 mV
-	s8  offset;
-} adc_vref_ctr2_t;
-
-_attribute_data_retention_
-adc_vref_ctr2_t adc_vref_cfg2; /* = {
-	.vref 		= ADC_CALIBRATION_VREF, //default ADC ref voltage (unit:mV)
-	.offset		= 0 	//default disable
-}; */
 
 /**
  * @brief This function serves to set the channel reference voltage.
@@ -81,47 +60,12 @@ void adc_set_ain_pre_scaler(ADC_PreScalingTypeDef v_scl)
 	//adc_pre_scale = 1<<(unsigned char)v_scl;
 }
 
-void drv_calib_adc_verf(void)
-{
-#if USE_READ_ADC_CALIBRATION
-	u8 adc_vref_calib_value[7] = {0};
-
-	flash_read(CFG_ADC_CALIBRATION, 7, adc_vref_calib_value);
-#if BOARD == BOARD_MJWSD05MMC
-#warning "Calculate adc_vref!"
-#endif
-#endif
-	adc_vref_cfg2.vref = ADC_CALIBRATION_VREF;
-	adc_vref_cfg2.offset = 0;
-
-#if USE_READ_ADC_CALIBRATION
-	//Check the two-point gpio calibration value whether is exist
-	if((adc_vref_calib_value[4] != 0xff) &&
-	   (adc_vref_calib_value[4] <= 0x7f) &&
-	   (adc_vref_calib_value[5] != 0xff) &&
-	   (adc_vref_calib_value[6] != 0xff)){
-		/****** Method of calculating two-point gpio calibration Flash_gain and Flash_offset value: ********/
-		/****** Vref = [(Seven_Byte << 8) + Six_Byte + 1000]mv ********/
-		/****** offset = [Five_Byte - 20] mv. ********/
-		adc_vref_cfg2.vref = (adc_vref_calib_value[6] << 8) + adc_vref_calib_value[5] + 1000;
-		adc_vref_cfg2.offset = adc_vref_calib_value[4] - 20;
-	} else if(adc_vref_calib_value[0] != 0xff && adc_vref_calib_value[1] != 0xff) {
-		/****** If flash do not exist the two-point gpio calibration value,use the one-point gpio calibration value ********/
-		/****** Method of calculating one-point gpio calibration Flash_gpio_Vref value: ********/
-		/****** Vref = [1175 +First_Byte-255+Second_Byte] mV = [920 + First_Byte + Second_Byte] mV ********/
-		adc_vref_cfg2.vref = 920 + adc_vref_calib_value[0] + adc_vref_calib_value[1];
-		/****** Check the one-point calibration value whether is correct ********/
-		if(adc_vref_cfg2.vref < ADC_CALIBRATION_VREF - 128 || adc_vref_cfg2.vref > ADC_CALIBRATION_VREF - 127)
-			adc_vref_cfg2.vref = ADC_CALIBRATION_VREF;
-	}
-#endif
-}
 
 /*
  * libdrivers_8258.a(pm.o): In function `cpu_wakeup_no_deepretn_back_init':
- * pm.c:(.text.cpu_wakeup_no_deepretn_back_init+0x30): undefined reference to `adc_set_gpio_calib_vref' */
+ * pm.c:(.text.cpu_wakeup_no_deepretn_back_init+0x30): undefined reference to `adc_set_gpio_calib_vref'  */
 void adc_set_gpio_calib_vref(u16 x) {
-
+	(void) x;
 }
 
 
@@ -129,18 +73,8 @@ void adc_set_gpio_calib_vref(u16 x) {
 
 #define ADC_BUF_COUNT	8
 
-//_attribute_ram_code_sec_
+_attribute_ram_code_sec_
 void adc_channel_init(ADC_InputPchTypeDef p_ain) {
-	if(adc_vref_cfg2.vref == 0)
-		drv_calib_adc_verf();
-#if 0 // gpio set in app_config.h ?
-	if(p_ain == SHL_ADC_VBAT) {
-		// Set missing pin on case TLSR8251F512ET24/TLSR8253F512ET32
-		gpio_set_output_en(GPIO_VBAT, 1);
-		gpio_set_input_en(GPIO_VBAT, 0);
-		gpio_write(GPIO_VBAT, 1);
-	}
-#endif
 	adc_power_on_sar_adc(0);
 	adc_reset_adc_module(); // reset whole digital adc module
 	/* enable signal of 24M clock to sar adc */
@@ -165,8 +99,8 @@ void adc_channel_init(ADC_InputPchTypeDef p_ain) {
 	adc_set_mode(ADC_NORMAL_MODE);
 }
 
-//_attribute_ram_code_sec_
-u16 get_adc_mv(void) { // ADC_InputPchTypeDef
+_attribute_ram_code_sec_
+u16 get_adc_mv(int flg) { // ADC_InputPchTypeDef
 	volatile unsigned int adc_dat_buf[ADC_BUF_COUNT];
 	u16 temp;
 	int i, j;
@@ -202,12 +136,10 @@ u16 get_adc_mv(void) { // ADC_InputPchTypeDef
 	}
 	dfifo_disable_dfifo2();
 	adc_power_on_sar_adc(0); // - 0.4 mA
-	adc_average = (adc_sample[2] + adc_sample[3] + adc_sample[4]
-			+ adc_sample[5]) / 4;
-#if BOARD == BOARD_MJWSD05MMC
-	return ((adc_average + adc_vref_cfg2.offset) * 1686) >> 10; // adc_vref default: 1175 (mV)
-#else
-	return ((adc_average + adc_vref_cfg2.offset) * adc_vref_cfg2.vref) >> 10; // adc_vref default: 1175 (mV)
-#endif
+	adc_average = adc_sample[2] + adc_sample[3] + adc_sample[4]
+			+ adc_sample[5];
+	if(flg)
+		return adc_average;
+	return ((adc_average) * ADC_BAT_VREF_MV) >> 12; // adc_vref default: 1175 (mV)
 }
 

@@ -27,7 +27,7 @@
  */
 #include "tl_common.h"
 #include "zcl_include.h"
-#include "device.h"
+#include "app.h"
 #include "app_ui.h"
 
 enum{

@@ -9,14 +9,22 @@ OUT_DIR += /platform \
 
 OBJS += \
 $(OUT_PATH)/platform/boot/link_cfg.o \
-$(OUT_PATH)/platform/services/b85m/irq_handler.o \
+$(OUT_PATH)/platform/chip_8258/aes.o \
+$(OUT_PATH)/platform/chip_8258/gpio.o \
+$(OUT_PATH)/platform/chip_8258/uart.o \
+$(OUT_PATH)/platform/chip_8258/i2c.o \
+$(OUT_PATH)/platform/chip_8258/bsp.o \
+$(OUT_PATH)/platform/chip_8258/clock.o \
+$(OUT_PATH)/platform/chip_8258/analog.o \
+$(OUT_PATH)/platform/chip_8258/timer.o \
 $(OUT_PATH)/platform/tc32/div_mod.o 
 
-#$(OUT_PATH)/platform/chip_8258/flash.o \
+#$(OUT_PATH)/platform/chip_8258/flash.o 
 #$(OUT_PATH)/platform/chip_8258/flash/flash_mid13325e.o
+#$(OUT_PATH)/platform/services/b85m/irq_handler.o 
 
-#$(OUT_PATH)/platform/boot/8258/cstartup_8258.o \
-#$(OUT_PATH)/platform/chip_8258/adc.o \
+#$(OUT_PATH)/platform/boot/8258/cstartup_8258.o 
+#$(OUT_PATH)/platform/chip_8258/adc.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes

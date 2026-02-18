@@ -48,46 +48,39 @@ extern "C" {
 
 /* PM */
 #define PM_ENABLE						0
-#define DBG_ZIGBEE_STATUS_EN			1
+//#define DBG_ZIGBEE_STATUS_EN			1
 
-/* PA */
-#define PA_ENABLE						0
-
+/* BLE SCAN */
+#define USE_SCAN			1
 
 #define CLOCK_SYS_CLOCK_HZ  		48000000 //48000000
 
-#define SENSOR_BLE		0
-#define SENSOR_SHTC3_4X	1
-#define SENSOR_CHT8305	2
-#define SENSOR_SHT30	3
+/**********************************************************************
+ * I2C driver type
+ */
+#define I2C_DRV_NONE	0
+#define I2C_DRV_HARD	1
+#define I2C_DRV_SOFT	2
+
 
 /* Board include */
 #if defined(BOARD)
-//#if (BOARD == BOARD_LYWSD03MMC)
-#include "board_lyws03mmc.h"
-//#elif (BOARD == BOARD_CGDK2)
-#include "board_cgdk2.h"
-//#elif BOARD == BOARD_MHO_C122
-#include "board_mho_c122.h"
-//#elif BOARD == BOARD_MHO_C401N
-#include "board_mho_c401n.h"
-//#elif BOARD == BOARD_TS0201_TZ3000
-#include "board_ts0201_tz3000.h"
-//#elif BOARD == BOARD_TH03Z
-#include "board_th03z.h"
-//#elif BOARD == BOARD_TB03F_KIT
+#if BOARD == BOARD_TB03F_KIT
 #include "board_tb03f_kit.h"
-//#elif BOARD == BOARD_TS0001_TZ3000_RBZ
+#elif BOARD == BOARD_TS0001_TZ3000_RBZ
 #include "board_ts0001_tz3000_gjrubzje.h"
-//#else
-//#error "Define BOARD!"
-//#endif
+#endif
 #else
 #error "Define BOARD!"
 #endif
 
 #ifndef ZIGBEE_TUYA_OTA
 #define ZIGBEE_TUYA_OTA 	0
+#endif
+
+/* PA */
+#ifndef PA_ENABLE
+#define PA_ENABLE			0
 #endif
 
 #define VOLTAGE_DETECT_ADC_PIN GPIO_VBAT
@@ -117,10 +110,13 @@ extern "C" {
 	#define ZBHCI_EN								1
 #endif
 
-
+#if PA_ENABLE
+#define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P0p04dBm
+#define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P0p04dBm
+#else
 #define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P10p46dBm
 #define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P3p01dBm
-
+#endif
 /**********************************************************************
  * ZCL cluster support setting
  */
@@ -128,11 +124,17 @@ extern "C" {
 #define TOUCHLINK_SUPPORT							0
 #define FIND_AND_BIND_SUPPORT						0
 #define ZCL_POWER_CFG_SUPPORT						1
-//#define ZCL_ON_OFF_SUPPORT						0
+#ifdef CPIO_RELAY
+#define ZCL_ON_OFF_SUPPORT							1
+#define SCAN_TRG_ENABLE								1
+#else
+#define ZCL_ON_OFF_SUPPORT							0
+#define SCAN_TRG_ENABLE								0
+#endif
 //#define ZCL_IAS_ZONE_SUPPORT						1
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
 #define ZCL_RELATIVE_HUMIDITY_SUPPORT   			1
-#define ZCL_THERMOSTAT_UI_CFG_SUPPORT				0 // USE_DISPLAY
+#define ZCL_THERMOSTAT_UI_CFG_SUPPORT				0
 #define ZCL_POLL_CTRL_SUPPORT						1
 #define ZCL_GROUP_SUPPORT							0
 #define ZCL_OTA_SUPPORT								1 // set FLASH_OTA_IMAGE_MAX_SIZE - 0x2000 in drv_nv.h !
@@ -149,7 +151,7 @@ extern "C" {
 #define USE_DEVICE_INFO_CHR_UUID			1
 #define USE_FLASH_SERIAL_UID				1
 #define USE_BLE_OTA							0 //ZCL_OTA_SUPPORT
-#define SCAN_IN_ADV_STATE					1
+#define SCAN_IN_ADV_STATE					0
 
 #define USE_BINDKEY		1
 
@@ -159,10 +161,6 @@ extern "C" {
 #if ZCL_RELATIVE_HUMIDITY_SUPPORT
 #define ZCL_RELATIVE_HUMIDITY
 #define ZCL_RELATIVE_HUMIDITY_MEASUREMENT
-#endif
-#if ZCL_THERMOSTAT_UI_CFG_SUPPORT
-#define ZCL_THERMOSTAT_UI_CFG
-#define NV_ITEM_ZCL_THERMOSTAT_UI_CFG       (NV_ITEM_APP_GP_TRANS_TABLE + 1)    // see sdk/proj/drivers/drv_nv.h
 #endif
 
 #define DEFAULT_POLL_RATE					(4 * (4 * POLL_RATE_QUARTERSECONDS)) // 4000 ms

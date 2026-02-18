@@ -27,25 +27,33 @@
 #include "zcl_include.h"
 #include "bdb.h"
 #include "ota.h"
-#include "device.h"
+#include "app.h"
 #include "app_ui.h"
-#include "zigbee_ble_switch.h"
+#include "zb_ble_switch.h"
 #include "stack/ble/ble_config.h"
 #include "stack/ble/ble_common.h"
 #include "stack/ble/ble.h"
+#include "ble_cfg.h"
 
 #if PM_ENABLE
 
-extern volatile bool g_bleConnDoing;
+//extern volatile bool g_bleConnDoing;
 
 bool app_zigbeeIdle(void){
 	bool ret = 0;
 	
-	ret = bdb_isIdle() && !tl_stackBusy() && zb_isTaskDone() && !ev_timer_process(true);
+	ret = bdb_isIdle() && !tl_stackBusy() && zb_isTaskDone();
+	if(ret){
+		apsCleanToStopSecondClock();
+		ret &= !ev_timer_process(1);
+		if(!ret){
+			secondClockRun();
+		}
+		//ret = 1; // TODO ?
+	}
 
 	return ret;
 }
-
 
 void app_pm_task(void) {
 	drv_pm_sleep_mode_e sleepMode = PM_SLEEP_MODE_DEEP_WITH_RETENTION; //PM_SLEEP_MODE_SUSPEND;//PM_SLEEP_MODE_DEEP_WITH_RETENTION;
@@ -59,46 +67,37 @@ void app_pm_task(void) {
 	 *    deep mode(poll rate is disabled)
 	 *
 	 * */
-	if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || g_bleConnDoing){
+	if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_attr.g_bleConnDoing){
 		if(!bls_pm_conditionCbIsValid()){
-//			bls_pm_setSuspendMask (SUSPEND_ADV | SUSPEND_CONN | DEEPSLEEP_RETENTION_ADV | DEEPSLEEP_RETENTION_CONN);
-			bls_pm_setWakeupSource(PM_WAKEUP_PAD);
-			bls_pm_conditionCbRegister(app_zigbeeIdle);   //register it to enable ble suspend mode
+			bls_pm_conditionCbRegister(app_zigbeeIdle);   // register it to enable ble suspend mode
 		}
-		return;
 	} else if(APP_BLE_STATE_GET() == BLS_LINK_STATE_ADV){
 		if(bls_pm_conditionCbIsValid()){
 			bls_pm_conditionCbUnregister();
 		}
 	}
 
-	if(CURRENT_SLOT_GET() == DUALMODE_SLOT_ZIGBEE && app_zigbeeIdle()){
+	g_dualModeInfo.switch_to_ble = 0;
+	if(sensor_ht.read_callback) {
+		sensor_ht.read_callback();
+	} else if(CURRENT_SLOT_GET() == DUALMODE_SLOT_ZIGBEE && app_zigbeeIdle()){
 		// task_keys();
-#if USE_BLE_OTA
-		if(ota_is_working) {
-			sleepMode = PM_SLEEP_MODE_MCU_STALL;
-		}
-#endif
 		if(APP_BLE_STATE_GET() == BLS_LINK_STATE_IDLE){
+			if(g_dualModeInfo.bleStart) {
+			 	if(g_dualModeInfo.bleStart < CONNECT_ADV_COUNT)
+			 		startAdvTime(1, CONNECT_ADV_INTERVAL);
+			 	else
+			 		startAdvTime(CONNECT_ADV_COUNT, CONNECT_ADV_INTERVAL);
+			}
 			drv_pm_lowPowerEnter();
-		} else {
-			if(!is_switch_to_ble()) {
-				switch_to_ble_context();
+		} else if(!is_switch_to_ble()) {
+			if(APP_BLE_STATE_GET() == BLS_LINK_STATE_ADV){
 				drv_pm_sleep(sleepMode, wakeupSrc, get_ble_next_event_tick());
+			} else if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_attr.g_bleConnDoing){
+				g_dualModeInfo.switch_to_ble = 1;
 			}
 		}
 	}
-
-	if(CURRENT_SLOT_GET() == DUALMODE_SLOT_BLE && (APP_BLE_STATE_GET() != BLS_LINK_STATE_IDLE) && blt_pm_proc()){
-		 /*
-		  * here call "bls_ll_setAdvEnable(BLC_ADV_DISABLE)" to let ble enter state of BLS_LINK_STATE_IDLE,
-		  * and then need to call ble_task_restart() to start ble task again
-		  *
-		  * */
-		 bls_ll_setAdvEnable(BLC_ADV_DISABLE);
-	 }
-
-	return;
 }
 
 #endif

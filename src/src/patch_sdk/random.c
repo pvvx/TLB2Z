@@ -35,7 +35,7 @@ void random_generator_init(void)
 	//set channel Vref
 	adc_set_ref_voltage(ADC_MISC_CHN, ADC_VREF_0P6V);
 	////set RNG src
-	RNG_Set(SAR_ADC_RNG_MODE,CLOCLK_UPDATA);
+	RNG_Set(SAR_ADC_RNG_MODE, CLOCLK_UPDATA);
 
 	adc_power_on_sar_adc(1);//After setting the ADC parameters, turn on the ADC power supply control bit
 

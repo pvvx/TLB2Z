@@ -10,75 +10,77 @@
 #include "version_cfg.h"
 
 #if (BOARD == BOARD_TS0001_TZ3000_RBZ)
+#define BLE_MODEL_STR 			{"REL-BZ01"}
+#define BLE_MAN_STR 			{"B2Z"}
+#define BLE_NAME_PEFIX 			{"B2Z"}
+#define ZCL_BASIC_MODEL_ID		{8,'R','E','L','-','B','Z','0','1'} // REL-BZ01
+#define ZCL_BASIC_MFG_NAME		{3,'B','2','Z'} // B2Z
 
 #define ZIGBEE_TUYA_OTA 	1
 
-//// TB-03F-KIT
-#define HW_VERSION 16 // DIY TB-03F-Kit
-// PC2,3,4 - LED_RGB
-// PB4,5 - LED1, LED2
+//
+// PB4  - LED
+// PB5  - KEY
 // PB1	- UART TX
 // PA0  - UART RX
-// PA7  - KEY
-
+#define	BUTTON_ON			0
 #define	BUTTON1				GPIO_PB5
 #define PB5_FUNC					AS_GPIO
 #define PB5_OUTPUT_ENABLE			0
 #define PB5_INPUT_ENABLE			1
 #define	PULL_WAKEUP_SRC_PB5			PM_PIN_PULLUP_10K
 
-#define GPIO_LED_W			GPIO_PB4
-#define PB4_DATA_OUT		0
-#define PB4_OUTPUT_ENABLE	1
-#define PB4_INPUT_ENABLE	1
-#define PB4_FUNC			AS_GPIO
+// LED
+#define LED_ON				1
+#define LED_OFF				0
 
-#define GPIO_LED_B		GPIO_PD4
-#define PD4_DATA_OUT		0
-#define PD4_OUTPUT_ENABLE	1
-#define PD4_INPUT_ENABLE	1
-#define PD4_FUNC			AS_GPIO
+#define LED_FLASH_RGBE		0
 
-#define GPIO_LED_R		GPIO_PC1
-#define PC1_DATA_OUT		0
+#if 0
+#define GPIO_LED_R		GPIO_PC1		// rx device 1
+#define PC1_DATA_OUT		LED_OFF
 #define PC1_OUTPUT_ENABLE	1
 #define PC1_INPUT_ENABLE	1
 #define PC1_FUNC			AS_GPIO
 
-#define GPIO_LED_G		GPIO_PC4
-#define PC4_DATA_OUT		0
+#define GPIO_LED_G		GPIO_PC4		// rx device 2
+#define PC4_DATA_OUT		LED_OFF
 #define PC4_OUTPUT_ENABLE	1
 #define PC4_INPUT_ENABLE	1
 #define PC4_FUNC			AS_GPIO
 #define PWM_LED_G		PWM2_ID
 
-#define GPIO_LED_E			GPIO_PB7
-#define PB7_DATA_OUT		0
+#define GPIO_LED_B		GPIO_PD4		// rx device 3
+#define PD4_DATA_OUT		LED_OFF
+#define PD4_OUTPUT_ENABLE	1
+#define PD4_INPUT_ENABLE	1
+#define PD4_FUNC			AS_GPIO
+
+#define GPIO_LED_E			GPIO_PB7 	// tx advertise
+#define PB7_DATA_OUT		LED_OFF
 #define PB7_OUTPUT_ENABLE	1
 #define PB7_INPUT_ENABLE	1
 #define PB7_FUNC			AS_GPIO
+#endif
 
-// DISPLAY
-#define	USE_DISPLAY			0
+#define GPIO_LED_W			GPIO_PB4	// Zigbee light_blink
+#define PB4_DATA_OUT		LED_OFF
+#define PB4_OUTPUT_ENABLE	1
+#define PB4_INPUT_ENABLE	1
+#define PB4_FUNC			AS_GPIO
 
-#define USE_SCAN			1
+#define GPIO_LED			GPIO_LED_W // Zigbee light_blink
+
 // I2C
+#define USE_I2C_DRV			I2C_DRV_NONE
+#if USE_I2C_DRV
 #define I2C_CLOCK			100000 // Hz
-
-#define SENSOR_TYPE 		SENSOR_BLE
-
-#define USE_SENSOR_ID		0
 #define I2C_SCL 			GPIO_PC0
 #define I2C_SDA 			GPIO_PC1
 #define I2C_GROUP 			I2C_GPIO_GROUP_C0C1
 #define PULL_WAKEUP_SRC_PC0	PM_PIN_PULLUP_10K
 #define PULL_WAKEUP_SRC_PC1	PM_PIN_PULLUP_10K
-
-// LED
-#define LED_ON				1
-#define LED_OFF				0
-
-#define GPIO_LED			GPIO_LED_W // Zigbee
+#endif
 
 // VBAT
 #define SHL_ADC_VBAT		C5P // see in adc.h ADC_InputPchTypeDef
@@ -87,6 +89,7 @@
 #define PC5_DATA_OUT		1
 #define PC5_OUTPUT_ENABLE	1
 #define PC5_FUNC			AS_GPIO
+#define PULL_WAKEUP_SRC_PC5	PM_PIN_PULLUP_10K
 
 // UART
 #if ZBHCI_UART

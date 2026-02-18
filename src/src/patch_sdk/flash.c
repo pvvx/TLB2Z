@@ -22,7 +22,7 @@
  *          limitations under the License.
  *
  *******************************************************************************************************/
-
+#include "tl_common.h"
 #include "flash.h"
 #include "spi_i.h"
 #include "irq.h"
@@ -171,6 +171,7 @@ _attribute_ram_code_sec_noinline_ unsigned char flash_mspi_write_ram(unsigned ch
  *              there may be a risk of error in the operation of the flash (especially for the write and erase operations.
  *              If an abnormality occurs, the firmware and user data may be rewritten, resulting in the final Product failure)
  */
+_attribute_ram_code_sec_
 void flash_erase_sector(unsigned long addr)
 {
 	flash_mspi_write_ram(FLASH_SECT_ERASE_CMD, addr, 1, NULL, 0);
@@ -192,6 +193,7 @@ void flash_erase_sector(unsigned long addr)
  *              there may be a risk of error in the operation of the flash (especially for the write and erase operations.
  *              If an abnormality occurs, the firmware and user data may be rewritten, resulting in the final Product failure)
  */
+_attribute_ram_code_sec_
 void flash_read_page(unsigned long addr, unsigned long len, unsigned char *buf)
 {
 	flash_mspi_read_ram(FLASH_READ_CMD, addr, 1, 0, buf, len);
@@ -215,6 +217,7 @@ void flash_read_page(unsigned long addr, unsigned long len, unsigned char *buf)
  *              there may be a risk of error in the operation of the flash (especially for the write and erase operations.
  *              If an abnormality occurs, the firmware and user data may be rewritten, resulting in the final Product failure)
  */
+_attribute_ram_code_sec_
 void flash_write_page(unsigned long addr, unsigned long len, unsigned char *buf)
 {
 	unsigned int ns = PAGE_SIZE - (addr&(PAGE_SIZE - 1));
@@ -268,6 +271,7 @@ unsigned char flash_read_status(unsigned char cmd)
  *              there may be a risk of error in the operation of the flash (especially for the write and erase operations.
  *              If an abnormality occurs, the firmware and user data may be rewritten, resulting in the final Product failure)
  */
+_attribute_ram_code_sec_
 void flash_write_status(flash_status_typedef_e type , unsigned short data)
 {
 	unsigned char buf[2];
@@ -484,7 +488,15 @@ int flash_read_mid_uid_with_check(unsigned int *flash_mid, unsigned char *flash_
 	   The uid of the early ZB25WD40B (mid is 0x13325E) is 8 bytes. If you read 16 bytes of uid,
 	   the next 8 bytes will be read as 0xff. Later, the uid of ZB25WD40B has been switched to 16 bytes.
 	 */
-	if((*flash_mid == 0x1460C8)||(*flash_mid == 0x011460C8)||(*flash_mid == 0x1060C8)||(*flash_mid == 0x134051)||(*flash_mid == 0x136085)||(*flash_mid == 0x1360C8)||(*flash_mid == 0x1360EB)||(*flash_mid == 0x13325E)||(*flash_mid == 0x14325E)){
+	if((*flash_mid == 0x1460C8)
+		||(*flash_mid == 0x011460C8)
+		||(*flash_mid == 0x1060C8)
+		||(*flash_mid == 0x134051)
+		||(*flash_mid == 0x136085)
+		||(*flash_mid == 0x1360C8)
+		||(*flash_mid == 0x1360EB)
+		||(*flash_mid == 0x13325E)
+		||(*flash_mid == 0x14325E)){
 		flash_read_uid(FLASH_READ_UID_CMD_GD_PUYA_ZB_UT, (unsigned char *)flash_uid);
 	}else{
 		return 0;
@@ -511,9 +523,7 @@ int flash_read_mid_uid_with_check(unsigned int *flash_mid, unsigned char *flash_
 inline unsigned char flash_is_zb(void)
 {
 	unsigned int flash_mid  = flash_read_mid();
-	if((flash_mid == 0x13325E)||(flash_mid == 0x14325E))
-		return 1;
-	return 0;
+	return ((flash_mid && 0xffff) == 0x00325E);
 }
 
 static inline unsigned char _flash_get_vdd_f_calib_value(void)
@@ -538,7 +548,8 @@ static inline unsigned char _flash_get_vdd_f_calib_value(void)
 	return dcdc_flash_volatage;
 }
 /**
- * @brief		This function serves to calibration the flash voltage(VDD_F),if the flash has the calib_value,we will use it,either will
+ * @brief		This function serves to calibration the flash voltage(VDD_F),
+ * 				if the flash has the calib_value,we will use it,either will
  * 				trim vdd_f to 1.95V(2b'111 the max) if the flash is zb.
  * @param[in]	vol - the voltage which you want to set.
  * @return		none.

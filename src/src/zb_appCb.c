@@ -32,10 +32,9 @@
 #include "zcl_include.h"
 #include "bdb.h"
 #include "ota.h"
-#include "device.h"
+#include "app.h"
 #include "app_ui.h"
-#include "lcd.h"
-#include "reporting.h"
+#include "zb_reporting.h"
 
 /**********************************************************************
  * LOCAL CONSTANTS
@@ -67,16 +66,16 @@ bdb_appCb_t g_zbDemoBdbCb =
 };
 
 #ifdef ZCL_OTA
-ota_callBack_t sensorDevice_otaCb =
+ota_callBack_t app_otaCb =
 {
-	sensorDevice_otaProcessMsgHandler,
+	app_otaProcessMsgHandler,
 };
 #endif
 
 /**********************************************************************
  * FUNCTIONS
  */
-s32 sensorDevice_bdbNetworkSteerStart(void *arg){
+s32 app_bdbNetworkSteerStart(void *arg){
 
 	bdb_networkSteerStart();
 
@@ -86,7 +85,7 @@ s32 sensorDevice_bdbNetworkSteerStart(void *arg){
 
 #if REJOIN_FAILURE_TIMER
 
-s32 sensorDevice_rejoinBackoff(void *arg){
+s32 app_rejoinBackoff(void *arg){
 
 	if(zb_isDeviceFactoryNew()){
 		g_sensorAppCtx.timerRejoinBackoffEvt = NULL;
@@ -128,7 +127,7 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 #endif
 
 #ifdef ZCL_POLL_CTRL
-			sensorDevice_zclCheckInStart();
+			app_zclCheckInStart();
 #endif
 		}else{
 			u16 jitter = 0;
@@ -140,7 +139,7 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 				TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerSteerEvt);
 			}
 			///time_soff = 0;
-			g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(sensorDevice_bdbNetworkSteerStart, NULL, jitter);
+			g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(app_bdbNetworkSteerStart, NULL, jitter);
 		}
 	}
 #if REJOIN_FAILURE_TIMER
@@ -167,7 +166,6 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 	switch(status){
 		case BDB_COMMISSION_STA_SUCCESS:
-			light_blink_start(7, 500, 500);
 			zb_setPollRate(DEFAULT_POLL_RATE);
 
 			if(g_sensorAppCtx.timerSteerEvt){
@@ -179,18 +177,13 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 			}
 #endif
 #ifdef ZCL_POLL_CTRL
-		    sensorDevice_zclCheckInStart();
+		    app_zclCheckInStart();
 #endif
 #ifdef ZCL_OTA
 			ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
 #endif
-#if	USE_DISPLAY
-#if BOARD == BOARD_MHO_C401N
-			show_connected_symbol(true);
-#else
-			show_ble_symbol(false);
-#endif
-#endif
+			light_blink_stop();
+			light_blink_start(7, 250, 250);
 			break;
 		case BDB_COMMISSION_STA_IN_PROGRESS:
 			break;
@@ -209,16 +202,10 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 					TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerSteerEvt);
 				}
 #if REJOIN_FAILURE_TIMER
-				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(sensorDevice_bdbNetworkSteerStart, NULL, jitter + 60 * 1000);
-				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(sensorDevice_bdbNetworkSteerStart, NULL, jitter);
+				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(app_bdbNetworkSteerStart, NULL, jitter + 10 * 1000);
+				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(app_bdbNetworkSteerStart, NULL, jitter);
 #endif
-#if	USE_DISPLAY
-#if BOARD == BOARD_MHO_C401N
-				show_connected_symbol(false);
-#else
-				show_ble_symbol(true);
-#endif
-#endif
+				light_blink_start(5, 500, 500);
 			}
 			break;
 		case BDB_COMMISSION_STA_FORMATION_FAILURE:
@@ -232,34 +219,22 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 		case BDB_COMMISSION_STA_NO_SCAN_RESPONSE:
 		case BDB_COMMISSION_STA_PARENT_LOST:
 #if REJOIN_FAILURE_TIMER
-			sensorDevice_rejoinBackoff(NULL);
+			app_rejoinBackoff(NULL);
 #else
 			zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 #endif
-#if	USE_DISPLAY
-#if BOARD == BOARD_MHO_C401N
-			show_connected_symbol(false);
-#else
-			show_ble_symbol(true);
-#endif
-#endif
+			light_blink_start(5, 500, 500);
 			break;
 		case BDB_COMMISSION_STA_REJOIN_FAILURE:
 			if(!zb_isDeviceFactoryNew()){
 #if REJOIN_FAILURE_TIMER
                 // sleep for 1 minutes before reconnect if rejoin failed
-                g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(sensorDevice_rejoinBackoff, NULL, 60 * 1000);
+                g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 10 * 1000);
 #else
 				zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 #endif
+				light_blink_start(5, 500, 500);
 			}
-#if	USE_DISPLAY
-#if BOARD == BOARD_MHO_C401N
-			show_connected_symbol(false);
-#else
-			show_ble_symbol(true);
-#endif
-#endif
 			break;
 		default:
 			break;
@@ -267,13 +242,13 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 }
 
 
-extern void sensorDevice_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
+extern void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 void zbdemo_bdbIdentifyCb(u8 endpoint, u16 srcAddr, u16 identifyTime){
-	sensorDevice_zclIdentifyCmdHandler(endpoint, srcAddr, identifyTime);
+	app_zclIdentifyCmdHandler(endpoint, srcAddr, identifyTime);
 }
 
 #ifdef ZCL_OTA
-void sensorDevice_otaProcessMsgHandler(u8 evt, u8 status)
+void app_otaProcessMsgHandler(u8 evt, u8 status)
 {
 	if(evt == OTA_EVT_START){
 		if(status == ZCL_STA_SUCCESS){
@@ -296,7 +271,7 @@ void sensorDevice_otaProcessMsgHandler(u8 evt, u8 status)
 #endif
 
 /*********************************************************************
- * @fn      sensorDevice_leaveCnfHandler
+ * @fn      app_leaveCnfHandler
  *
  * @brief   Handler for ZDO Leave Confirm message.
  *
@@ -304,29 +279,31 @@ void sensorDevice_otaProcessMsgHandler(u8 evt, u8 status)
  *
  * @return  None
  */
-void sensorDevice_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf)
+void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf)
 {
     if(pLeaveCnf->status == SUCCESS){
-#if REJOIN_FAILURE_TIMER
-		if(g_sensorAppCtx.timerRejoinBackoffEvt){
+#if 0 //REJOIN_FAILURE_TIMER
+		if(g_sensorAppCtx.timerRejoinBackoffEvt) {
 			TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerRejoinBackoffEvt);
 		}
 #endif
-    	//zb_resetDevice();
+    	zb_resetDevice();
     }
 }
 
 /*********************************************************************
- * @fn      sensorDevice_leaveIndHandler
+ * @fn      app_leaveIndHandler
  *
  * @brief   Handler for ZDO leave indication message.
  *
  * @param   pInd - parameter of leave indication
  *
  * @return  None
- */
-void sensorDevice_leaveIndHandler(nlme_leave_ind_t *pLeaveInd)
+ *
+void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd)
 {
-    //printf("sensorDevice_leaveIndHandler, rejoin = %d\n", pLeaveInd->rejoin);
+    //printf("app_leaveIndHandler, rejoin = %d\n", pLeaveInd->rejoin);
     //printfArray(pLeaveInd->device_address, 8);
 }
+*/
+

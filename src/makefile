@@ -4,11 +4,13 @@ VERSION_BIN ?=
 
 ZNAME?="B2Z device"
 
-TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DEND_DEVICE=1 -DMCU_STARTUP_8258=1 -D__PROJECT_TL_SWITCH__=1 -DBLE_CONCURRENT_MODE=1 -DBOOT_LOADER_MODE=0 
+TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DEND_DEVICE=1 -DMCU_STARTUP_8258=1 -DBLE_CONCURRENT_MODE=1 -DBOOT_LOADER_MODE=0
+#-D__PROJECT_TL_SWITCH__=1 
 
 LIBS := -lble_8258 -ldrivers_8258 -lzb_ed 
 
-PGM_PORT?=COM14
+PGM_PORT?=COM6
+PGM_PORT_BAUD?=1500000
 
 PROJECT_PATH ?= .
 SRC_DIR ?= /src
@@ -21,7 +23,7 @@ SDK_FLAGS := $(SDK_PATH)/stack
 # MAKE_PATH: project all make
 MAKE_PATH ?= ./make
 
-LS_FLAGS := $(SRC_PATH)/boot.link
+LS_FLAGS := $(SRC_PATH)/boot_bz.link
 
 OUT_PATH ?=./build
 BIN_PATH ?=./bin
@@ -134,9 +136,7 @@ OBJ_LIST := $(USER_OBJS) $(OBJS)
 # Tool invocations
 $(ELF_FILE): $(OBJ_LIST)
 	@echo 'Building Standard target: $@'
-	@$(TC32_PATH)tc32-elf-ld -Ttext 0x10000 $(LNK_FLAGS) $(LS_INCLUDE) -T$(LS_FLAGS) -o $(ELF_FILE) $(OBJ_LIST) $(LIBS)
-	@echo 'Building Reduced target: $@'
-	@$(TC32_PATH)tc32-elf-ld --gc-sections -Ttext `$(PYTHON) $(MAKE_PATH)/TlsrRetMemAddr.py -e $(ELF_FILE) -t $(TC32_PATH)tc32-elf-nm` $(LNK_FLAGS) $(LS_INCLUDE) -T$(LS_FLAGS) -o $(ELF_FILE) $(OBJ_LIST) $(LIBS)
+	@$(TC32_PATH)tc32-elf-ld $(LNK_FLAGS) $(LS_INCLUDE) -T$(LS_FLAGS) -o $(ELF_FILE) $(OBJ_LIST) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -183,39 +183,42 @@ secondary-outputs: $(BIN_FILE) $(OTA_FILE) $(LST_FILE) $(SIZEDUMMY)
 
 
 flash: $(BIN_FILE)
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -a100 -m we 0 $(BIN_FILE)
-
-#	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z15 -a-50 -s we 0 $(BIN_FILE)
-#	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -m i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -a-50 -s we 0 $(BIN_FILE)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -m i
 
 # test start from OTA BLE
 flash_ble: $(BIN_FILE)
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z15 -a-50 -s i
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) es 0 1
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) we 0x20000 $(BIN_FILE)
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -m i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -a-50 -s i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) es 0 1
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) we 0x20000 $(BIN_FILE)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -m i
+
+# test start from Tuya boot_loader
+flash_tuya: $(BIN_FILE)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -a-50 -s i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) we 0 tuya_boot.bin
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) we 0x8000 $(BIN_FILE)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -m i	
 
 reset:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -a100 -m -w i
-
-#	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z15 -m -w i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -m -w i
 
 erase:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -a100 -s ea
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -s ea
 
 info:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z15 i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 i
 
 stop:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z15 -s i
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z15 -s i
 
 go:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -m
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -m
 
-TADDR?=0x00844ea0
-TLEN?=128
+TADDR?=0x00848494
+TLEN?=256
 test_damp:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z10 -c -g ds $(TADDR) $(TLEN)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z10 ds $(TADDR) $(TLEN)
 
 install: $(TC32_PATH)
 	@echo "TC32 installed."
