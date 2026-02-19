@@ -127,7 +127,9 @@ void app_onOffUpdate(u8 cmd)
     zcl_sceneAttr_t *pScene = zcl_sceneAttrGet();
     pScene->sceneValid = 0;
 #endif
+#ifdef GPIO_RELAY
    	gpio_write(GPIO_RELAY, onOff);
+#endif
    	zcl_onOffAttr_save();
 }
 

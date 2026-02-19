@@ -1,10 +1,10 @@
 [
     {
         "fileVersion": 17182721,
-        "fileSize": 157074,
+        "fileSize": 158594,
         "manufacturerCode": 4417,
         "imageType": 8720,
-        "sha512": "62d8f37a2a62fd72ac9726c6234e123ae07cd5fa9217a12d598a424d4dc857c77387c5228ac6d9e46a3c82b9f77317dd1b5976abbc54db89bd2fcca07dbe120f",
+        "sha512": "4d400a01e469509e5ef11cec35bf35f5e1e1dfa741541179f376e0c7063c1043180c4c6f48e06bff03d5b5045840710e5e39597fe9c6492b07560d113e811351",
         "otaHeaderString": "B2Z:TB03F-bz",
         "modelId": "TB03F-bz",
         "manufacturerName": [
@@ -27,10 +27,10 @@
     },
     {
         "fileVersion": 17182721,
-        "fileSize": 158738,
+        "fileSize": 160274,
         "manufacturerCode": 4417,
         "imageType": 8748,
-        "sha512": "b2dde0ba792a44fd0a6b4251fa679cb22bc876e406811883541cc1326e5f7683a57e46b2617dade44ff707de217fbd965ece80a48fe11c3c01ae61114ab9f5f9",
+        "sha512": "21d93cc708c8c3f39c7d2362808c278c6024787d81a787455cdd6da159a8a1331c1111f3a029dab02f45ab4aa9604134bb7b49d70dbdbff59c5ed26f9b83e2bd",
         "otaHeaderString": "B2Z:ZG-807Z",
         "modelId": "ZG-807Z",
         "manufacturerName": [

@@ -45,7 +45,7 @@
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_DEBUG
+#define BOARD					BOARD_TB03F_KIT
 #endif
 
 /* Chip IDs */

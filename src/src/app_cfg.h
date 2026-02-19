@@ -177,13 +177,8 @@ extern "C" {
 #define TOUCHLINK_SUPPORT							0
 #define FIND_AND_BIND_SUPPORT						0
 #define ZCL_POWER_CFG_SUPPORT						1
-#ifdef GPIO_RELAY
 #define ZCL_ON_OFF_SUPPORT							1
 #define SCAN_TRG_ENABLE								1
-#else
-#define ZCL_ON_OFF_SUPPORT							0
-#define SCAN_TRG_ENABLE								0
-#endif
 //#define ZCL_IAS_ZONE_SUPPORT						1
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
 #define ZCL_RELATIVE_HUMIDITY_SUPPORT   			1
