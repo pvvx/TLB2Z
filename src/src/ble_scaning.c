@@ -18,9 +18,7 @@
 #include "adv_qingping.h"
 #include "app_ui.h"
 
-
-//#include "cmd_parser.h"
-//#include "app.h"
+#define USE_DEBUG_SCAN		0
 
 #if (ADV_SERVICE_ENABLE)
 #define MYFIFO_BLK_SIZE		40 // min 1+6+31 = 38 bytes
@@ -77,7 +75,7 @@ const u8 tblBTHome[] = {
 */
 };
 
-#if	USE_DEBUG_UART
+#if	USE_DEBUG_SCAN
 u8 debug_buf[48];
 #endif
 u8 prev_advs[MAX_SCAN_DEVS][32];
@@ -88,6 +86,9 @@ u8 bindkey[MAX_SCAN_DEVS][16];
 #endif
 
 u8	update_enable[MAX_SCAN_DEVS];
+#if SCAN_TRG_ENABLE
+u8	ble_trigger[MAX_SCAN_DEVS];
+#endif
 
 u8	dev_MAC[MAX_SCAN_DEVS][6];
 
@@ -164,7 +165,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 			}
 #if USE_BINDKEY
 			if((p->ctrID & 0x08) && len > 3 + 3 + 4) { // Data encrypted, len > size (min_data[3], ext_cnt[3], mic[4])
-#if	USE_DEBUG_UART
+#if	USE_DEBUG_SCAN
 				debug_buf[0] = n;
 #endif
 /*
@@ -192,7 +193,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 						(u8 *)&pb[len+3], 4)) { // &mic: &crypt_data[len + size (ext_cnt[3])]
 					return;
 				}
-#if	USE_DEBUG_UART
+#if	USE_DEBUG_SCAN
 				memcpy(&debug_buf[1], pb, len);
 				uart_send(debug_buf, len + 1);
 #endif
@@ -240,9 +241,19 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 				} else if(ps->id == MI_DATAF_ID2_Humidity && ps->size >= 4) { // Humidity, float
 					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				}
+#if SCAN_TRG_ENABLE
+				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
+					ble_trigger[n] = ps->data_ub[0];
+					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
+					ble_trigger[n] = 1;
+					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+				} else if((ps->id == MI_DATA_ID_NoOneMoves)&&(ps->size >= 4)) { // No one moves over time / 171004 3c000000 / 171004 78000000 / 1710042c010000 / 171004 58020000
+					ble_trigger[n] = 0;
+					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+#endif
 /*
-				 else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
+				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
 					set_lm_out(ps->data_ub[0]);
 				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
 					if(ps->data_ub[2])
@@ -262,8 +273,8 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					set_lm_out(wrk.motion_event);
 				} else if((ps->id == MI_DATA_ID_LightIntensity)&&(ps->size >= 1)) { // Light on/off, Light Intensity 18100101 / 18100100
 					wrk.light_on = ps->data_ub[0];
-				}
 */
+				}
 				len -= ps->size + 3;
 				ps = (padv_struct_xiaomi_t)((u32)ps + ps->size + 3);
 			}
@@ -290,8 +301,14 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 				g_zcl_powerAttrs[n].batteryPercentage = ps->data_us[0];  // in %
 				g_zcl_powerAttrs[n].batteryVoltage = 30;
 				update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
+
+#if SCAN_TRG_ENABLE
+			} else if(ps->id_size == 0x0408) { // Motion + Light
+				ble_trigger[n] = ps->data_ub[0];
+				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+#endif
 /*
-			else if(ps->id_size == 0x0408) { // Motion + Light
+			} else if(ps->id_size == 0x0408) { // Motion + Light
 				wrk.motion_event = ps->data_ub[0];
 				if(ps->data_ub[3])
 					wrk.illuminance = -1;
@@ -325,12 +342,10 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_relHumidityAttrs.measuredValue[n] = p->humidity;
 		g_zcl_powerAttrs[n].batteryPercentage = p->battery_level << 1;
 		g_zcl_powerAttrs[n].batteryVoltage = p->battery_mv/100;
-		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 #if SCAN_TRG_ENABLE
-		if(n == 1) {
-			g_zcl_onOffAttrs.onOff = p->flags.trg_output;
-		}
+		ble_trigger[n] = p->flags.trg_output;
 #endif
+		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = p->flags.rds_input;
 		//new_trg = p->flags.trg_output;
 		//new_rds = p->flags.rds_input;
@@ -352,7 +367,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 				(u8 *)&pp->data, // decrypt data
 				(u8 *)&pp->mic, 4)) // &mic: &crypt_data[len + size (ext_cnt[3])]
 			return;
-#if	USE_DEBUG_UART
+#if	USE_DEBUG_SCAN
 		debug_buf[0] = n;
 		memcpy(&debug_buf[1], &pp->data, sizeof(adv_pvvx_data_t));
 		uart_send(debug_buf, sizeof(adv_pvvx_data_t) + 1);
@@ -363,12 +378,10 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_relHumidityAttrs.measuredValue[n] = pp->data.humi;
 		g_zcl_powerAttrs[n].batteryPercentage = pp->data.bat << 1;
 		g_zcl_powerAttrs[n].batteryVoltage = 30;
-		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 #if SCAN_TRG_ENABLE
-		if(n == 1) {
-			g_zcl_onOffAttrs.onOff = p->flags.trg_output;
-		}
+		ble_trigger[n] = p->flags.trg_output;
 #endif
+		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = pp->data.flags.rds_input;
 		//new_trg = pp->data.flags.trg_output;
 		//new_rds = pp->data.flags.rds_input;
@@ -451,7 +464,8 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 #if SCAN_TRG_ENABLE
 				if(!n && ps->type == BtHomeID_switch) {
 					if(!next_trg) {
-						g_zcl_onOffAttrs.onOff = ps->data_ub[0] & 1;
+						ble_trigger[n] = ps->data_ub[0];
+						update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 						next_trg = true;
 					}
 				}

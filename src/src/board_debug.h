@@ -4,52 +4,73 @@
  *  Created on: 12 нояб. 2023 г.
  *      Author: pvvx
  */
-#ifndef _BOARD_TS0001_TZ3000_H_
-#define _BOARD_TS0001_TZ3000_H_
+#ifndef _BOARD_DEBUG_H_
+#define _BOARD_DEBUG_H_
 
 #include "version_cfg.h"
 
-#if (BOARD == BOARD_TS0001_TZ3000_RBZ)
-#define BLE_MODEL_STR 			{"REL-BZ01"}
+#if (BOARD == BOARD_DEBUG)
+#define BLE_MODEL_STR 			{"DEBUG"}
 #define BLE_MAN_STR 			{"TLB2Z"}
 #define BLE_NAME_PEFIX 			{'B','2','Z','-'} // fix 4 char
-#define ZCL_BASIC_MODEL_ID		{8,'R','E','L','-','B','Z','0','1'} // REL-BZ01
+#define ZCL_BASIC_MODEL_ID		{8,'D','E','B','U','G','-','b','z'} // DEBUG-bz
 #define ZCL_BASIC_MFG_NAME		{3,'B','2','Z'} // B2Z
 
-#define ZIGBEE_TUYA_OTA 	1
+#define ZIGBEE_TUYA_OTA 	0
 
-// https://pvvx.github.io/TS0001_TZ3000/
-// PB4  - LED
-// PB5  - KEY
+//// TB-03F-KIT
+// PC2,3,4 - LED_RGB
+// PB4,5 - LED1, LED2
 // PB1	- UART TX
 // PA0  - UART RX
-// PC3  - Relay
-
+// PA7  - KEY
 #define	BUTTON_ON			0
-#define	BUTTON1				GPIO_PB5
-#define PB5_FUNC			AS_GPIO
-#define PB5_OUTPUT_ENABLE	0
-#define PB5_INPUT_ENABLE	1
-#define	PULL_WAKEUP_SRC_PB5	PM_PIN_PULLUP_10K
+#define	BUTTON1				GPIO_PA1
+#define PA1_FUNC			AS_GPIO
+#define PA1_OUTPUT_ENABLE	0
+#define PA1_INPUT_ENABLE	1
+#define	PULL_WAKEUP_SRC_PA1	PM_PIN_PULLUP_10K
 
 // LED
 #define LED_ON				1
 #define LED_OFF				0
 
-#define LED_FLASH_RGBE		0
+#define LED_FLASH_RGBE		1
 
-#define GPIO_LED			GPIO_PB4	// Zigbee light_blink
+#define GPIO_LED_R			GPIO_PC3		// rx device 1
+#define PC3_DATA_OUT		LED_OFF
+#define PC3_OUTPUT_ENABLE	1
+#define PC3_INPUT_ENABLE	1
+#define PC3_FUNC			AS_GPIO
+#define PWM_LED_R			PWM1_ID
+
+#define GPIO_LED_G			GPIO_PC4		// rx device 2
+#define PC4_DATA_OUT		LED_OFF
+#define PC4_OUTPUT_ENABLE	1
+#define PC4_INPUT_ENABLE	1
+#define PC4_FUNC			AS_GPIO
+#define PWM_LED_G			PWM2_ID
+
+#define GPIO_LED_B			GPIO_PC2		// rx device 3
+#define PC2_DATA_OUT		LED_OFF
+#define PC2_OUTPUT_ENABLE	1
+#define PC2_INPUT_ENABLE	1
+#define PC2_FUNC			AS_GPIO
+#define PWM_LED_B			PWM0_ID
+
+//#define GPIO_LED_E			GPIO_PB4		// tx advertise
+#define GPIO_RELAY			GPIO_PB4 // test
 #define PB4_DATA_OUT		LED_OFF
 #define PB4_OUTPUT_ENABLE	1
 #define PB4_INPUT_ENABLE	1
 #define PB4_FUNC			AS_GPIO
 
-// RELAY
-#define GPIO_RELAY			GPIO_PC3
-#define PC3_DATA_OUT		LED_OFF
-#define PC3_OUTPUT_ENABLE	1
-#define PC3_INPUT_ENABLE	1
-#define PC3_FUNC			AS_GPIO
+//#define GPIO_LED_W		GPIO_PB5
+#define GPIO_LED			GPIO_PB5 		// Zigbee light_blink
+#define PB5_DATA_OUT		LED_OFF
+#define PB5_OUTPUT_ENABLE	1
+#define PB5_INPUT_ENABLE	1
+#define PB5_FUNC			AS_GPIO
 
 
 // I2C
@@ -70,7 +91,6 @@
 #define PC5_DATA_OUT		1
 #define PC5_OUTPUT_ENABLE	1
 #define PC5_FUNC			AS_GPIO
-#define PULL_WAKEUP_SRC_PC5	PM_PIN_PULLUP_10K
 
 // UART
 #if ZBHCI_UART
@@ -90,5 +110,5 @@
 #define PB1_OUTPUT_ENABLE	1
 #endif
 
-#endif // BOARD == BOARD_TS0001_TZ3000_RBZ
-#endif /* _BOARD_TS0001_TZ3000_H_ */
+#endif // BOARD == DEBUG
+#endif /* _BOARD_DEBUG_H_ */

@@ -35,13 +35,9 @@ typedef struct{
 	// timers
 	ev_timer_event_t *timerLedEvt;	// timer light blink
 	ev_timer_event_t *timerKeyEvt;	// timer key press
-#if REJOIN_FAILURE_TIMER
 	ev_timer_event_t *timerRejoinBackoffEvt;
-#endif
 	ev_timer_event_t *timerSteerEvt;
-#if REJOIN_FAILURE_TIMER
-	ev_timer_event_t *timerRejoinBackOffEvt;
-#endif
+
 #ifdef ZCL_IDENTIFY
 	ev_timer_event_t *timerIdentifyEvt;
 #endif
@@ -213,7 +209,11 @@ void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd);
 void app_otaProcessMsgHandler(u8 evt, u8 status);
 
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
-void remoteCmdOnOff(u8 cmd);
+void app_onOffUpdate(u8 cmd);
+void remoteCmdOnOff(u8 srcEp, u8 cmd);
+void app_onOffInit(void);
+nv_sts_t zcl_onOffAttr_restore(void);
+nv_sts_t zcl_onOffAttr_save(void);
 
 void scan_task(void);
 void sensors_task(void);

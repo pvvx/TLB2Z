@@ -56,7 +56,7 @@
 //If defined, use distributed address assign for tree and for mesh routing (ZigBee 2007).
 #ifndef ZB_NWK_DISTRIBUTED_ADDRESS_ASSIGN
 //If defined, use stochastic address assign (ZigBee PRO).
-  #define ZB_NWK_STOCHASTIC_ADDRESS_ASSING
+  #define ZB_NWK_STOCHASTIC_ADDRESS_ASSIGN
 #endif
 
 /* Some defaults for ZDO startup */
@@ -65,10 +65,9 @@
  */
 
 /*******************************ZOO Default Configuration Attribute Definitions***********************************************/
-//Permit join duration, 0x00 - disable join, 0xff - join is allowed forever
 #define ZDO_PERMIT_JOIN_DURATION					0
 
-#define POLL_RATE_QUARTERSECONDS					250 // 1 qs = 250 ms
+#define POLL_RATE_QUARTERSECONDS					250//1 qs = 250 ms
 
 #define POLL_NO_DATA_MAX_COUNT						3
 
@@ -88,22 +87,15 @@
 #define	ZDO_MAX_PARENT_THRESHOLD_RETRY				5
 
 //Contents of the rejoin interval in seconds
-//The number of rejoin attempts during the fast rejoin.
 #define ZDO_REJOIN_TIMES							5
-//The amount of time between each rejoin attempt while the device is in Fast Rejoin mode, in seconds.
-//If 0, config_rejoin_times will be ignored and only one Fast Rejoin will be performed.
 #define	ZDO_REJOIN_DURATION							6
-//The amount of time to sleep after the Fast Rejoin attempts before performing the next attempt, in seconds.
-//If 0 means no Rejoin backoff/retry.
 #define ZDO_REJOIN_BACKOFF_TIME						30
-//Upper limit of the config_rejoin_backoff_time.
 #define ZDO_MAX_REJOIN_BACKOFF_TIME					90
-//The number of iterations of the Fast Rejoin backoff, in times.
-//If 0 means do not reset the backoff duration.
 #define ZDO_REJOIN_BACKOFF_ITERATION				8
+
 /******************************************************************************************************************************/
 
-#if defined(MCU_CORE_8258) || defined(MCU_CORE_8278) || defined(MCU_CORE_B91)
+#if defined(MCU_CORE_8258) || defined(MCU_CORE_B91) || defined(MCU_CORE_TL321X) || defined(MCU_CORE_TL721X)
 #if ZB_ROUTER_ROLE
 #if ZB_COORDINATOR_ROLE
 	#define NWK_ROUTE_RECORD_TABLE_NUM				127//300
@@ -111,7 +103,7 @@
 	#define TL_ZB_NWK_ADDR_MAP_NUM					128//301
 	#define ROUTING_TABLE_NUM						48//250
 #endif
-#elif defined (MCU_CORE_826x)
+#else
 #if ZB_ROUTER_ROLE
 #if ZB_COORDINATOR_ROLE
 	#define NWK_ROUTE_RECORD_TABLE_NUM				64
@@ -149,5 +141,6 @@
 #if ZB_ROUTER_ROLE
 	#define GP_SUPPORT_ENABLE					  	1
 #endif
+
 
 #endif	/* ZB_CONFIG_H */

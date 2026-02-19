@@ -38,12 +38,14 @@
 #endif
 
 /* Board ID */
+#define BOARD_DEBUG					1  // DIY TB-03F-Kit debug
 #define BOARD_TB03F_KIT				16 // DIY TB-03F-Kit
 #define BOARD_TS0001_TZ3000_RBZ		43 // https://pvvx.github.io/TS0001_TZ3000/
+#define BOARD_ZG807Z				44 // https://pvvx.github.io/ZG-807Z/
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_TB03F_KIT // BOARD_LYWSD03MMC or BOARD_CGDK2 or BOARD_MHO_C122 or BOARD_MHO_C401N or BOARD_TS0201_TZ3000
+#define BOARD					BOARD_DEBUG
 #endif
 
 /* Chip IDs */

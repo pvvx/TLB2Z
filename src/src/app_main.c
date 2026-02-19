@@ -121,6 +121,7 @@ static void app_SysException(void)
 		sleep_ms(100);
 	}
 #endif
+	sws_puts("SysException/n");
 	SYSTEM_RESET();
 }
 
@@ -139,15 +140,16 @@ static void user_app_init(void)
 	/* Populate properties with compiled-in values */
 	populate_date_code();
 
+#ifdef GPIO_RELAY
+	zcl_onOffAttr_restore();
+#endif
 	/* Initialize ZB stack */
 	zb_init();
 	/* Register stack CB */
 	zb_zdoCbRegister((zdo_appIndCb_t *)&appCbLst);
 
-#if 1 //DEBUG_ENABLE
 	/* Register except handler for test */
 	sys_exceptHandlerRegister(app_SysException);
-#endif
 
 #if ZCL_POLL_CTRL_SUPPORT
 	af_powerDescPowerModeUpdate(POWER_MODE_RECEIVER_COMES_PERIODICALLY);
@@ -248,6 +250,10 @@ static void user_app_init(void)
 	u8 repower = drv_pm_deepSleep_flag_get() ? 0 : 1;
 	bdb_init((af_simple_descriptor_t *)&app_simpleDesc1, &g_bdbCommissionSetting, &g_zbDemoBdbCb, repower);
 
+#ifdef GPIO_RELAY
+	app_onOffInit();
+#endif
+
 #if 0 // Go zb_context
 	u32 r = drv_disable_irq();
 	switch_to_zb_context();
@@ -280,7 +286,44 @@ void user_init(bool isRetention)
 		mac_phyReconfig();
 	}
 }
+#ifdef ZCL_ON_OFF
+u8 old_trgger[MAX_SCAN_DEVS];
+/**********************************************************************
+ * @fn      test_ble_trigger
+ *
+ * @brief   test ble_trigger -> Relay On/Off
+ *
+ * @param   None
+ *
+ * @return  None
+ */
+void test_ble_trigger(void) {
+	u8 on_state;
+	for(int n = 0; n < MAX_SCAN_DEVS; n++) {
+		if(update_enable[n] & FLG_UPDATE_TRG) {
+			update_enable[n] &= ~FLG_UPDATE_TRG;
+			on_state = (ble_trigger[n])? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
+#ifdef GPIO_RELAY
+			if(!n) {
+				if(on_state != g_zcl_onOffAttrs.onOff) {
+					app_onOffUpdate(on_state);
+				}
+			} else {
+				if(on_state != old_trgger[n]) {
+					remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
+				}
+			}
+#else
+			if(on_state != old_trgger[n]) {
+				remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
+			}
+#endif
+			old_trgger[n] = on_state;
+		}
+	}
 
+}
+#endif
 /**********************************************************************
  * @fn      app_zb_task
  *
@@ -295,6 +338,9 @@ static void app_zb_task(void)
 	if(bdb_isIdle()){
 		// report handler
 		if(zb_isDeviceJoinedNwk()){
+#ifdef ZCL_ON_OFF
+			test_ble_trigger();
+#endif
 			while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
 				g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
 				g_sensorAppCtx.reportupsec++; // + 1 sec

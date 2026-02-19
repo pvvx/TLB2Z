@@ -42,14 +42,6 @@ int main(void) {
 
 	os_init(isRetention);
 
-	/* reduce power consumption, disable CLK disable CLK of unused peripherals*/
-#if 0
-	reg_clk_en0 = 0 // FLD_CLK0_SPI_EN
-#if UART_PRINTF_MODE
-			| FLD_CLK0_UART_EN
-#endif
-			| FLD_CLK0_SWIRE_EN;
-#endif
 #if PA_ENABLE
 	rf_paInit(PA_TX, PA_RX);
 #endif

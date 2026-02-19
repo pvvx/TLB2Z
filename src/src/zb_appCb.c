@@ -1,26 +1,6 @@
 /********************************************************************************************************
  * @file    zb_appCb.c
  *
- * @brief   This is the source file for zb_appCb
- *
- * @author  Zigbee Group
- * @date    2021
- *
- * @par     Copyright (c) 2021, Telink Semiconductor (Shanghai) Co., Ltd. ("TELINK")
- *			All rights reserved.
- *
- *          Licensed under the Apache License, Version 2.0 (the "License");
- *          you may not use this file except in compliance with the License.
- *          You may obtain a copy of the License at
- *
- *              http://www.apache.org/licenses/LICENSE-2.0
- *
- *          Unless required by applicable law or agreed to in writing, software
- *          distributed under the License is distributed on an "AS IS" BASIS,
- *          WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *          See the License for the specific language governing permissions and
- *          limitations under the License.
- *
  *******************************************************************************************************/
 
 
@@ -52,7 +32,7 @@
 void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork);
 void zbdemo_bdbCommissioningCb(u8 status, void *arg);
 void zbdemo_bdbIdentifyCb(u8 endpoint, u16 srcAddr, u16 identifyTime);
-
+void zbdemo_bdbFindBindSuccessCb(findBindDst_t *pDstInfo);
 
 /**********************************************************************
  * LOCAL VARIABLES
@@ -62,7 +42,7 @@ bdb_appCb_t g_zbDemoBdbCb =
 	zbdemo_bdbInitCb,
 	zbdemo_bdbCommissioningCb,
 	zbdemo_bdbIdentifyCb,
-	NULL
+	zbdemo_bdbFindBindSuccessCb
 };
 
 #ifdef ZCL_OTA
@@ -72,6 +52,7 @@ ota_callBack_t app_otaCb =
 };
 #endif
 
+static bool ota_processing = FALSE;
 /**********************************************************************
  * FUNCTIONS
  */
@@ -83,7 +64,15 @@ s32 app_bdbNetworkSteerStart(void *arg){
 	return -1;
 }
 
-#if REJOIN_FAILURE_TIMER
+#if FIND_AND_BIND_SUPPORT
+s32 app_bdbFindAndBindStart(void *arg){
+	BDB_ATTR_GROUP_ID_SET(0x1234);//only for initiator
+	bdb_findAndBindStart(BDB_COMMISSIONING_ROLE_INITIATOR);
+
+	g_switchAppCtx.bdbFBTimerEvt = NULL;
+	return -1;
+}
+#endif
 
 s32 app_rejoinBackoff(void *arg){
 
@@ -91,12 +80,9 @@ s32 app_rejoinBackoff(void *arg){
 		g_sensorAppCtx.timerRejoinBackoffEvt = NULL;
 		return -1;
 	}
-
-    zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+	zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
     return 0;
 }
-
-#endif
 
 /*********************************************************************
  * @fn      zbdemo_bdbInitCb
@@ -149,6 +135,15 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 			zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 		}
 	}
+#else
+	else
+	{
+		if(joinedNetwork){
+			if(!g_sensorAppCtx.timerRejoinBackoffEvt){
+				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
+			}
+		}
+	}
 #endif
 }
 
@@ -166,23 +161,31 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 	switch(status){
 		case BDB_COMMISSION_STA_SUCCESS:
+
+			light_blink_stop();
+
+			if(!ota_processing){
+				zb_setPollRate(POLL_RATE * 3);
+			}else{
+				zb_setPollRate(QUEUE_POLL_RATE);
+			}
 			zb_setPollRate(DEFAULT_POLL_RATE);
 
 			if(g_sensorAppCtx.timerSteerEvt){
 				TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerSteerEvt);
 			}
-#if REJOIN_FAILURE_TIMER
 			if(g_sensorAppCtx.timerRejoinBackoffEvt){
 				TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerRejoinBackoffEvt);
 			}
-#endif
+			if(!g_zbNwkCtx.joined){
+				zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+			}
 #ifdef ZCL_POLL_CTRL
 		    app_zclCheckInStart();
 #endif
 #ifdef ZCL_OTA
 			ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
 #endif
-			light_blink_stop();
 			light_blink_start(7, 250, 250);
 			break;
 		case BDB_COMMISSION_STA_IN_PROGRESS:
@@ -201,10 +204,7 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 				if(g_sensorAppCtx.timerSteerEvt){
 					TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerSteerEvt);
 				}
-#if REJOIN_FAILURE_TIMER
-				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(app_bdbNetworkSteerStart, NULL, jitter + 10 * 1000);
 				g_sensorAppCtx.timerSteerEvt = TL_ZB_TIMER_SCHEDULE(app_bdbNetworkSteerStart, NULL, jitter);
-#endif
 				light_blink_start(5, 500, 500);
 			}
 			break;
@@ -217,24 +217,16 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 		case BDB_COMMISSION_STA_NOT_PERMITTED:
 			break;
 		case BDB_COMMISSION_STA_NO_SCAN_RESPONSE:
+			break;
 		case BDB_COMMISSION_STA_PARENT_LOST:
-#if REJOIN_FAILURE_TIMER
-			app_rejoinBackoff(NULL);
-#else
-			zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
-#endif
+			zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 			light_blink_start(5, 500, 500);
 			break;
 		case BDB_COMMISSION_STA_REJOIN_FAILURE:
-			if(!zb_isDeviceFactoryNew()){
-#if REJOIN_FAILURE_TIMER
-                // sleep for 1 minutes before reconnect if rejoin failed
-                g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 10 * 1000);
-#else
-				zb_rejoinReqWithBackOff(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
-#endif
-				light_blink_start(5, 500, 500);
+			if(!g_sensorAppCtx.timerRejoinBackoffEvt){
+				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
 			}
+			light_blink_start(5, 500, 500);
 			break;
 		default:
 			break;
@@ -244,28 +236,55 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 
 extern void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 void zbdemo_bdbIdentifyCb(u8 endpoint, u16 srcAddr, u16 identifyTime){
+#if FIND_AND_BIND_SUPPORT
 	app_zclIdentifyCmdHandler(endpoint, srcAddr, identifyTime);
+#endif
+}
+/*********************************************************************
+ * @fn      zbdemo_bdbFindBindSuccessCb
+ *
+ * @brief   application callback for finding & binding
+ *
+ * @param   pDstInfo
+ *
+ * @return  None
+ */
+void zbdemo_bdbFindBindSuccessCb(findBindDst_t *pDstInfo){
+#if FIND_AND_BIND_SUPPORT
+	epInfo_t dstEpInfo;
+	TL_SETSTRUCTCONTENT(dstEpInfo, 0);
+
+	dstEpInfo.dstAddrMode = APS_SHORT_DSTADDR_WITHEP;
+	dstEpInfo.dstAddr.shortAddr = pDstInfo->addr;
+	dstEpInfo.dstEp = pDstInfo->endpoint;
+	dstEpInfo.profileId = HA_PROFILE_ID;
+
+	zcl_identify_identifyCmd(SAMPLE_SWITCH_ENDPOINT, &dstEpInfo, FALSE, 0, 0);
+#endif
 }
 
 #ifdef ZCL_OTA
 void app_otaProcessMsgHandler(u8 evt, u8 status)
 {
+	//printf("sampleSwitch_otaProcessMsgHandler: status = %x\n", status);
+	ota_processing = FALSE;
 	if(evt == OTA_EVT_START){
 		if(status == ZCL_STA_SUCCESS){
+			ota_processing = TRUE;
 			zb_setPollRate(QUEUE_POLL_RATE);
-		}else{
+		} else {
 
 		}
-	}else if(evt == OTA_EVT_COMPLETE){
-		zb_setPollRate(DEFAULT_POLL_RATE);
+	} else if(evt == OTA_EVT_COMPLETE){
+		zb_setPollRate(POLL_RATE * 3);
 
 		if(status == ZCL_STA_SUCCESS){
 			ota_mcuReboot();
-		}else{
+		} else {
 			ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
 		}
-	}else if(evt == OTA_EVT_IMAGE_DONE){
-		zb_setPollRate(DEFAULT_POLL_RATE);
+	} else if(evt == OTA_EVT_IMAGE_DONE){
+		zb_setPollRate(POLL_RATE * 3);
 	}
 }
 #endif
@@ -282,12 +301,9 @@ void app_otaProcessMsgHandler(u8 evt, u8 status)
 void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf)
 {
     if(pLeaveCnf->status == SUCCESS){
-#if 0 //REJOIN_FAILURE_TIMER
 		if(g_sensorAppCtx.timerRejoinBackoffEvt) {
 			TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerRejoinBackoffEvt);
 		}
-#endif
-    	zb_resetDevice();
     }
 }
 

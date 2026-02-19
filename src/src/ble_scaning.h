@@ -17,10 +17,12 @@ enum {
 	FLG_UPDATE_VBAT	=	2,
 	FLG_UPDATE_TEMP	=	4,
 	FLG_UPDATE_HUMI	=	8,
-	FLG_UPDATE_FLG	=	0x10
+	FLG_UPDATE_FLG	=	0x10,
+	FLG_UPDATE_TRG	=	0x20
 } FLG_UPDATE_E;
 
-u8	update_enable[MAX_SCAN_DEVS];
+extern u8 update_enable[MAX_SCAN_DEVS];
+extern u8 ble_trigger[MAX_SCAN_DEVS];
 
 extern u8 dev_MAC[MAX_SCAN_DEVS][6]; // [0] - lo, .. [6] - hi digits
 

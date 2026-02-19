@@ -8,6 +8,9 @@ make -s -j VERSION_BIN=%SWVER% PROJECT_NAME=ts01 POJECT_DEF="-DBOARD=BOARD_TS000
 make -s -j clean
 make -s -j VERSION_BIN=%SWVER% PROJECT_NAME=tb3f POJECT_DEF="-DBOARD=BOARD_TB03F_KIT" ZNAME="B2Z:TB03F-bz"
 @if not exist "bin\tb3f%SWVER%.bin" goto :error
+make -s -j clean
+make -s -j VERSION_BIN=%SWVER% PROJECT_NAME=zg807z POJECT_DEF="-DBOARD=BOARD_ZG807Z" ZNAME="B2Z:ZG-807Z"
+@if not exist "bin\tb3f%SWVER%.bin" goto :error
 cd .\zigpy_ota
 call update.cmd %SWVER%
 cd ..

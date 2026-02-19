@@ -108,7 +108,7 @@ startup_state_e drv_platform_init(void)
 		// Проверка на старт по 0x20000
 		tuya_zigbee_ota();
 #endif
-#if UART_PRINTF_MODE
+#if 0 //UART_PRINTF_MODE
 		DEBUG_TX_PIN_INIT();
 #endif
 		random_generator_init();

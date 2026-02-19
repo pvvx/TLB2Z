@@ -141,6 +141,15 @@ void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 #if defined(ZCL_THERMOSTAT_UI_CFG) || defined(ZCL_POLL_CTRL)
 	u8 numAttr = pWriteReqCmd->numAttr;
 	zclWriteRec_t *attr = pWriteReqCmd->attrList;
+#ifdef GPIO_RELAY
+    if (clusterId == ZCL_CLUSTER_GEN_ON_OFF) {
+        for (u8 i = 0; i < numAttr; i++) {
+            if (attr[i].attrID == ZCL_ATTRID_START_UP_ONOFF) {
+                zcl_onOffAttr_save();
+            }
+        }
+    } else
+#endif
 #ifdef ZCL_THERMOSTAT_UI_CFG
 	if(clusterId == ZCL_CLUSTER_HAVC_USER_INTERFACE_CONFIG) {
 		zcl_thermostatConfig_save();
@@ -393,6 +402,100 @@ status_t app_identifyCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPay
 }
 #endif	/* ZCL_IDENTIFY */
 
+#ifdef ZCL_GROUP
+/*********************************************************************
+ * @fn      app_zclAddGroupRspCmdHandler
+ *
+ * @brief   Handler for ZCL add group response command.
+ *
+ * @param   pAddGroupRsp
+ *
+ * @return  None
+ */
+static void app_zclAddGroupRspCmdHandler(zcl_addGroupRsp_t *pAddGroupRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclViewGroupRspCmdHandler
+ *
+ * @brief   Handler for ZCL view group response command.
+ *
+ * @param   pViewGroupRsp
+ *
+ * @return  None
+ */
+static void app_zclViewGroupRspCmdHandler(zcl_viewGroupRsp_t *pViewGroupRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclRemoveGroupRspCmdHandler
+ *
+ * @brief   Handler for ZCL remove group response command.
+ *
+ * @param   pRemoveGroupRsp
+ *
+ * @return  None
+ */
+static void app_zclRemoveGroupRspCmdHandler(zcl_removeGroupRsp_t *pRemoveGroupRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclGetGroupMembershipRspCmdHandler
+ *
+ * @brief   Handler for ZCL get group membership response command.
+ *
+ * @param   pGetGroupMembershipRsp
+ *
+ * @return  None
+ */
+static void app_zclGetGroupMembershipRspCmdHandler(zcl_getGroupMembershipRsp_t *pGetGroupMembershipRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_groupCb
+ *
+ * @brief   Handler for ZCL Group command.
+ *
+ * @param   pAddrInfo
+ * @param   cmdId
+ * @param   cmdPayload
+ *
+ * @return  status_t
+ */
+status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
+{
+	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
+			switch(cmdId){
+				case ZCL_CMD_GROUP_ADD_GROUP_RSP:
+					app_zclAddGroupRspCmdHandler((zcl_addGroupRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_GROUP_VIEW_GROUP_RSP:
+					app_zclViewGroupRspCmdHandler((zcl_viewGroupRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_GROUP_REMOVE_GROUP_RSP:
+					app_zclRemoveGroupRspCmdHandler((zcl_removeGroupRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_GROUP_GET_MEMBERSHIP_RSP:
+					app_zclGetGroupMembershipRspCmdHandler((zcl_getGroupMembershipRsp_t *)cmdPayload);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	return ZCL_STA_SUCCESS;
+}
+#endif	/* ZCL_GROUP */
 
 /*********************************************************************
  * @fn      app_powerCfgCb
@@ -414,7 +517,138 @@ status_t app_powerCfgCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPay
 
 	return ZCL_STA_SUCCESS;
 }
+#ifdef ZCL_SCENE
+/*********************************************************************
+ * @fn      app_zclAddSceneRspCmdHandler
+ *
+ * @brief   Handler for ZCL add scene response command.
+ *
+ * @param   cmdId
+ * @param   pAddSceneRsp
+ *
+ * @return  None
+ */
+static void app_zclAddSceneRspCmdHandler(u8 cmdId, addSceneRsp_t *pAddSceneRsp)
+{
 
+}
+
+/*********************************************************************
+ * @fn      app_zclViewSceneRspCmdHandler
+ *
+ * @brief   Handler for ZCL view scene response command.
+ *
+ * @param   cmdId
+ * @param   pViewSceneRsp
+ *
+ * @return  None
+ */
+static void app_zclViewSceneRspCmdHandler(u8 cmdId, viewSceneRsp_t *pViewSceneRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclRemoveSceneRspCmdHandler
+ *
+ * @brief   Handler for ZCL remove scene response command.
+ *
+ * @param   pRemoveSceneRsp
+ *
+ * @return  None
+ */
+static void app_zclRemoveSceneRspCmdHandler(removeSceneRsp_t *pRemoveSceneRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclRemoveAllSceneRspCmdHandler
+ *
+ * @brief   Handler for ZCL remove all scene response command.
+ *
+ * @param   pRemoveAllSceneRsp
+ *
+ * @return  None
+ */
+static void app_zclRemoveAllSceneRspCmdHandler(removeAllSceneRsp_t *pRemoveAllSceneRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclStoreSceneRspCmdHandler
+ *
+ * @brief   Handler for ZCL store scene response command.
+ *
+ * @param   pStoreSceneRsp
+ *
+ * @return  None
+ */
+static void app_zclStoreSceneRspCmdHandler(storeSceneRsp_t *pStoreSceneRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_zclGetSceneMembershipRspCmdHandler
+ *
+ * @brief   Handler for ZCL get scene membership response command.
+ *
+ * @param   pGetSceneMembershipRsp
+ *
+ * @return  None
+ */
+static void app_zclGetSceneMembershipRspCmdHandler(getSceneMemRsp_t *pGetSceneMembershipRsp)
+{
+
+}
+
+/*********************************************************************
+ * @fn      app_sceneCb
+ *
+ * @brief   Handler for ZCL Scene command.
+ *
+ * @param   pAddrInfo
+ * @param   cmdId
+ * @param   cmdPayload
+ *
+ * @return  status_t
+ */
+status_t app_sceneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
+{
+	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
+			switch(cmdId){
+				case ZCL_CMD_SCENE_ADD_SCENE_RSP:
+				case ZCL_CMD_SCENE_ENHANCED_ADD_SCENE_RSP:
+					app_zclAddSceneRspCmdHandler(cmdId, (addSceneRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_SCENE_VIEW_SCENE_RSP:
+				case ZCL_CMD_SCENE_ENHANCED_VIEW_SCENE_RSP:
+					app_zclViewSceneRspCmdHandler(cmdId, (viewSceneRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_SCENE_REMOVE_SCENE_RSP:
+					app_zclRemoveSceneRspCmdHandler((removeSceneRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_SCENE_REMOVE_ALL_SCENE_RSP:
+					app_zclRemoveAllSceneRspCmdHandler((removeAllSceneRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_SCENE_STORE_SCENE_RSP:
+					app_zclStoreSceneRspCmdHandler((storeSceneRsp_t *)cmdPayload);
+					break;
+				case ZCL_CMD_SCENE_GET_SCENE_MEMSHIP_RSP:
+					app_zclGetSceneMembershipRspCmdHandler((getSceneMemRsp_t *)cmdPayload);
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	return ZCL_STA_SUCCESS;
+}
+#endif	/* ZCL_SCENE */
 
 #ifdef ZCL_IAS_ZONE
 /*********************************************************************
@@ -683,97 +917,3 @@ status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPay
 }
 #endif	/* ZCL_POLL_CTRL */
 
-#ifdef ZCL_GROUP
-/*********************************************************************
- * @fn      app_zclAddGroupRspCmdHandler
- *
- * @brief   Handler for ZCL add group response command.
- *
- * @param   pAddGroupRsp
- *
- * @return  None
- */
-static void app_zclAddGroupRspCmdHandler(zcl_addGroupRsp_t *pAddGroupRsp)
-{
-
-}
-
-/*********************************************************************
- * @fn      app_zclViewGroupRspCmdHandler
- *
- * @brief   Handler for ZCL view group response command.
- *
- * @param   pViewGroupRsp
- *
- * @return  None
- */
-static void app_zclViewGroupRspCmdHandler(zcl_viewGroupRsp_t *pViewGroupRsp)
-{
-
-}
-
-/*********************************************************************
- * @fn      app_zclRemoveGroupRspCmdHandler
- *
- * @brief   Handler for ZCL remove group response command.
- *
- * @param   pRemoveGroupRsp
- *
- * @return  None
- */
-static void app_zclRemoveGroupRspCmdHandler(zcl_removeGroupRsp_t *pRemoveGroupRsp)
-{
-
-}
-
-/*********************************************************************
- * @fn      app_zclGetGroupMembershipRspCmdHandler
- *
- * @brief   Handler for ZCL get group membership response command.
- *
- * @param   pGetGroupMembershipRsp
- *
- * @return  None
- */
-static void app_zclGetGroupMembershipRspCmdHandler(zcl_getGroupMembershipRsp_t *pGetGroupMembershipRsp)
-{
-
-}
-
-/*********************************************************************
- * @fn      app_groupCb
- *
- * @brief   Handler for ZCL Group command.
- *
- * @param   pAddrInfo
- * @param   cmdId
- * @param   cmdPayload
- *
- * @return  status_t
- */
-status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
-{
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
-		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
-			switch(cmdId){
-				case ZCL_CMD_GROUP_ADD_GROUP_RSP:
-					app_zclAddGroupRspCmdHandler((zcl_addGroupRsp_t *)cmdPayload);
-					break;
-				case ZCL_CMD_GROUP_VIEW_GROUP_RSP:
-					app_zclViewGroupRspCmdHandler((zcl_viewGroupRsp_t *)cmdPayload);
-					break;
-				case ZCL_CMD_GROUP_REMOVE_GROUP_RSP:
-					app_zclRemoveGroupRspCmdHandler((zcl_removeGroupRsp_t *)cmdPayload);
-					break;
-				case ZCL_CMD_GROUP_GET_MEMBERSHIP_RSP:
-					app_zclGetGroupMembershipRspCmdHandler((zcl_getGroupMembershipRsp_t *)cmdPayload);
-					break;
-				default:
-					break;
-			}
-		}
-	}
-
-	return ZCL_STA_SUCCESS;
-}
-#endif	/* ZCL_GROUP */

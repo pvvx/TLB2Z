@@ -45,7 +45,7 @@ static ev_timer_event_t *onWithTimedOffTimerEvt = NULL;
 /**********************************************************************
  * FUNCTIONS
  */
-void remoteCmdOnOff(u8 cmd) {
+void remoteCmdOnOff(u8 srcEp, u8 cmd) {
     epInfo_t dstEpInfo;
     TL_SETSTRUCTCONTENT(dstEpInfo, 0);
 
@@ -57,13 +57,13 @@ void remoteCmdOnOff(u8 cmd) {
 
     switch(cmd) {
         case ZCL_CMD_ONOFF_OFF:
-            zcl_onOff_offCmd(SENSOR_DEVICE_ENDPOINT1, &dstEpInfo, FALSE);
+            zcl_onOff_offCmd(srcEp, &dstEpInfo, FALSE);
             break;
         case ZCL_CMD_ONOFF_ON:
-            zcl_onOff_onCmd(SENSOR_DEVICE_ENDPOINT1, &dstEpInfo, FALSE);
+            zcl_onOff_onCmd(srcEp, &dstEpInfo, FALSE);
             break;
         case ZCL_CMD_ONOFF_TOGGLE:
-            zcl_onOff_toggleCmd(SENSOR_DEVICE_ENDPOINT1, &dstEpInfo, FALSE);
+            zcl_onOff_toggleCmd(srcEp, &dstEpInfo, FALSE);
             break;
         default:
             break;
@@ -77,14 +77,14 @@ void remoteCmdOnOff(u8 cmd) {
  * @param   None
  *
  * @return  None
- *
+ */
 void app_onOffInit(void)
 {
     zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
 
     app_onOffUpdate(pOnOff->onOff);
 }
-*/
+
 /*********************************************************************
  * @fn      app_onOffUpdate
  *
@@ -121,13 +121,14 @@ void app_onOffUpdate(u8 cmd)
         pOnOff->onOff = ZCL_ONOFF_STATUS_OFF;
         pOnOff->onTime = 0;
     }
-    remoteCmdOnOff(onOff);
+    remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1, onOff);
 
 #ifdef ZCL_SCENE
     zcl_sceneAttr_t *pScene = zcl_sceneAttrGet();
     pScene->sceneValid = 0;
 #endif
-   	gpio_write(CPIO_RELAY, onOff);
+   	gpio_write(GPIO_RELAY, onOff);
+   	zcl_onOffAttr_save();
 }
 
 /*********************************************************************

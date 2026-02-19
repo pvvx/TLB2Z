@@ -33,15 +33,73 @@ extern "C" {
  * Version configuration
  */
 #include "version_cfg.h"
+/**********************************************************************
+ Flash 512k map:
 
+ 0x80000  ------------
+         |            |
+         |    NV_2    |
+         |            |
+ 0x7A000 |------------|
+         | U_Cfg_Info | // 0x79000 CFG_FACTORY_RST_CNT
+ 0x78000 |------------|
+         | F_CFG_Info | // 0x77000 FACTORY_CFG_BASE_ADD
+ 0x77000 |------------|
+         |  MAC_Addr  |
+ 0x76000 |------------|
+     	 |    Free    |
+ 0x72000 |------------|
+         |            |
+         |  OTA_Image | 200k
+         |            |
+ 0x40000 |------------|
+         |            |
+         |    NV_1    |
+         |            |
+ 0x34000 |------------|
+         |   BLE EEP  |
+ 0x32000 |------------|
+         |            |
+         |  Firmware  | 200k
+         |            |
+ 0x00000  ------------
+
+
+ FLASH 1M map:
+
+              1M
+0x100000  ------------
+         |  MAC_Addr  |
+ 0xFF000 |------------|
+         | F_CFG_Info | // FACTORY_CFG_BASE_ADD
+ 0xFE000 |------------|
+         | U_Cfg_Info | // 0xFC000 CFG_FACTORY_RST_CNT
+ 0xFC000 |------------|
+         | USER_DATA  |
+ 0x96000 |------------|
+         |     NV     |
+ 0x80000 |------------|
+         |    Free    |
+ 0x72000 |------------|
+         |            |
+         |  OTA_Image | 256K
+         |            |
+ 0x40000 |------------|
+         |   BLE EEP  |
+ 0x32000 |------------|
+         |            |
+         |  Firmware  | 200K
+         |            |
+ 0x00000  ------------
+*/
 /**********************************************************************
  * Product Information
  */
-/* Debug mode config */
-#define	DEBUG_ENABLE					0 // lcd = DeviceSysException
 
-#define	UART_PRINTF_MODE				0
-#define USB_PRINTF_MODE         		0
+/* Debug mode config (sws_printf()) */
+#define	UART_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
+#define SWS_PRINTF_MODE         		1   // pin: SWS, Telink SWire
+#define USE_DEBUG_PRINTF		(UART_PRINTF_MODE || SWS_PRINTF_MODE)
 
 /* HCI interface */
 #define ZBHCI_BLE						0
@@ -64,12 +122,14 @@ extern "C" {
 
 
 /* Board include */
-#if defined(BOARD)
 #if BOARD == BOARD_TB03F_KIT
 #include "board_tb03f_kit.h"
 #elif BOARD == BOARD_TS0001_TZ3000_RBZ
 #include "board_ts0001_tz3000_gjrubzje.h"
-#endif
+#elif BOARD == BOARD_ZG807Z
+#include "board_zg807z.h"
+#elif BOARD == BOARD_DEBUG
+#include "board_debug.h"
 #else
 #error "Define BOARD!"
 #endif
@@ -93,6 +153,8 @@ extern "C" {
 /* Watch dog module */
 #define MODULE_WATCHDOG_ENABLE						0
 
+#define USB_PRINTF_MODE         		0
+
 /* UART module */
 #define	MODULE_UART_ENABLE							0
 
@@ -107,6 +169,7 @@ extern "C" {
 #define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P10p46dBm
 #define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P3p01dBm
 #endif
+
 /**********************************************************************
  * ZCL cluster support setting
  */
@@ -114,7 +177,7 @@ extern "C" {
 #define TOUCHLINK_SUPPORT							0
 #define FIND_AND_BIND_SUPPORT						0
 #define ZCL_POWER_CFG_SUPPORT						1
-#ifdef CPIO_RELAY
+#ifdef GPIO_RELAY
 #define ZCL_ON_OFF_SUPPORT							1
 #define SCAN_TRG_ENABLE								1
 #else
@@ -128,7 +191,7 @@ extern "C" {
 #define ZCL_POLL_CTRL_SUPPORT						1
 #define ZCL_GROUP_SUPPORT							0
 #define ZCL_OTA_SUPPORT								1 // set FLASH_OTA_IMAGE_MAX_SIZE - 0x2000 in drv_nv.h !
-#define REJOIN_FAILURE_TIMER						1
+#define REJOIN_FAILURE_TIMER						0
 #if TOUCHLINK_SUPPORT
 #define ZCL_ZLL_COMMISSIONING_SUPPORT				1
 #endif
@@ -144,8 +207,6 @@ extern "C" {
 #define SCAN_IN_ADV_STATE					0
 
 #define USE_BINDKEY		1
-
-#define USE_DEBUG_UART		0
 
 // for consistency
 #if ZCL_RELATIVE_HUMIDITY_SUPPORT
@@ -176,6 +237,13 @@ typedef enum{
 	EV_POLL_MAX,
 }ev_poll_e;
 
+#if USE_DEBUG_PRINTF
+#include "sws_printf.h"
+#else
+#define sws_printf()
+#define sws_puts()
+#define sws_putchar()
+#endif
 
 /**********************************************************************
  * Sensor configuration

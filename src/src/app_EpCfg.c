@@ -48,7 +48,7 @@ const u16 app_inClusterList1[] =
 	ZCL_CLUSTER_GEN_BASIC,
 	ZCL_CLUSTER_GEN_POWER_CFG,
 	ZCL_CLUSTER_GEN_IDENTIFY,
-#ifdef ZCL_ON_OFF
+#ifdef GPIO_RELAY //def ZCL_ON_OFF
 	ZCL_CLUSTER_GEN_ON_OFF,
 #endif
 #ifdef ZCL_POLL_CTRL
@@ -106,8 +106,11 @@ const u16 app_outClusterList1[] =
 #ifdef ZCL_OTA
     ZCL_CLUSTER_OTA,
 #endif
+#ifdef ZCL_ZLL_COMMISSIONING
+	ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
+#endif
 };
-/*
+
 const u16 app_outClusterList2[] =
 {
 #ifdef ZCL_ON_OFF
@@ -120,7 +123,6 @@ const u16 app_outClusterList3[] =
 	ZCL_CLUSTER_GEN_ON_OFF,
 #endif
 };
-*/
 
 /**
  *  @brief Definition for Server cluster number and Client cluster number
@@ -128,11 +130,9 @@ const u16 app_outClusterList3[] =
 #define app_IN_CLUSTER_NUM1		(sizeof(app_inClusterList1)/sizeof(app_inClusterList1[0]))
 #define app_OUT_CLUSTER_NUM1	(sizeof(app_outClusterList1)/sizeof(app_outClusterList1[0]))
 #define app_IN_CLUSTER_NUM2		(sizeof(app_inClusterList2)/sizeof(app_inClusterList2[0]))
-//#define app_OUT_CLUSTER_NUM2	(sizeof(app_outClusterList2)/sizeof(app_outClusterList2[0]))
+#define app_OUT_CLUSTER_NUM2	(sizeof(app_outClusterList2)/sizeof(app_outClusterList2[0]))
 #define app_IN_CLUSTER_NUM3		(sizeof(app_inClusterList3)/sizeof(app_inClusterList3[0]))
-//#define app_OUT_CLUSTER_NUM3	(sizeof(app_outClusterList3)/sizeof(app_outClusterList3[0]))
-#define app_IN_CLUSTER_NUM4		(sizeof(app_inClusterList4)/sizeof(app_inClusterList4[0]))
-//#define app_OUT_CLUSTER_NUM4	(sizeof(app_outClusterList4)/sizeof(app_outClusterList4[0]))
+#define app_OUT_CLUSTER_NUM3	(sizeof(app_outClusterList3)/sizeof(app_outClusterList3[0]))
 
 /**
  *  @brief Definition for simple description for HA profile
@@ -157,9 +157,9 @@ const af_simple_descriptor_t app_simpleDesc2 =
 	1,										/* Application device version */
 	0,										/* Reserved */
 	app_IN_CLUSTER_NUM2,           	/* Application input cluster count */
-	0,//	app_OUT_CLUSTER_NUM2,          	/* Application output cluster count */
+	app_OUT_CLUSTER_NUM2,          	/* Application output cluster count */
 	(u16 *)app_inClusterList2,    	/* Application input cluster list */
-	0 //	(u16 *)app_outClusterList1,   	/* Application output cluster list */
+	(u16 *)app_outClusterList2,   	/* Application output cluster list */
 };
 const af_simple_descriptor_t app_simpleDesc3 =
 {
@@ -169,9 +169,9 @@ const af_simple_descriptor_t app_simpleDesc3 =
 	1,						/* Application device version */
 	0,										/* Reserved */
 	app_IN_CLUSTER_NUM3,           	/* Application input cluster count */
-	0, //	app_OUT_CLUSTER_NUM3,          	/* Application output cluster count */
+	app_OUT_CLUSTER_NUM3,          	/* Application output cluster count */
 	(u16 *)app_inClusterList3,    	/* Application input cluster list */
-	0 //	(u16 *)app_outClusterList1,   	/* Application output cluster list */
+	(u16 *)app_outClusterList3,   	/* Application output cluster list */
 };
 
 

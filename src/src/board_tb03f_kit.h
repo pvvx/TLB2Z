@@ -24,21 +24,12 @@
 // PB1	- UART TX
 // PA0  - UART RX
 // PA7  - KEY
-#if 1
 #define	BUTTON_ON			0
 #define	BUTTON1				GPIO_PA7
-#define PA7_FUNC					AS_GPIO
-#define PA7_OUTPUT_ENABLE			0
-#define PA7_INPUT_ENABLE			1
-#define	PULL_WAKEUP_SRC_PA7			PM_PIN_PULLUP_10K
-#else
-#define	BUTTON_ON			0
-#define	BUTTON1				GPIO_PA1
-#define PA1_FUNC					AS_GPIO
-#define PA1_OUTPUT_ENABLE			0
-#define PA1_INPUT_ENABLE			1
-#define	PULL_WAKEUP_SRC_PA1			PM_PIN_PULLUP_10K
-#endif
+#define PA7_FUNC			AS_GPIO
+#define PA7_OUTPUT_ENABLE	0
+#define PA7_INPUT_ENABLE	1
+#define	PULL_WAKEUP_SRC_PA7	PM_PIN_PULLUP_10K
 
 // LED
 #define LED_ON				1
@@ -46,35 +37,33 @@
 
 #define LED_FLASH_RGBE		1
 
-#define GPIO_LED_R		GPIO_PC3		// rx device 1
+#define GPIO_LED_R			GPIO_PC3		// rx device 1
 #define PC3_DATA_OUT		LED_OFF
 #define PC3_OUTPUT_ENABLE	1
 #define PC3_INPUT_ENABLE	1
 #define PC3_FUNC			AS_GPIO
-#define PWM_LED_R		PWM1_ID
+#define PWM_LED_R			PWM1_ID
 
-#define GPIO_LED_G		GPIO_PC4		// rx device 2
+#define GPIO_LED_G			GPIO_PC4		// rx device 2
 #define PC4_DATA_OUT		LED_OFF
 #define PC4_OUTPUT_ENABLE	1
 #define PC4_INPUT_ENABLE	1
 #define PC4_FUNC			AS_GPIO
-#define PWM_LED_G		PWM2_ID
+#define PWM_LED_G			PWM2_ID
 
-#define GPIO_LED_B		GPIO_PC2		// rx device 3
+#define GPIO_LED_B			GPIO_PC2		// rx device 3
 #define PC2_DATA_OUT		LED_OFF
 #define PC2_OUTPUT_ENABLE	1
 #define PC2_INPUT_ENABLE	1
 #define PC2_FUNC			AS_GPIO
-#define PWM_LED_B		PWM0_ID
+#define PWM_LED_B			PWM0_ID
 
-#define GPIO_LED_E		GPIO_PB4		// tx advertise
-//#define CPIO_RELAY			GPIO_PB4 // test
+#define GPIO_LED_E			GPIO_PB4		// tx advertise
 #define PB4_DATA_OUT		LED_OFF
 #define PB4_OUTPUT_ENABLE	1
 #define PB4_INPUT_ENABLE	1
 #define PB4_FUNC			AS_GPIO
 
-//#define GPIO_LED_W		GPIO_PB5
 #define GPIO_LED		GPIO_PB5 		// Zigbee light_blink
 #define PB5_DATA_OUT		LED_OFF
 #define PB5_OUTPUT_ENABLE	1
@@ -113,7 +102,10 @@
 
 // DEBUG
 #if UART_PRINTF_MODE
-	#define	DEBUG_INFO_TX_PIN	    GPIO_SWS //print
+#define	DEBUG_INFO_TX_PIN	GPIO_PB1 //print
+#define PB1_FUNC			AS_GPIO
+#define PB1_DATA_OUT		1
+#define PB1_OUTPUT_ENABLE	1
 #endif
 
 #endif // BOARD == TB03F_KIT
