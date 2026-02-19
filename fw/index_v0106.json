@@ -1,10 +1,10 @@
 [
     {
         "fileVersion": 17182721,
-        "fileSize": 158594,
+        "fileSize": 158706,
         "manufacturerCode": 4417,
         "imageType": 8720,
-        "sha512": "4d400a01e469509e5ef11cec35bf35f5e1e1dfa741541179f376e0c7063c1043180c4c6f48e06bff03d5b5045840710e5e39597fe9c6492b07560d113e811351",
+        "sha512": "b87743742226459d45b9c492b6181309263d1f0b9cefedf15c98fd3dd5149ad81898d0eaa40510a7c10e686d050c9f9e83bf5377e0e01fa4fd042c8728a45cbf",
         "otaHeaderString": "B2Z:TB03F-bz",
         "modelId": "TB03F-bz",
         "manufacturerName": [
@@ -14,10 +14,10 @@
     },
     {
         "fileVersion": 17182721,
-        "fileSize": 158770,
+        "fileSize": 158866,
         "manufacturerCode": 4417,
         "imageType": 8747,
-        "sha512": "51523866dd661e89d2c074bd62903d2b74e51d74feb310ae1c27627680007fe281c73a4674369d1c24b0b9a2d2f584dd166fd34b34c947a17a2f7763d5728482",
+        "sha512": "a189d37630a47ec20f644f3f5b7ebbea49843f1133c2567606ffb1a946caab7c04d10c7128c54ddc73e57c5f1a6be5d58b54397fd2fa94c8fe64d59d83fd1970",
         "otaHeaderString": "B2Z:REL-BZ01",
         "modelId": "REL-BZ01",
         "manufacturerName": [
@@ -27,10 +27,10 @@
     },
     {
         "fileVersion": 17182721,
-        "fileSize": 160274,
+        "fileSize": 160386,
         "manufacturerCode": 4417,
         "imageType": 8748,
-        "sha512": "21d93cc708c8c3f39c7d2362808c278c6024787d81a787455cdd6da159a8a1331c1111f3a029dab02f45ab4aa9604134bb7b49d70dbdbff59c5ed26f9b83e2bd",
+        "sha512": "ff5f38a46a0dc33156272acdcc9db2ac64cbfd61ea4945fc1de2bc34edb3e5c6be5d945b79c760ebc217171b4b0ee540a80b175f6dd1002476769e92f2196103",
         "otaHeaderString": "B2Z:ZG-807Z",
         "modelId": "ZG-807Z",
         "manufacturerName": [

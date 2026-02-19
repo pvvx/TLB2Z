@@ -58,19 +58,18 @@
 #define PC2_FUNC			AS_GPIO
 #define PWM_LED_B			PWM0_ID
 
-//#define GPIO_LED_E			GPIO_PB4		// tx advertise
-#define GPIO_RELAY			GPIO_PB4 // test
-#define PB4_DATA_OUT		LED_OFF
-#define PB4_OUTPUT_ENABLE	1
-#define PB4_INPUT_ENABLE	1
-#define PB4_FUNC			AS_GPIO
-
-//#define GPIO_LED_W		GPIO_PB5
 #define GPIO_LED			GPIO_PB5 		// Zigbee light_blink
 #define PB5_DATA_OUT		LED_OFF
 #define PB5_OUTPUT_ENABLE	1
 #define PB5_INPUT_ENABLE	1
 #define PB5_FUNC			AS_GPIO
+
+// RELAY
+#define GPIO_RELAY			GPIO_PB4
+#define PB4_DATA_OUT		LED_OFF
+#define PB4_OUTPUT_ENABLE	1
+#define PB4_INPUT_ENABLE	1
+#define PB4_FUNC			AS_GPIO
 
 
 // I2C

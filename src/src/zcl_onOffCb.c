@@ -31,6 +31,7 @@
 #include "zcl_include.h"
 #ifdef ZCL_ON_OFF
 #include "app.h"
+#include "ble_scaning.h"
 
 /**********************************************************************
  * LOCAL CONSTANTS
@@ -128,6 +129,7 @@ void app_onOffUpdate(u8 cmd)
     pScene->sceneValid = 0;
 #endif
 #ifdef GPIO_RELAY
+   	old_trigger[0] = onOff;
    	gpio_write(GPIO_RELAY, onOff);
 #endif
    	zcl_onOffAttr_save();

@@ -287,7 +287,7 @@ void user_init(bool isRetention)
 	}
 }
 #ifdef ZCL_ON_OFF
-u8 old_trgger[MAX_SCAN_DEVS];
+u32 ble_trigger_tik[MAX_SCAN_DEVS];
 /**********************************************************************
  * @fn      test_ble_trigger
  *
@@ -306,22 +306,31 @@ void test_ble_trigger(void) {
 #ifdef GPIO_RELAY
 			if(!n) {
 				if(on_state != g_zcl_onOffAttrs.onOff) {
+					ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
 					app_onOffUpdate(on_state);
 				}
 			} else {
-				if(on_state != old_trgger[n]) {
+				if(on_state != old_trigger[n]) {
+					ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
 					remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
+					old_trigger[n] = on_state;
 				}
 			}
 #else
-			if(on_state != old_trgger[n]) {
+			if(on_state != old_trigger[n]) {
+				ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
 				remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
+				old_trigger[n] = on_state;
 			}
 #endif
-			old_trgger[n] = on_state;
+		}
+		if(ble_trigger_tik[n]) {
+			if(ble_trigger_tik[n] - g_sensorAppCtx.utc_time_sec >= 5) {
+				ble_trigger_tik[n] = 0;
+				remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, old_trigger[n]);
+			}
 		}
 	}
-
 }
 #endif
 /**********************************************************************
@@ -344,6 +353,7 @@ static void app_zb_task(void)
 			while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
 				g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
 				g_sensorAppCtx.reportupsec++; // + 1 sec
+				g_sensorAppCtx.utc_time_sec++;
 			}
 			if(g_sensorAppCtx.reportupsec) { // >= READ_SENSOR_TIMER_SEC ?
 				app_chk_report(g_sensorAppCtx.reportupsec);

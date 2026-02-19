@@ -23,9 +23,8 @@ enum {
 
 extern u8 update_enable[MAX_SCAN_DEVS];
 extern u8 ble_trigger[MAX_SCAN_DEVS];
-
+extern u8 old_trigger[MAX_SCAN_DEVS];
 extern u8 dev_MAC[MAX_SCAN_DEVS][6]; // [0] - lo, .. [6] - hi digits
-
 #if USE_BINDKEY
 extern u8 bindkey[MAX_SCAN_DEVS][16]; // for MAC1
 #endif

@@ -85,9 +85,10 @@ const u8 ccm_aad = 0x11;
 u8 bindkey[MAX_SCAN_DEVS][16];
 #endif
 
-u8	update_enable[MAX_SCAN_DEVS];
+u8 update_enable[MAX_SCAN_DEVS];
 #if SCAN_TRG_ENABLE
-u8	ble_trigger[MAX_SCAN_DEVS];
+u8 ble_trigger[MAX_SCAN_DEVS];
+u8 old_trigger[MAX_SCAN_DEVS];
 #endif
 
 u8	dev_MAC[MAX_SCAN_DEVS][6];

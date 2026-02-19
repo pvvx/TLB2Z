@@ -27,11 +27,10 @@ typedef struct{
 	volatile u8  ble_on;
 	u8  adv_restore_count;
 	//
-//	u32 utc_time_sec;
+	u32 utc_time_sec;
 	u16 reportupsec; // report add (sec)
 	u32 secTimeTik; // used time_sec_task()
 	u32 keyPressedTime;
-	//	u32 readSensorTime; // read sensor timer (tik)
 	// timers
 	ev_timer_event_t *timerLedEvt;	// timer light blink
 	ev_timer_event_t *timerKeyEvt;	// timer key press
