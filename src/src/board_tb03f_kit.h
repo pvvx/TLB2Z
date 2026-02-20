@@ -19,8 +19,8 @@
 #define ZIGBEE_TUYA_OTA 	0
 
 //// TB-03F-KIT
-// PC2,3,4 - LED_RGB
-// PB4,5 - LED1, LED2
+// PC2,3,4 - LED B,R,G
+// PB4,5 - LED E,W
 // PB1	- UART TX
 // PA0  - UART RX
 // PA7  - KEY
@@ -37,39 +37,38 @@
 
 #define LED_FLASH_RGBE		1
 
-#define GPIO_LED_R			GPIO_PC3		// rx device 1
+#define GPIO_LED_R			GPIO_PC3		// LED R: rx device 1
 #define PC3_DATA_OUT		LED_OFF
 #define PC3_OUTPUT_ENABLE	1
 #define PC3_INPUT_ENABLE	1
 #define PC3_FUNC			AS_GPIO
 #define PWM_LED_R			PWM1_ID
 
-#define GPIO_LED_G			GPIO_PC4		// rx device 2
+#define GPIO_LED_G			GPIO_PC4		// LED G: rx device 2
 #define PC4_DATA_OUT		LED_OFF
 #define PC4_OUTPUT_ENABLE	1
 #define PC4_INPUT_ENABLE	1
 #define PC4_FUNC			AS_GPIO
 #define PWM_LED_G			PWM2_ID
 
-#define GPIO_LED_B			GPIO_PC2		// rx device 3
+#define GPIO_LED_B			GPIO_PC2		// LED B: rx device 3
 #define PC2_DATA_OUT		LED_OFF
 #define PC2_OUTPUT_ENABLE	1
 #define PC2_INPUT_ENABLE	1
 #define PC2_FUNC			AS_GPIO
 #define PWM_LED_B			PWM0_ID
 
-#define GPIO_LED_E			GPIO_PB4		// tx advertise
+#define GPIO_LED_E			GPIO_PB4		// LED E: tx advertise
 #define PB4_DATA_OUT		LED_OFF
 #define PB4_OUTPUT_ENABLE	1
 #define PB4_INPUT_ENABLE	1
 #define PB4_FUNC			AS_GPIO
 
-#define GPIO_LED		GPIO_PB5 		// Zigbee light_blink
+#define GPIO_LED			GPIO_PB5 		// LED W: Zigbee light_blink
 #define PB5_DATA_OUT		LED_OFF
 #define PB5_OUTPUT_ENABLE	1
 #define PB5_INPUT_ENABLE	1
 #define PB5_FUNC			AS_GPIO
-
 
 // I2C
 #define USE_I2C_DRV			I2C_DRV_NONE

@@ -58,7 +58,9 @@ _attribute_ram_code_ void irq_handler(void){
 			if(msk & FLD_IRQ_SYSTEM_TIMER){
 				if(zb_rfSwitchAllow()){
 					src_rf = 0;    //clear it to skip the rf_tx_irq_handler/rf_rx_irq_handler
-
+#ifdef GPIO_DEBUG
+					gpio_write(GPIO_DEBUG, 0);
+#endif
 					/* need switch to ble mode */
 					switch_to_ble_context();
 

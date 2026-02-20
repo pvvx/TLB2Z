@@ -136,8 +136,8 @@ void concurrent_mode_main_loop(void){
 			bls_ll_setAdvEnable(BLC_ADV_ENABLE);  // adv enable
 			blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
 		}
-#if 0
-		while(g_sensorAppCtx.ble_on) {
+#if  1 // USE_BLE_OTA  ?
+		while(g_sensorAppCtx.ble_on && !zb_isDeviceJoinedNwk()) {
 			blt_sdk_main_loop();
 #if USE_BLE_OTA
 			if(ble_attr.ota_is_working) {
@@ -152,7 +152,7 @@ void concurrent_mode_main_loop(void){
 		 /* add scan functionality after advertising during ADV state, just for slave mode */
 		do{
 			 /* disable pm during scan */
-#if PM_ENABLE
+#if(BLE_APP_PM_ENABLE)
 			if(BLE_BLT_STATE_GET() == BLS_LINK_STATE_ADV){
 				bls_pm_setSuspendMask (SUSPEND_DISABLE);
 			}
@@ -170,7 +170,7 @@ void concurrent_mode_main_loop(void){
 #endif
 
 		 /* enable pm after scan */
-#if PM_ENABLE
+#if(BLE_APP_PM_ENABLE)
 		 bls_pm_setSuspendMask (SUSPEND_ADV | SUSPEND_CONN);
 #endif
 
@@ -182,7 +182,9 @@ void concurrent_mode_main_loop(void){
 			 ){
 			 /* ready to switch to ZIGBEE mode */
 			DBG_ZIGBEE_STATUS(0x31);
-
+#ifdef GPIO_DEBUG
+			gpio_write(GPIO_DEBUG, 1);
+#endif
 			switch_to_zb_context();
 
 			drv_restore_irq(r);
@@ -200,6 +202,9 @@ void concurrent_mode_main_loop(void){
 
 		 if(!zb_rfTxDoing() && is_switch_to_ble() && APP_BLE_STATE_GET() != BLS_LINK_STATE_IDLE){
 			 /* ready to switch to BLE mode */
+#ifdef GPIO_DEBUG
+			 gpio_write(GPIO_DEBUG, 0);
+#endif
 			 switch_to_ble_context();
 
 			 DBG_ZIGBEE_STATUS(0x34);

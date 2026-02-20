@@ -217,9 +217,9 @@ int sws_printf(const char *format, ...)
             } else if (span == 's') {
                 s = va_arg(arg_ptr, unsigned char *);//get string value
                 sws_puts((char *)s);
-            } else if (span == 'o') {
-                j = va_arg(arg_ptr, unsigned int);//get octal value
-                puti(j, OCTAL_OUTPUT, w);
+//            } else if (span == 'o') {
+//                j = va_arg(arg_ptr, unsigned int);//get octal value
+//                puti(j, OCTAL_OUTPUT, w);
             } else if (span == 'x') {
                 j = va_arg(arg_ptr, unsigned int);//get hex value
                 puti(j, HEX_OUTPUT, w);

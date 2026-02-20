@@ -35,7 +35,9 @@ void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCm
 void app_zclReportCmd(u16 clusterId, zclReportCmd_t *pReportCmd);
 #endif
 void app_zclDfltRspCmd(u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd);
-
+#ifdef ZCL_IDENTIFY
+void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
+#endif
 /**********************************************************************
  * GLOBAL VARIABLES
  */
@@ -63,14 +65,14 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
 	switch(pInHdlrMsg->hdr.cmd)
 	{
 #ifdef ZCL_READ
-//		case ZCL_CMD_READ_RSP:
-//			app_zclReadRspCmd(cluster, pInHdlrMsg->attrCmd);
-//			break;
+		case ZCL_CMD_READ_RSP:
+			app_zclReadRspCmd(cluster, pInHdlrMsg->attrCmd);
+			break;
 #endif
 #ifdef ZCL_WRITE
-//		case ZCL_CMD_WRITE_RSP:
-//			app_zclWriteRspCmd(cluster, pInHdlrMsg->attrCmd);
-//			break;
+		case ZCL_CMD_WRITE_RSP:
+			app_zclWriteRspCmd(cluster, pInHdlrMsg->attrCmd);
+			break;
 		case ZCL_CMD_WRITE:
 			app_zclWriteReqCmd(cluster, pInHdlrMsg->attrCmd);
 			break;
@@ -79,16 +81,16 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
 		case ZCL_CMD_CONFIG_REPORT:
 			app_zclCfgReportCmd(pInHdlrMsg->msg->indInfo.dst_ep, cluster, pInHdlrMsg->attrCmd);
 			break;
-//		case ZCL_CMD_CONFIG_REPORT_RSP:
-//			app_zclCfgReportRspCmd(cluster, pInHdlrMsg->attrCmd);
-//			break;
-//		case ZCL_CMD_REPORT:
-//			app_zclReportCmd(cluster, pInHdlrMsg->attrCmd);
-//			break;
+		case ZCL_CMD_CONFIG_REPORT_RSP:
+			app_zclCfgReportRspCmd(cluster, pInHdlrMsg->attrCmd);
+			break;
+		case ZCL_CMD_REPORT:
+			app_zclReportCmd(cluster, pInHdlrMsg->attrCmd);
+			break;
 #endif
-//		case ZCL_CMD_DEFAULT_RSP:
-//			app_zclDfltRspCmd(cluster, pInHdlrMsg->attrCmd);
-//			break;
+		case ZCL_CMD_DEFAULT_RSP:
+			app_zclDfltRspCmd(cluster, pInHdlrMsg->attrCmd);
+			break;
 		default:
 			break;
 	}
@@ -106,6 +108,7 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
  */
 void app_zclReadRspCmd(u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
 {
+	sws_printf("rdrspcmd :0x%04x\n", clusterId);
     //printf("app_zclReadRspCmd\n");
 
 }
@@ -123,6 +126,7 @@ void app_zclReadRspCmd(u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
  */
 void app_zclWriteRspCmd(u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
 {
+	sws_printf("wrrspcmd :0x%04x\n", clusterId);
     //printf("app_zclWriteRspCmd\n");
 
 }
@@ -138,13 +142,13 @@ void app_zclWriteRspCmd(u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
  */
 void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 {
-#if defined(ZCL_THERMOSTAT_UI_CFG) || defined(ZCL_POLL_CTRL)
 	u8 numAttr = pWriteReqCmd->numAttr;
 	zclWriteRec_t *attr = pWriteReqCmd->attrList;
 #ifdef GPIO_RELAY
     if (clusterId == ZCL_CLUSTER_GEN_ON_OFF) {
         for (u8 i = 0; i < numAttr; i++) {
             if (attr[i].attrID == ZCL_ATTRID_START_UP_ONOFF) {
+            	sws_puts("onOffAttr_save\n");
                 zcl_onOffAttr_save();
             }
         }
@@ -156,17 +160,26 @@ void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 	} else
 #endif
 #ifdef ZCL_POLL_CTRL
-
 	if(clusterId == ZCL_CLUSTER_GEN_POLL_CONTROL){
 		for(int i = 0; i < numAttr; i++){
 			if(attr[i].attrID == ZCL_ATTRID_CHK_IN_INTERVAL) {
+				sws_puts("CheckInStart\n");
 				app_zclCheckInStart();
 				return;
 			}
 		}
-	}
+	} else
 #endif
+#ifdef ZCL_IDENTIFY
+	if (clusterId == ZCL_CLUSTER_GEN_IDENTIFY) {
+        for (u8 i = 0; i < numAttr; i++) {
+            if (attr[i].attrID == ZCL_ATTRID_IDENTIFY_TIME) {
+                app_zclIdentifyCmdHandler(APP_ENDPOINT1, 0xFFFE, g_zcl_identifyAttrs.identifyTime);
+            }
+        }
+    }
 #endif
+    {}
 }
 #endif	/* ZCL_WRITE */
 
@@ -182,6 +195,7 @@ void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
  */
 void app_zclDfltRspCmd(u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd)
 {
+	sws_printf("dfrspcmd :0x%04x\n", clusterId);
     //printf("app_zclDfltRspCmd\n");
 
 }
@@ -201,6 +215,7 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
 	for(u8 i = 0; i < ZCL_REPORTING_TABLE_NUM; i++){
 		reportCfgInfo_t *pEntry = &reportingTab.reportCfgInfo[i];
 		if(pEntry->used && pEntry->clusterID == clusterId && pEntry->endPoint == endpoint) {
+			sws_printf("cfgrpcmd %d:0x%04x\n", endpoint, clusterId);
 			pEntry->minIntCnt = 0;
 			pEntry->maxIntCnt = 0;
 		}
@@ -217,6 +232,7 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
  */
 void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd)
 {
+	sws_printf("cfgrprsp :0x%04x\n", clusterId);
     //printf("app_zclCfgReportRspCmd\n");
 
 }
@@ -232,6 +248,7 @@ void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCm
  */
 void app_zclReportCmd(u16 clusterId, zclReportCmd_t *pReportCmd)
 {
+	sws_printf("rpcmd :0x%04x\n", clusterId);
     //printf("app_zclReportCmd\n");
 
 }
@@ -251,6 +268,7 @@ void app_zclReportCmd(u16 clusterId, zclReportCmd_t *pReportCmd)
  */
 status_t app_basicCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
+	sws_printf("basicCb: %d\n", cmdId);
 	if(cmdId == ZCL_CMD_BASIC_RESET_FAC_DEFAULT){
 		//Reset all the attributes of all its clusters to factory defaults
 		//zcl_nv_attr_reset();
@@ -379,7 +397,7 @@ void app_zclIdentifyQueryRspCmdHandler(u8 endpoint, u16 srcAddr, zcl_identifyRsp
  */
 status_t app_identifyCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
 			switch(cmdId){
 				case ZCL_CMD_IDENTIFY:
@@ -472,8 +490,9 @@ static void app_zclGetGroupMembershipRspCmdHandler(zcl_getGroupMembershipRsp_t *
  */
 status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
+			sws_printf("groupCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_GROUP_ADD_GROUP_RSP:
 					app_zclAddGroupRspCmdHandler((zcl_addGroupRsp_t *)cmdPayload);
@@ -510,6 +529,7 @@ status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
  */
 status_t app_powerCfgCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
+	sws_printf("powerCfgCb: %d\n", cmdId);
 //	if(cmdId == ZCL_CMD_BASIC_RESET_FAC_DEFAULT){
 		//Reset all the attributes of all its clusters to factory defaults
 		//zcl_nv_attr_reset();
@@ -617,8 +637,9 @@ static void app_zclGetSceneMembershipRspCmdHandler(getSceneMemRsp_t *pGetSceneMe
  */
 status_t app_sceneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
+			sws_printf("sceneCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_SCENE_ADD_SCENE_RSP:
 				case ZCL_CMD_SCENE_ENHANCED_ADD_SCENE_RSP:
@@ -712,7 +733,7 @@ status_t app_iasZoneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayl
 {
 	status_t status = ZCL_STA_SUCCESS;
 
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
 			switch(cmdId){
 				case ZCL_CMD_ZONE_ENROLL_RSP:
@@ -745,10 +766,10 @@ void app_zclCheckInCmdSend(void)
 	TL_SETSTRUCTCONTENT(dstEpInfo, 0);
 
 	dstEpInfo.dstAddrMode = APS_DSTADDR_EP_NOTPRESETNT;
-	dstEpInfo.dstEp = SENSOR_DEVICE_ENDPOINT1;
+	dstEpInfo.dstEp = APP_ENDPOINT1;
 	dstEpInfo.profileId = HA_PROFILE_ID;
 
-	zcl_pollCtrl_checkInCmd(SENSOR_DEVICE_ENDPOINT1, &dstEpInfo, TRUE);
+	zcl_pollCtrl_checkInCmd(APP_ENDPOINT1, &dstEpInfo, TRUE);
 }
 
 s32 app_zclCheckInTimerCb(void *arg)
@@ -767,7 +788,7 @@ s32 app_zclCheckInTimerCb(void *arg)
 
 void app_zclCheckInStart(void)
 {
-	if(zb_bindingTblSearched(ZCL_CLUSTER_GEN_POLL_CONTROL, SENSOR_DEVICE_ENDPOINT1)){
+	if(zb_bindingTblSearched(ZCL_CLUSTER_GEN_POLL_CONTROL, APP_ENDPOINT1)){
 		zcl_pollCtrlAttr_t *pPollCtrlAttr = zcl_pollCtrlAttrGet();
 
 		if(!zclCheckInTimerEvt){
@@ -892,8 +913,9 @@ status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPay
 {
 	status_t status = ZCL_STA_SUCCESS;
 
-	if(pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1){
+	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
+			sws_printf("pollCtrlCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_CHK_IN_RSP:
 					status = app_zclPollCtrlChkInRspCmdHandler((zcl_chkInRsp_t *)cmdPayload);

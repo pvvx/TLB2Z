@@ -75,12 +75,16 @@ s32 app_bdbFindAndBindStart(void *arg){
 #endif
 
 s32 app_rejoinBackoff(void *arg){
+    static bool rejoinMode = REJOIN_SECURITY;
 
 	if(zb_isDeviceFactoryNew()){
 		g_sensorAppCtx.timerRejoinBackoffEvt = NULL;
 		return -1;
 	}
-	zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+    zb_rejoinSecModeSet(rejoinMode);
+    zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
+
+    rejoinMode = !rejoinMode;
     return 0;
 }
 
@@ -140,7 +144,7 @@ void zbdemo_bdbInitCb(u8 status, u8 joinedNetwork){
 	{
 		if(joinedNetwork){
 			if(!g_sensorAppCtx.timerRejoinBackoffEvt){
-				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
+				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 10 * 1000);
 			}
 		}
 	}
@@ -186,7 +190,8 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 #ifdef ZCL_OTA
 			ota_queryStart(OTA_PERIODIC_QUERY_INTERVAL);
 #endif
-			light_blink_start(7, 250, 250);
+			sws_puts("join\n");
+			light_blink_start(7, 200, 200);
 			break;
 		case BDB_COMMISSION_STA_IN_PROGRESS:
 			break;
@@ -196,6 +201,7 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 		case BDB_COMMISSION_STA_TCLK_EX_FAILURE:
 		case BDB_COMMISSION_STA_TARGET_FAILURE:
 			{
+				sws_puts("rejoin 1\n");
 				u16 jitter = 0;
 				do{
 					jitter = zb_random() % 0x0fff;
@@ -217,14 +223,16 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 		case BDB_COMMISSION_STA_NOT_PERMITTED:
 			break;
 		case BDB_COMMISSION_STA_NO_SCAN_RESPONSE:
-			break;
+			//break;
 		case BDB_COMMISSION_STA_PARENT_LOST:
+			sws_puts("rejoin 2\n");
 			zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 			light_blink_start(5, 500, 500);
 			break;
 		case BDB_COMMISSION_STA_REJOIN_FAILURE:
+			sws_puts("rejoin 3\n");
 			if(!g_sensorAppCtx.timerRejoinBackoffEvt){
-				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
+				g_sensorAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 10 * 1000);
 			}
 			light_blink_start(5, 500, 500);
 			break;
@@ -232,7 +240,6 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 			break;
 	}
 }
-
 
 extern void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 void zbdemo_bdbIdentifyCb(u8 endpoint, u16 srcAddr, u16 identifyTime){
@@ -300,10 +307,14 @@ void app_otaProcessMsgHandler(u8 evt, u8 status)
  */
 void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf)
 {
+	sws_printf("leaveCnfHandler: %d\n", pLeaveCnf->status);
     if(pLeaveCnf->status == SUCCESS){
+    	/*
 		if(g_sensorAppCtx.timerRejoinBackoffEvt) {
 			TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerRejoinBackoffEvt);
 		}
+		*/
+		SYSTEM_RESET();
     }
 }
 
@@ -315,11 +326,11 @@ void app_leaveCnfHandler(nlme_leave_cnf_t *pLeaveCnf)
  * @param   pInd - parameter of leave indication
  *
  * @return  None
- *
+ */
 void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd)
 {
-    //printf("app_leaveIndHandler, rejoin = %d\n", pLeaveInd->rejoin);
+    sws_printf("leaveIndHandler: %d\n", pLeaveInd->rejoin);
     //printfArray(pLeaveInd->device_address, 8);
 }
-*/
+
 

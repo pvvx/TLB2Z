@@ -19,6 +19,7 @@ void battery_detect(void)
 #if PM_ENABLE
 		drv_pm_sleep(PM_SLEEP_MODE_DEEPSLEEP, 0, clock_time() + 3 * CLOCK_16M_SYS_TIMER_CLK_1S);
 #else
+		sleep_ms(500);
 		SYSTEM_RESET();
 #endif
 	}

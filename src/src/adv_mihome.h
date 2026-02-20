@@ -67,11 +67,13 @@ enum { // mijia ble version 5
 	MI_DATA1_ID_Humidity 			=0x4802, // 1 byte, in 1 C
 	MI_DATA1_ID_Battery				=0x4803, // 1 byte, in 1 %
 	MI_DATA1_ID_OpeningStatus		=0x4804, // 1 byte
-	MI_DATA1_ID_Illuminance_f		=0x4805, // float
+	MI_DATAF_ID_Illuminance			=0x4805, // float
 	MI_DATA1_ID_MoistureDetected    =0x4806, // 1 byte
 	MI_DATAF_ID2_Humidity			=0x4808, // float
 	MI_DATA1_ID_SleepState			=0x4810, // 1 byte
 	MI_DATA1_ID_SnoringState		=0x4810, // 1 byte
+	MI_DATAF_ID_NoMotionTime		=0x4818, // uint16
+
 
 	MI_DATA1_PressurePresentState	=0x483c, // 1 byte
 	MI_DATA4_PressurePresentDuration	=0x483d, // int32
@@ -80,6 +82,8 @@ enum { // mijia ble version 5
 	MI_DATA4_PressureNotPresentTimeSet	=0x483f, // int32
 
 	MI_DATA1_OccupancyStatus		=0x484e, // uint8
+
+	MI_DATAF_ID_MotionIlluminance   =0x4A08, // float
 
 	MI_DATAF_ID_Temperature			=0x4C01, // float
 	MI_DATA1_ID2_Humidity			=0x4C02, // 1 byte, in 1 %

@@ -116,6 +116,7 @@ void app_chk_report(u16 uptime_sec) {
 					}
 				}
 				if(flg_report) {
+					sws_printf("report %d:0x%04x\n", pEntry->endPoint, pEntry->clusterID);
 					pEntry->minIntCnt = pEntry->minInterval;
 					pEntry->maxIntCnt = pEntry->maxInterval;
 					reportAttr(pEntry);
@@ -127,7 +128,7 @@ void app_chk_report(u16 uptime_sec) {
 	}
 }
 /*********************************************************************
- * @fn      app_set_thb_report
+ * @fn      app_set_all_report
  *
  * @brief	set temp, humi, bat is report.
  *
@@ -135,7 +136,7 @@ void app_chk_report(u16 uptime_sec) {
  *
  * @return	NULL
  */
-void app_set_thb_report(void) {
+void app_set_all_report(void) {
 	if(reportingTab.reportNum) {
 		for(u8 i = 0; i < ZCL_REPORTING_TABLE_NUM; i++){
 			reportCfgInfo_t *pEntry = &reportingTab.reportCfgInfo[i];

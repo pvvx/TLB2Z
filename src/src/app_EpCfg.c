@@ -47,7 +47,9 @@ const u16 app_inClusterList1[] =
 {
 	ZCL_CLUSTER_GEN_BASIC,
 	ZCL_CLUSTER_GEN_POWER_CFG,
+#ifdef ZCL_IDENTIFY
 	ZCL_CLUSTER_GEN_IDENTIFY,
+#endif
 #ifdef GPIO_RELAY //def ZCL_ON_OFF
 	ZCL_CLUSTER_GEN_ON_OFF,
 #endif
@@ -82,15 +84,6 @@ const u16 app_inClusterList3[] =
     ZCL_CLUSTER_MS_RELATIVE_HUMIDITY,
 #endif
 };
-const u16 app_inClusterList4[] =
-{
-#ifdef ZCL_TEMPERATURE_MEASUREMENT
-	ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,
-#endif
-#ifdef ZCL_RELATIVE_HUMIDITY_MEASUREMENT
-    ZCL_CLUSTER_MS_RELATIVE_HUMIDITY,
-#endif
-};
 
 /**
  *  @brief Definition for Outgoing cluster / Client Cluster
@@ -110,7 +103,6 @@ const u16 app_outClusterList1[] =
 	ZCL_CLUSTER_TOUCHLINK_COMMISSIONING,
 #endif
 };
-
 const u16 app_outClusterList2[] =
 {
 #ifdef ZCL_ON_OFF
@@ -141,7 +133,7 @@ const af_simple_descriptor_t app_simpleDesc1 =
 {
 	HA_PROFILE_ID,                      	/* Application profile identifier */
 	HA_DEV_TEMPERATURE_SENSOR,              /* Application device identifier */
-	SENSOR_DEVICE_ENDPOINT1,         		/* Endpoint */
+	APP_ENDPOINT1,         		/* Endpoint */
 	1,										/* Application device version */
 	0,										/* Reserved */
 	app_IN_CLUSTER_NUM1,           	/* Application input cluster count */
@@ -153,7 +145,7 @@ const af_simple_descriptor_t app_simpleDesc2 =
 {
 	HA_PROFILE_ID,                      	/* Application profile identifier */
 	HA_DEV_TEMPERATURE_SENSOR,              /* Application device identifier */
-	SENSOR_DEVICE_ENDPOINT2,         		/* Endpoint */
+	APP_ENDPOINT2,         		/* Endpoint */
 	1,										/* Application device version */
 	0,										/* Reserved */
 	app_IN_CLUSTER_NUM2,           	/* Application input cluster count */
@@ -165,7 +157,7 @@ const af_simple_descriptor_t app_simpleDesc3 =
 {
 	HA_PROFILE_ID,                      	/* Application profile identifier */
 	HA_DEV_TEMPERATURE_SENSOR,              /* Application device identifier */
-	SENSOR_DEVICE_ENDPOINT3,         		/* Endpoint */
+	APP_ENDPOINT3,         		/* Endpoint */
 	1,						/* Application device version */
 	0,										/* Reserved */
 	app_IN_CLUSTER_NUM3,           	/* Application input cluster count */
@@ -215,7 +207,7 @@ const zclAttrInfo_t basic_attrTbl[] =
 
 #define ZCL_BASIC_ATTR_NUM 				sizeof(basic_attrTbl) / sizeof(zclAttrInfo_t)
 
-
+#ifdef ZCL_IDENTIFY
 /* Identify */
 zcl_identifyAttr_t g_zcl_identifyAttrs =
 {
@@ -231,12 +223,11 @@ const zclAttrInfo_t identify_attrTbl[] =
 
 #define ZCL_IDENTIFY_ATTR_NUM			sizeof(identify_attrTbl) / sizeof(zclAttrInfo_t)
 
+#endif // ZCL_BASIC_ATTR_NUM
+
+#ifdef ZCL_POWER_CFG
 /* power */
-zcl_powerAttr_t g_zcl_powerAttrs[4] = {
-		{
-		    .batteryVoltage    = 0xff, //in 100 mV units, 0xff - unknown
-		    .batteryPercentage = 0xff //in 0,5% units, 0xff - unknown
-		},
+zcl_powerAttr_t g_zcl_powerAttrs[3] = {
 		{
 		    .batteryVoltage    = 0xff, //in 100 mV units, 0xff - unknown
 		    .batteryPercentage = 0xff //in 0,5% units, 0xff - unknown
@@ -251,7 +242,6 @@ zcl_powerAttr_t g_zcl_powerAttrs[4] = {
 		}
 };
 
-#ifdef ZCL_POWER_CFG
 const zclAttrInfo_t powerCfg_attrTbl[] =
 {
 	{ ZCL_ATTRID_BATTERY_VOLTAGE,      		   ZCL_DATA_TYPE_UINT8,    ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,	(u8*)&g_zcl_powerAttrs[0].batteryVoltage},
@@ -267,7 +257,38 @@ const zclAttrInfo_t powerCfg_attrTbl[] =
 
 #define	ZCL_POWER_CFG_ATTR_NUM		 sizeof(powerCfg_attrTbl) / sizeof(zclAttrInfo_t)
 
+#endif // ZCL_POWER_CFG
+
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs[] = {
+		.zcl_attr_measuredVal = 0,
+		.zcl_attr_minMeasuredVal = 0,
+		.zcl_attr_maxMeasuredVal = 0,
+#ifdef ZCL_ATTR_TOLERANCE_ENABLE
+		.zcl_attr_tolerance = 0,
 #endif
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+		.zcl_attr_lightSensorType = 0,
+#endif
+};
+
+/* Attribute record list */
+const zclAttrInfo_t illuminanceMeasure_attrTbl[] = {
+    { ZCL_ATTRID_MEASURED_VALUE,          ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.measuredVal },
+    { ZCL_ATTRID_MIN_MEASURED_VALUE,      ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.minMeasuredVal },
+    { ZCL_ATTRID_MAX_MEASURED_VALUE,      ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.maxMeasuredVal },
+#ifdef ZCL_ATTR_TOLERANCE_ENABLE
+    { ZCL_ATTRID_TOLERANCE,               ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.tolerance },
+#endif
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+    { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
+};
+
+#define ZCL_ILLUMINANCE_ATTR_NUM = (sizeof(illuminanceMeasure_attrTbl) / sizeof(zclAttrInfo_t));
+
+#endif // ZCL_ILLUMINANCE_MEASUREMENT
 
 #ifdef ZCL_IAS_ZONE
 /* IAS Zone */
@@ -299,7 +320,7 @@ const zclAttrInfo_t iasZone_attrTbl[] =
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 zcl_temperatureAttr_t g_zcl_temperatureAttrs =
 {
-	.measuredValue	= { 0x8000, 0x8000, 0x8000, 0x8000 },
+	.measuredValue	= { 0x8000, 0x8000, 0x8000 },
 	.minValue 		= -5000,
 	.maxValue		= 17500,
 	.tolerance		= 0,
@@ -345,7 +366,7 @@ const zclAttrInfo_t temperature_measurement_attrTbl3[] =
 #ifdef ZCL_RELATIVE_HUMIDITY
 zcl_relHumidityAttr_t g_zcl_relHumidityAttrs =
 {
-	.measuredValue	= { 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
+	.measuredValue	= { 0xFFFF, 0xFFFF, 0xFFFF },
 	.minValue 		= 0,
 	.maxValue		= 9999,
 	.tolerance		= 0,
@@ -390,12 +411,12 @@ const zclAttrInfo_t relative_humdity_attrTbl3[] =
 zcl_pollCtrlAttr_t g_zcl_pollCtrlAttrs =
 {
 	.chkInInterval			= 3600*4, // 3600 sec, 1hr
-	.longPollInterval		= READ_SENSOR_TIMER_SEC*4,  //  4 sec
-	.shortPollInterval		= 2,	/// 2 qs
-	.fastPollTimeout		= READ_SENSOR_TIMER_SEC*4,  // 4 sec
-	.chkInIntervalMin		= 0,	// 0
-	.longPollIntervalMin	= READ_SENSOR_TIMER_SEC*4,  // 4 sec
-	.fastPollTimeoutMax		= 0		// 0
+	.longPollInterval		= 5*4,  //  5 sec
+	.shortPollInterval		= 2,	// 2 qs
+	.fastPollTimeout		= 10*4, // 10 sec
+	.chkInIntervalMin		= 10*4, // 10 sec
+	.longPollIntervalMin	= 3*4,  // 3 sec
+	.fastPollTimeoutMax		= 60*4	// 60 sec
 };
 
 const zclAttrInfo_t pollCtrl_attrTbl[] =
@@ -419,16 +440,16 @@ const zclAttrInfo_t pollCtrl_attrTbl[] =
 /* On/Off */
 zcl_onOffAttr_t g_zcl_onOffAttrs =
 {
-	.onOff				= 0x00,
+	.onOff				= {0},
 	.globalSceneControl	= 1,
 	.onTime				= 0x0000,
 	.offWaitTime		= 0x0000,
 	.startUpOnOff 		= ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
 };
 
-const zclAttrInfo_t onOff_attrTbl[] =
+const zclAttrInfo_t onOff_attrTbl1[] =
 {
-	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff},
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[0]},
 	{ ZCL_ATTRID_GLOBAL_SCENE_CONTROL, 		ZCL_DATA_TYPE_BOOLEAN, 	ACCESS_CONTROL_READ, 							  (u8*)&g_zcl_onOffAttrs.globalSceneControl},
 	{ ZCL_ATTRID_ON_TIME, 					ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs.onTime},
 	{ ZCL_ATTRID_OFF_WAIT_TIME, 			ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs.offWaitTime},
@@ -437,24 +458,43 @@ const zclAttrInfo_t onOff_attrTbl[] =
 	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
 };
 
-#define ZCL_ONOFF_ATTR_NUM	 sizeof(onOff_attrTbl) / sizeof(zclAttrInfo_t)
+#define ZCL_ONOFF_ATTR_NUM1	 sizeof(onOff_attrTbl1) / sizeof(zclAttrInfo_t)
+
+const zclAttrInfo_t onOff_attrTbl2[] =
+{
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[1]},
+	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
+};
+
+#define ZCL_ONOFF_ATTR_NUM2	 sizeof(onOff_attrTbl2) / sizeof(zclAttrInfo_t)
+
+const zclAttrInfo_t onOff_attrTbl3[] =
+{
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[2]},
+	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
+};
+
+#define ZCL_ONOFF_ATTR_NUM3	 sizeof(onOff_attrTbl3) / sizeof(zclAttrInfo_t)
+
 #endif
 
 /**
  *  @brief Definition for simple sensor ZCL specific cluster
  */
-const zcl_specClusterInfo_t g_sensorDeviceClusterList1[] =
+const zcl_specClusterInfo_t g_appClusterList1[] =
 {
-	{ZCL_CLUSTER_GEN_BASIC,			MANUFACTURER_CODE_NONE, ZCL_BASIC_ATTR_NUM, 	basic_attrTbl,  	zcl_basic_register,		NULL}, // app_basicCb},
+	{ZCL_CLUSTER_GEN_BASIC,			MANUFACTURER_CODE_NONE, ZCL_BASIC_ATTR_NUM, 	basic_attrTbl,  	zcl_basic_register,		app_basicCb},
 #ifdef ZCL_POWER_CFG
-	{ZCL_CLUSTER_GEN_POWER_CFG,		MANUFACTURER_CODE_NONE,	ZCL_POWER_CFG_ATTR_NUM,	powerCfg_attrTbl,	zcl_powerCfg_register,	NULL}, // app_powerCfgCb},
+	{ZCL_CLUSTER_GEN_POWER_CFG,		MANUFACTURER_CODE_NONE,	ZCL_POWER_CFG_ATTR_NUM,	powerCfg_attrTbl,	zcl_powerCfg_register,	app_powerCfgCb},
 #endif
+#ifdef ZCL_IDENTIFY
 	{ZCL_CLUSTER_GEN_IDENTIFY,		MANUFACTURER_CODE_NONE, ZCL_IDENTIFY_ATTR_NUM,	identify_attrTbl,	zcl_identify_register,	app_identifyCb},
+#endif
 #ifdef ZCL_GROUP
 	{ZCL_CLUSTER_GEN_GROUPS,		MANUFACTURER_CODE_NONE,	0, 						NULL,  				zcl_group_register,		app_groupCb},
 #endif
 #ifdef ZCL_ON_OFF
-	{ZCL_CLUSTER_GEN_ON_OFF,		MANUFACTURER_CODE_NONE, ZCL_ONOFF_ATTR_NUM,		onOff_attrTbl,		zcl_onOff_register,		app_onOffCb},
+	{ZCL_CLUSTER_GEN_ON_OFF,		MANUFACTURER_CODE_NONE, ZCL_ONOFF_ATTR_NUM1,	onOff_attrTbl1,		zcl_onOff_register,		app_onOffCb},
 #endif
 #ifdef ZCL_POLL_CTRL
 	{ZCL_CLUSTER_GEN_POLL_CONTROL,  MANUFACTURER_CODE_NONE, ZCL_POLLCTRL_ATTR_NUM, 	pollCtrl_attrTbl,   zcl_pollCtrl_register,	app_pollCtrlCb},
@@ -470,10 +510,13 @@ const zcl_specClusterInfo_t g_sensorDeviceClusterList1[] =
 #endif
 };
 
-const u8 SENSOR_DEVICE_CB_CLUSTER_NUM1 = (sizeof(g_sensorDeviceClusterList1)/sizeof(g_sensorDeviceClusterList1[0]));
+const u8 APP_CB_CLUSTER_NUM1 = (sizeof(g_appClusterList1)/sizeof(g_appClusterList1[0]));
 
-const zcl_specClusterInfo_t g_sensorDeviceClusterList2[] =
+const zcl_specClusterInfo_t g_appClusterList2[] =
 {
+#ifdef ZCL_ON_OFF
+	{ZCL_CLUSTER_GEN_ON_OFF,		MANUFACTURER_CODE_NONE, ZCL_ONOFF_ATTR_NUM2,	onOff_attrTbl2,		zcl_onOff_register,		app_onOffCb},
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	{ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,	MANUFACTURER_CODE_NONE, ZCL_TEMPERATURE_MEASUREMENT_ATTR_NUM, temperature_measurement_attrTbl2, 	zcl_temperature_measurement_register, 	NULL},
 #endif
@@ -482,11 +525,14 @@ const zcl_specClusterInfo_t g_sensorDeviceClusterList2[] =
 #endif
 };
 
-const u8 SENSOR_DEVICE_CB_CLUSTER_NUM2 = (sizeof(g_sensorDeviceClusterList2)/sizeof(g_sensorDeviceClusterList2[0]));
+const u8 APP_CB_CLUSTER_NUM2 = (sizeof(g_appClusterList2)/sizeof(g_appClusterList2[0]));
 
 
-const zcl_specClusterInfo_t g_sensorDeviceClusterList3[] =
+const zcl_specClusterInfo_t g_appClusterList3[] =
 {
+#ifdef ZCL_ON_OFF
+	{ZCL_CLUSTER_GEN_ON_OFF,		MANUFACTURER_CODE_NONE, ZCL_ONOFF_ATTR_NUM3,	onOff_attrTbl3,		zcl_onOff_register,		app_onOffCb},
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	{ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,	MANUFACTURER_CODE_NONE, ZCL_TEMPERATURE_MEASUREMENT_ATTR_NUM, temperature_measurement_attrTbl3, 	zcl_temperature_measurement_register, 	NULL},
 #endif
@@ -495,7 +541,7 @@ const zcl_specClusterInfo_t g_sensorDeviceClusterList3[] =
 #endif
 };
 
-const u8 SENSOR_DEVICE_CB_CLUSTER_NUM3 = (sizeof(g_sensorDeviceClusterList3)/sizeof(g_sensorDeviceClusterList3[0]));
+const u8 APP_CB_CLUSTER_NUM3 = (sizeof(g_appClusterList3)/sizeof(g_appClusterList3[0]));
 
 /**********************************************************************
  * FUNCTIONS
@@ -521,7 +567,7 @@ nv_sts_t zcl_onOffAttr_save(void)
 
     st = nv_flashReadNew(1, NV_MODULE_ZCL,  NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
     if (st == NV_SUCC) {
-        if ((zcl_nv_onOff.onOff != g_zcl_onOffAttrs.onOff) ||
+        if ((zcl_nv_onOff.onOff != g_zcl_onOffAttrs.onOff[0]) ||
             (zcl_nv_onOff.startUpOnOff != g_zcl_onOffAttrs.startUpOnOff)) {
             needSave = TRUE;
         }
@@ -530,7 +576,7 @@ nv_sts_t zcl_onOffAttr_save(void)
     }
 
     if (needSave) {
-        zcl_nv_onOff.onOff = g_zcl_onOffAttrs.onOff;
+        zcl_nv_onOff.onOff = g_zcl_onOffAttrs.onOff[0];
         zcl_nv_onOff.startUpOnOff = g_zcl_onOffAttrs.startUpOnOff;
 
         st = nv_flashWriteNew(1, NV_MODULE_ZCL, NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
@@ -560,7 +606,7 @@ nv_sts_t zcl_onOffAttr_restore(void)
 
     st = nv_flashReadNew(1, NV_MODULE_ZCL,  NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
     if (st == NV_SUCC) {
-        g_zcl_onOffAttrs.onOff = zcl_nv_onOff.onOff;
+        g_zcl_onOffAttrs.onOff[0] = zcl_nv_onOff.onOff;
         g_zcl_onOffAttrs.startUpOnOff = zcl_nv_onOff.startUpOnOff;
     }
 #else

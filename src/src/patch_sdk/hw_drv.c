@@ -102,7 +102,10 @@ startup_state_e drv_platform_init(void)
 	sysTimerPerUs = sys_tick_per_us;
 
 	gpio_init(TRUE);
-	if(state != SYSTEM_DEEP_RETENTION) {
+#if PM_ENABLE
+	if(state != SYSTEM_DEEP_RETENTION)
+#endif
+	{
 		battery_detect();
 #if ZIGBEE_TUYA_OTA
 		// Проверка на старт по 0x20000

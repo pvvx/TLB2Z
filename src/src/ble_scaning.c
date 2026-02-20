@@ -76,9 +76,9 @@ const u8 tblBTHome[] = {
 };
 
 #if	USE_DEBUG_SCAN
-u8 debug_buf[48];
+_attribute_custom_bss_ u8 debug_buf[48];
 #endif
-u8 prev_advs[MAX_SCAN_DEVS][32];
+_attribute_custom_bss_ u8 prev_advs[MAX_SCAN_DEVS][32];
 
 #if USE_BINDKEY
 const u8 ccm_aad = 0x11;
@@ -86,12 +86,7 @@ u8 bindkey[MAX_SCAN_DEVS][16];
 #endif
 
 u8 update_enable[MAX_SCAN_DEVS];
-#if SCAN_TRG_ENABLE
-u8 ble_trigger[MAX_SCAN_DEVS];
-u8 old_trigger[MAX_SCAN_DEVS];
-#endif
-
-u8	dev_MAC[MAX_SCAN_DEVS][6];
+u8 dev_MAC[MAX_SCAN_DEVS][6];
 
 // sz         ctrID devID cnt     mac
 // 1a 16 95fe 5858  5b05  40  74f01938c1a4 a1d0d76485 5a0900 cc74485c
@@ -210,6 +205,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					g_zcl_temperatureAttrs.measuredValue[n] = ps->data_is[0]*10; // in 0.1 C
 					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[1]*10;  // in 0.1 %
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
+				 // Battery
 				} else if(ps->size >= 1 && (ps->id == MI_DATA_ID_Power
 						|| ps->id == MI_DATA1_ID_Battery
 						|| ps->id == MI_DATA2_ID_Battery
@@ -217,6 +213,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					g_zcl_powerAttrs[n].batteryVoltage = 30;
 					g_zcl_powerAttrs[n].batteryPercentage = ps->data_ub[0] << 1;
 					update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
+				 // Temperature
 				} else if(ps->id == MI_DATA_ID_Temperature && ps->size >= 2) { // Temperature
 					g_zcl_temperatureAttrs.measuredValue[n] = ps->data_is[0]*10; // in 0.1 C
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
@@ -229,7 +226,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 				} else if(ps->id == MI_DATAF_ID2_Temperature && ps->size >= 4) { // Temperature, float
 					g_zcl_temperatureAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
-
+				// Humidity
 				} else if(ps->id == MI_DATA_ID_Humidity && ps->size >= 2) { // Humidity
 					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*10;  // in 0.1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
@@ -243,17 +240,19 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 #if SCAN_TRG_ENABLE
+				// Motion
 				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
-					ble_trigger[n] = ps->data_ub[0];
+					g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
-					ble_trigger[n] = 1;
+					g_zcl_onOffAttrs.ble_trigger[n] = 1;
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 				} else if((ps->id == MI_DATA_ID_NoOneMoves)&&(ps->size >= 4)) { // No one moves over time / 171004 3c000000 / 171004 78000000 / 1710042c010000 / 171004 58020000
-					ble_trigger[n] = 0;
+					g_zcl_onOffAttrs.ble_trigger[n] = 0;
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
 /*
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
 				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
 					set_lm_out(ps->data_ub[0]);
 				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
@@ -274,6 +273,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					set_lm_out(wrk.motion_event);
 				} else if((ps->id == MI_DATA_ID_LightIntensity)&&(ps->size >= 1)) { // Light on/off, Light Intensity 18100101 / 18100100
 					wrk.light_on = ps->data_ub[0];
+#endif
 */
 				}
 				len -= ps->size + 3;
@@ -305,10 +305,11 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 
 #if SCAN_TRG_ENABLE
 			} else if(ps->id_size == 0x0408) { // Motion + Light
-				ble_trigger[n] = ps->data_ub[0];
+				g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
 				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
 /*
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
 			} else if(ps->id_size == 0x0408) { // Motion + Light
 				wrk.motion_event = ps->data_ub[0];
 				if(ps->data_ub[3])
@@ -324,6 +325,7 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 				set_lm_out(0);
 			} else if(ps->id_size == 0x0111) { // Light on/off
 				wrk.light_on = ps->data_ub[0];
+#endif
 */
 				//				} else if(ps->id_size == 0x0207) { // Pressure
 				//					extdev_pressure = ps->data_us[0];  // in 0.01
@@ -344,7 +346,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_powerAttrs[n].batteryPercentage = p->battery_level << 1;
 		g_zcl_powerAttrs[n].batteryVoltage = p->battery_mv/100;
 #if SCAN_TRG_ENABLE
-		ble_trigger[n] = p->flags.trg_output;
+		g_zcl_onOffAttrs.ble_trigger[n] = p->flags.trg_output;
 #endif
 		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = p->flags.rds_input;
@@ -380,7 +382,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_powerAttrs[n].batteryPercentage = pp->data.bat << 1;
 		g_zcl_powerAttrs[n].batteryVoltage = 30;
 #if SCAN_TRG_ENABLE
-		ble_trigger[n] = p->flags.trg_output;
+		g_zcl_onOffAttrs.ble_trigger[n] = p->flags.trg_output;
 #endif
 		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = pp->data.flags.rds_input;
@@ -461,16 +463,18 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 				} else if(ps->type == BtHomeID_voltage) {
 					g_zcl_powerAttrs[n].batteryVoltage = ps->data_us[0]/100; // in 0.001V
 					update_enable[n] |= FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
-				}
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+// TODO: ZCL_ILLUMINANCE_MEASUREMENT
+#endif
 #if SCAN_TRG_ENABLE
-				if(!n && ps->type == BtHomeID_switch) {
+				} else if(ps->type == BtHomeID_switch) {
 					if(!next_trg) {
-						ble_trigger[n] = ps->data_ub[0];
+						g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
 						update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 						next_trg = true;
 					}
-				}
 #endif
+				}
 			} else
 					break;
 			int size = (tblBTHome[ps->type] & 0x0f) + 1;

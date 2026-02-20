@@ -83,7 +83,7 @@ void app_onOffInit(void)
 {
     zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
 
-    app_onOffUpdate(pOnOff->onOff);
+    app_onOffUpdate(pOnOff->onOff[0]);
 }
 
 /*********************************************************************
@@ -105,7 +105,7 @@ void app_onOffUpdate(u8 cmd)
     } else if (cmd == ZCL_CMD_ONOFF_OFF) {
         onOff = ZCL_ONOFF_STATUS_OFF;
     } else if (cmd == ZCL_CMD_ONOFF_TOGGLE) {
-        onOff = (pOnOff->onOff == ZCL_ONOFF_STATUS_ON) ? ZCL_ONOFF_STATUS_OFF
+        onOff = (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_ON) ? ZCL_ONOFF_STATUS_OFF
                                                        : ZCL_ONOFF_STATUS_ON;
     } else {
         return;
@@ -114,22 +114,21 @@ void app_onOffUpdate(u8 cmd)
     //update attributes
     if (onOff == ZCL_ONOFF_STATUS_ON) {
         pOnOff->globalSceneControl = TRUE;
-        pOnOff->onOff = ZCL_ONOFF_STATUS_ON;
+        pOnOff->onOff[0] = ZCL_ONOFF_STATUS_ON;
         if (pOnOff->onTime == 0) {
             pOnOff->offWaitTime = 0;
         }
     } else {
-        pOnOff->onOff = ZCL_ONOFF_STATUS_OFF;
+        pOnOff->onOff[0] = ZCL_ONOFF_STATUS_OFF;
         pOnOff->onTime = 0;
     }
-    remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1, onOff);
+    remoteCmdOnOff(APP_ENDPOINT1, onOff);
 
 #ifdef ZCL_SCENE
     zcl_sceneAttr_t *pScene = zcl_sceneAttrGet();
     pScene->sceneValid = 0;
 #endif
 #ifdef GPIO_RELAY
-   	old_trigger[0] = onOff;
    	gpio_write(GPIO_RELAY, onOff);
 #endif
    	zcl_onOffAttr_save();
@@ -148,7 +147,7 @@ static s32 app_onWithTimedOffTimerCb(void *arg)
 {
     zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
 
-    if ((pOnOff->onOff == ZCL_ONOFF_STATUS_ON) && pOnOff->onTime) {
+    if ((pOnOff->onOff[0] == ZCL_ONOFF_STATUS_ON) && pOnOff->onTime) {
         pOnOff->onTime--;
         if (pOnOff->onTime <= 0) {
             pOnOff->offWaitTime = 0;
@@ -156,7 +155,7 @@ static s32 app_onWithTimedOffTimerCb(void *arg)
         }
     }
 
-    if ((pOnOff->onOff == ZCL_ONOFF_STATUS_OFF) && pOnOff->offWaitTime) {
+    if ((pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF) && pOnOff->offWaitTime) {
         pOnOff->offWaitTime--;
         if (pOnOff->offWaitTime <= 0) {
             onWithTimedOffTimerEvt = NULL;
@@ -202,11 +201,11 @@ static void app_onoff_onWithTimedOffProcess(zcl_onoff_onWithTimeOffCmd_t *cmd)
 {
     zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
 
-    if (cmd->onOffCtrl.bits.acceptOnlyWhenOn && (pOnOff->onOff == ZCL_ONOFF_STATUS_OFF)) {
+    if (cmd->onOffCtrl.bits.acceptOnlyWhenOn && (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF)) {
         return;
     }
 
-    if (pOnOff->offWaitTime && (pOnOff->onOff == ZCL_ONOFF_STATUS_OFF)) {
+    if (pOnOff->offWaitTime && (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF)) {
         pOnOff->offWaitTime = min2(pOnOff->offWaitTime, cmd->offWaitTime);
     } else {
         pOnOff->onTime = max2(pOnOff->onTime, cmd->onTime);
@@ -270,7 +269,7 @@ static void app_onoff_onWithRecallGlobalSceneProcess(void)
  */
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-    if (pAddrInfo->dstEp == SENSOR_DEVICE_ENDPOINT1) {
+    if (pAddrInfo->dstEp == APP_ENDPOINT1) {
         switch (cmdId) {
         case ZCL_CMD_ONOFF_ON:
         case ZCL_CMD_ONOFF_OFF:

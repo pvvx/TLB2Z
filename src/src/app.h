@@ -6,10 +6,9 @@
 /**********************************************************************
  * CONSTANT
  */
-#define SENSOR_DEVICE_ENDPOINT1  0x01
-#define SENSOR_DEVICE_ENDPOINT2  0x02
-#define SENSOR_DEVICE_ENDPOINT3  0x03
-#define SENSOR_DEVICE_ENDPOINT4  0x04
+#define APP_ENDPOINT1  0x01
+#define APP_ENDPOINT2  0x02
+#define APP_ENDPOINT3  0x03 // MAX_SCAN_DEVS
 
 /**********************************************************************
  * TYPEDEFS
@@ -23,9 +22,9 @@ typedef struct{
 typedef struct{
 	// key
 	u8  keyPressed;
-	u8  key1flag;
-	volatile u8  ble_on;
-	u8  adv_restore_count;
+	u8  key1flag;	// switch ble work
+	volatile u8  ble_on; // adv/connect ble work
+	u8  adv_restore_count; // count adv
 	//
 	u32 utc_time_sec;
 	u16 reportupsec; // report add (sec)
@@ -87,15 +86,29 @@ typedef struct{
 	u8  batteryPercentage;   //0x21
 }zcl_powerAttr_t;
 
+typedef struct{
+	u16 measuredVal;
+	u16 minMeasuredVal;
+	u16 maxMeasuredVal;
+#ifdef ZCL_ATTR_TOLERANCE_ENABLE
+	u16 tolerance;
+#endif
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+	u8 lightSensorType;
+#endif
+} zcl_illuminanceAttr_t;
+
 /**
  *  @brief Defined for on/off cluster attributes
  */
 typedef struct{
-	u16	 onTime;
-	u16	 offWaitTime;
-	u8	 startUpOnOff;
-	bool onOff;
-	bool globalSceneControl;
+	u32 ble_trigger_tik[MAX_SCAN_DEVS];
+	u8  onOff[MAX_SCAN_DEVS];
+	u8  ble_trigger[MAX_SCAN_DEVS];
+	u16	onTime;
+	u16	offWaitTime;
+	u8	startUpOnOff;
+	u8  globalSceneControl;
 }zcl_onOffAttr_t;
 
 /**
@@ -110,7 +123,7 @@ typedef struct _attribute_packed_{
  *  @brief Defined for temperature cluster attributes
  */
 typedef struct {
-	s16 measuredValue[4];
+	s16 measuredValue[MAX_SCAN_DEVS];
 	s16 minValue;
 	s16 maxValue;
 	u16 tolerance;
@@ -120,7 +133,7 @@ typedef struct {
  *  @brief Defined for relative humidity cluster attributes
  */
 typedef struct {
-	u16 measuredValue[4];
+	u16 measuredValue[MAX_SCAN_DEVS];
 	u16 minValue;
 	u16 maxValue;
 	u16 tolerance;
@@ -149,14 +162,14 @@ extern bdb_appCb_t g_zbDemoBdbCb;
 
 extern bdb_commissionSetting_t g_bdbCommissionSetting;
 
-extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM1;
-extern const zcl_specClusterInfo_t g_sensorDeviceClusterList1[];
+extern const u8 APP_CB_CLUSTER_NUM1;
+extern const zcl_specClusterInfo_t g_appClusterList1[];
 extern const af_simple_descriptor_t app_simpleDesc1;
-extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM2;
-extern const zcl_specClusterInfo_t g_sensorDeviceClusterList2[];
+extern const u8 APP_CB_CLUSTER_NUM2;
+extern const zcl_specClusterInfo_t g_appClusterList2[];
 extern const af_simple_descriptor_t app_simpleDesc2;
-extern const u8 SENSOR_DEVICE_CB_CLUSTER_NUM3;
-extern const zcl_specClusterInfo_t g_sensorDeviceClusterList3[];
+extern const u8 APP_CB_CLUSTER_NUM3;
+extern const zcl_specClusterInfo_t g_appClusterList3[];
 extern const af_simple_descriptor_t app_simpleDesc3;
 
 
@@ -215,8 +228,6 @@ nv_sts_t zcl_onOffAttr_restore(void);
 nv_sts_t zcl_onOffAttr_save(void);
 
 void scan_task(void);
-void sensors_task(void);
-void read_sensor_and_save(void);
 int blt_pm_proc(void);
 int zb_ble_ci_cmd_handler(u16 cmdId, u8 len, u8 *payload);
 char int_to_hex(u8 num);

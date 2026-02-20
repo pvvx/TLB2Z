@@ -10,6 +10,10 @@
 #include "version_cfg.h"
 
 #if (BOARD == BOARD_DEBUG)
+
+#define SWS_PRINTF_MODE		0
+#define UART_PRINTF_MODE	1
+
 #define BLE_MODEL_STR 			{"DEBUG"}
 #define BLE_MAN_STR 			{"TLB2Z"}
 #define BLE_NAME_PEFIX 			{'B','2','Z','-'} // fix 4 char
@@ -19,8 +23,8 @@
 #define ZIGBEE_TUYA_OTA 	0
 
 //// TB-03F-KIT
-// PC2,3,4 - LED_RGB
-// PB4,5 - LED1, LED2
+// PC2,3,4 - LED B,R,G
+// PB4,5 - LED E,W
 // PB1	- UART TX
 // PA0  - UART RX
 // PA7  - KEY
@@ -63,6 +67,13 @@
 #define PB5_OUTPUT_ENABLE	1
 #define PB5_INPUT_ENABLE	1
 #define PB5_FUNC			AS_GPIO
+
+#define GPIO_DEBUG			GPIO_PD2 		// debug
+#define PD2_DATA_OUT		0
+#define PD2_OUTPUT_ENABLE	1
+#define PD2_INPUT_ENABLE	1
+#define PD2_FUNC			AS_GPIO
+
 
 // RELAY
 #define GPIO_RELAY			GPIO_PB4

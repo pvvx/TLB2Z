@@ -30,7 +30,7 @@ $(OUT_PATH)$(SRC_DIR)/zb_appCb.o \
 $(OUT_PATH)$(SRC_DIR)/zb_ble_switch.o \
 $(OUT_PATH)$(SRC_DIR)/zb_reporting.o \
 $(OUT_PATH)$(SRC_DIR)/zcl_onOffCb.o \
-$(OUT_PATH)$(SRC_DIR)/zcl_sensorCb.o \
+$(OUT_PATH)$(SRC_DIR)/zcl_EpCb.o \
 $(OUT_PATH)$(SRC_DIR)/custom_zcl/zcl_relative_humidity.o \
 $(OUT_PATH)$(SRC_DIR)/custom_zcl/zcl_thermostat_ui_cfg.o 
 

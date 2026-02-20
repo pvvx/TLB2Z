@@ -43,9 +43,7 @@ u16 bdb_findBindClusterList[] =
 /**********************************************************************
  * GLOBAL VARIABLES
  */
-app_ctx_t g_sensorAppCtx = {
-		.keyPressed = 1
-};
+app_ctx_t g_sensorAppCtx = { .keyPressed = 1 };
 
 #if ZCL_OTA_SUPPORT
 extern ota_callBack_t app_otaCb;
@@ -68,7 +66,7 @@ const zdo_appIndCb_t appCbLst = {
 	bdb_zdoStartDevCnf,//start device cnf cb
 	NULL,//reset cnf cb
 	NULL,//device announce indication cb
-	NULL, //app_leaveIndHandler, //leave ind cb
+	app_leaveIndHandler, //leave ind cb
 	app_leaveCnfHandler, //leave cnf cb
 	NULL,//nwk update ind cb
 	NULL,//permit join ind cb
@@ -112,16 +110,16 @@ char int_to_hex(u8 num) {
 
 static void app_SysException(void)
 {
+	sws_puts("SysException\n");
 #ifdef GPIO_LED
 	irq_disable();
-	for(int i = 0; i < 10; i++) {
+	for(int i = 0; i < 20; i++) {
 		gpio_write(GPIO_LED, LED_ON);
-		sleep_ms(100);
+		sleep_ms(50);
 		gpio_write(GPIO_LED, LED_OFF);
-		sleep_ms(100);
+		sleep_ms(50);
 	}
 #endif
-	sws_puts("SysException/n");
 	SYSTEM_RESET();
 }
 
@@ -162,16 +160,16 @@ static void user_app_init(void)
 	zcl_init(app_zclProcessIncomingMsg);
 
 	/* Register endPoint */
-	af_endpointRegister(SENSOR_DEVICE_ENDPOINT1, (af_simple_descriptor_t *)&app_simpleDesc1, zcl_rx_handler, NULL);
-	af_endpointRegister(SENSOR_DEVICE_ENDPOINT2, (af_simple_descriptor_t *)&app_simpleDesc2, zcl_rx_handler, NULL);
-	af_endpointRegister(SENSOR_DEVICE_ENDPOINT3, (af_simple_descriptor_t *)&app_simpleDesc3, zcl_rx_handler, NULL);
+	af_endpointRegister(APP_ENDPOINT1, (af_simple_descriptor_t *)&app_simpleDesc1, zcl_rx_handler, NULL);
+	af_endpointRegister(APP_ENDPOINT2, (af_simple_descriptor_t *)&app_simpleDesc2, zcl_rx_handler, NULL);
+	af_endpointRegister(APP_ENDPOINT3, (af_simple_descriptor_t *)&app_simpleDesc3, zcl_rx_handler, NULL);
 
 	zcl_reportingTabInit();
 
 	/* Register ZCL specific cluster information */
-	zcl_register(SENSOR_DEVICE_ENDPOINT1, SENSOR_DEVICE_CB_CLUSTER_NUM1, (zcl_specClusterInfo_t *)g_sensorDeviceClusterList1);
-	zcl_register(SENSOR_DEVICE_ENDPOINT2, SENSOR_DEVICE_CB_CLUSTER_NUM2, (zcl_specClusterInfo_t *)g_sensorDeviceClusterList2);
-	zcl_register(SENSOR_DEVICE_ENDPOINT3, SENSOR_DEVICE_CB_CLUSTER_NUM3, (zcl_specClusterInfo_t *)g_sensorDeviceClusterList3);
+	zcl_register(APP_ENDPOINT1, APP_CB_CLUSTER_NUM1, (zcl_specClusterInfo_t *)g_appClusterList1);
+	zcl_register(APP_ENDPOINT2, APP_CB_CLUSTER_NUM2, (zcl_specClusterInfo_t *)g_appClusterList2);
+	zcl_register(APP_ENDPOINT3, APP_CB_CLUSTER_NUM3, (zcl_specClusterInfo_t *)g_appClusterList3);
 
 #if ZCL_OTA_SUPPORT
     ota_init(OTA_TYPE_CLIENT, (af_simple_descriptor_t *)&app_simpleDesc1, &app_otaInfo, &app_otaCb);
@@ -190,20 +188,9 @@ static void user_app_init(void)
 	}
 	/* Set default reporting configuration */
 	reportableChange = 0;
-#ifdef ZCL_ON_OFF
-    /* OnOff */
-    bdb_defaultReportingCfg(
-    	SENSOR_DEVICE_ENDPOINT1,
-		HA_PROFILE_ID,
-		ZCL_CLUSTER_GEN_ON_OFF,
-		ZCL_ATTRID_ONOFF,
-		0,
-		3600,
-		(uint8_t *)&reportableChange);
-#endif
 	for(int i = 0; i <= 0x40; i += 0x20) {
 		bdb_defaultReportingCfg(
-	    	SENSOR_DEVICE_ENDPOINT1,
+	    	APP_ENDPOINT1,
 			HA_PROFILE_ID,
 			ZCL_CLUSTER_GEN_POWER_CFG,
 			i + ZCL_ATTRID_BATTERY_VOLTAGE,
@@ -212,7 +199,7 @@ static void user_app_init(void)
 			(u8 *)&reportableChange
 		);
 	    bdb_defaultReportingCfg(
-	    	SENSOR_DEVICE_ENDPOINT1,
+	    	APP_ENDPOINT1,
 			HA_PROFILE_ID,
 			ZCL_CLUSTER_GEN_POWER_CFG,
 			i + ZCL_ATTRID_BATTERY_PERCENTAGE_REMAINING,
@@ -221,8 +208,20 @@ static void user_app_init(void)
 			(u8 *)&reportableChange
 		);
 	}
-    for(int i=SENSOR_DEVICE_ENDPOINT1; i <= SENSOR_DEVICE_ENDPOINT4; i++) {
-        reportableChange = 10;
+    for(int i=APP_ENDPOINT1; i <= APP_ENDPOINT3; i++) {
+#ifdef ZCL_ON_OFF
+        /* OnOff */
+    	reportableChange = 0;
+        bdb_defaultReportingCfg(
+        	i,
+    		HA_PROFILE_ID,
+    		ZCL_CLUSTER_GEN_ON_OFF,
+    		ZCL_ATTRID_ONOFF,
+    		0,
+    		3600,
+    		(u8 *)&reportableChange);
+#endif
+    	reportableChange = 10;
 		bdb_defaultReportingCfg(
 			i,
 			HA_PROFILE_ID,
@@ -271,23 +270,24 @@ static void user_app_init(void)
  */
 void user_init(bool isRetention)
 {
-
 #if ZBHCI_EN
 	zbhciInit();
 #endif
-
+#if PM_ENABLE
 	if(!isRetention){
-
 		/* Initialize user application */
 		user_app_init();
-
 	} else {
 		/* Re-config phy when system recovery from deep sleep with retention */
 		mac_phyReconfig();
 	}
+#else
+	/* Initialize user application */
+	user_app_init();
+#endif
 }
+
 #ifdef ZCL_ON_OFF
-u32 ble_trigger_tik[MAX_SCAN_DEVS];
 /**********************************************************************
  * @fn      test_ble_trigger
  *
@@ -297,37 +297,30 @@ u32 ble_trigger_tik[MAX_SCAN_DEVS];
  *
  * @return  None
  */
-void test_ble_trigger(void) {
+static void test_ble_trigger(void) {
 	u8 on_state;
 	for(int n = 0; n < MAX_SCAN_DEVS; n++) {
 		if(update_enable[n] & FLG_UPDATE_TRG) {
 			update_enable[n] &= ~FLG_UPDATE_TRG;
-			on_state = (ble_trigger[n])? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
+			on_state = (g_zcl_onOffAttrs.ble_trigger[n])? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
+			if(on_state != g_zcl_onOffAttrs.onOff[n]) {
+				sws_printf("rmcOnOff %d:%d\n", n + 1, on_state);
 #ifdef GPIO_RELAY
-			if(!n) {
-				if(on_state != g_zcl_onOffAttrs.onOff) {
-					ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
+				if(!n)
 					app_onOffUpdate(on_state);
-				}
-			} else {
-				if(on_state != old_trigger[n]) {
-					ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
-					remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
-					old_trigger[n] = on_state;
-				}
-			}
-#else
-			if(on_state != old_trigger[n]) {
-				ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
-				remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, on_state);
-				old_trigger[n] = on_state;
-			}
+				else
 #endif
-		}
-		if(ble_trigger_tik[n]) {
-			if(ble_trigger_tik[n] - g_sensorAppCtx.utc_time_sec >= 5) {
-				ble_trigger_tik[n] = 0;
-				remoteCmdOnOff(SENSOR_DEVICE_ENDPOINT1 + n, old_trigger[n]);
+				{
+					g_zcl_onOffAttrs.onOff[n] = on_state;
+					remoteCmdOnOff(APP_ENDPOINT1 + n, on_state);
+				}
+				g_zcl_onOffAttrs.ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
+			}
+		} else if(g_zcl_onOffAttrs.ble_trigger_tik[n]) {
+			if(g_sensorAppCtx.utc_time_sec - g_zcl_onOffAttrs.ble_trigger_tik[n] >= 3) {
+				sws_printf("rmcOnOff2 %d:%d\n", n + 1, g_zcl_onOffAttrs.onOff[n]);
+				remoteCmdOnOff(APP_ENDPOINT1 + n, g_zcl_onOffAttrs.onOff[n]);
+				g_zcl_onOffAttrs.ble_trigger_tik[n] = 0;
 			}
 		}
 	}
@@ -347,9 +340,6 @@ static void app_zb_task(void)
 	if(bdb_isIdle()){
 		// report handler
 		if(zb_isDeviceJoinedNwk()){
-#ifdef ZCL_ON_OFF
-			test_ble_trigger();
-#endif
 			while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
 				g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
 				g_sensorAppCtx.reportupsec++; // + 1 sec
@@ -359,9 +349,14 @@ static void app_zb_task(void)
 				app_chk_report(g_sensorAppCtx.reportupsec);
 				g_sensorAppCtx.reportupsec = 0;
 			}
+#ifdef ZCL_ON_OFF
+			else
+				test_ble_trigger();
+#endif
 		} else {
 			g_sensorAppCtx.reportupsec = 0;
-			light_blink_start(5, 500, 500);
+			if(!g_sensorAppCtx.timerLedEvt)
+				light_blink_start(128, 500, 500);
 		}
 	}
 }

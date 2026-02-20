@@ -47,7 +47,11 @@ extern "C" {
  0x77000 |------------|
          |  MAC_Addr  |
  0x76000 |------------|
-     	 |    Free    |
+         |     ?      |
+ 0x75000 |------------|
+         | CFG_NV_BLE | // configParingSecurityInfoStorageAddr
+ 0x74000 |------------|
+         |    free    |
  0x72000 |------------|
          |            |
          |  OTA_Image | 200k
@@ -79,6 +83,10 @@ extern "C" {
  0x96000 |------------|
          |     NV     |
  0x80000 |------------|
+         |     ?      |
+ 0x75000 |------------|
+         | CFG_NV_BLE | // configParingSecurityInfoStorageAddr
+ 0x74000 |------------|
          |    Free    |
  0x72000 |------------|
          |            |
@@ -95,11 +103,6 @@ extern "C" {
 /**********************************************************************
  * Product Information
  */
-
-/* Debug mode config (sws_printf()) */
-#define	UART_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
-#define SWS_PRINTF_MODE         		1   // pin: SWS, Telink SWire
-#define USE_DEBUG_PRINTF		(UART_PRINTF_MODE || SWS_PRINTF_MODE)
 
 /* HCI interface */
 #define ZBHCI_BLE						0
@@ -133,6 +136,15 @@ extern "C" {
 #else
 #error "Define BOARD!"
 #endif
+
+/* Debug mode config (sws_printf()) */
+#ifndef UART_PRINTF_MODE
+#define	UART_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
+#endif
+#ifndef SWS_PRINTF_MODE
+#define SWS_PRINTF_MODE         		0   // pin: SWS, Telink SWire
+#endif
+#define USE_DEBUG_PRINTF		(UART_PRINTF_MODE || SWS_PRINTF_MODE)
 
 #ifndef ZIGBEE_TUYA_OTA
 #define ZIGBEE_TUYA_OTA 	0
@@ -182,11 +194,12 @@ extern "C" {
 //#define ZCL_IAS_ZONE_SUPPORT						1
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
 #define ZCL_RELATIVE_HUMIDITY_SUPPORT   			1
+#define ZCL_ILLUMINANCE_MEASUREMENT_SUPPORT			0
 #define ZCL_THERMOSTAT_UI_CFG_SUPPORT				0
 #define ZCL_POLL_CTRL_SUPPORT						1
 #define ZCL_GROUP_SUPPORT							0
 #define ZCL_OTA_SUPPORT								1 // set FLASH_OTA_IMAGE_MAX_SIZE - 0x2000 in drv_nv.h !
-#define REJOIN_FAILURE_TIMER						0
+//#define REJOIN_FAILURE_TIMER						0
 #if TOUCHLINK_SUPPORT
 #define ZCL_ZLL_COMMISSIONING_SUPPORT				1
 #endif
@@ -235,9 +248,9 @@ typedef enum{
 #if USE_DEBUG_PRINTF
 #include "sws_printf.h"
 #else
-#define sws_printf()
-#define sws_puts()
-#define sws_putchar()
+#define sws_printf(...)
+#define sws_puts(...)
+#define sws_putchar(...)
 #endif
 
 /**********************************************************************

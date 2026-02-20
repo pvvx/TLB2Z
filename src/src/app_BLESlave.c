@@ -580,7 +580,7 @@ void user_ble_normal_init(void){
 #endif
 	blc_ll_initAdvertising_module(mac_public); 	//adv module: 		 mandatory for BLE slave,
 	blc_ll_initSlaveRole_module();				//slave module: 	 mandatory for BLE slave,
-#if	1 //PM_ENABLE
+#if (BLE_APP_PM_ENABLE) // =?
 	blc_ll_initPowerManagement_module();        //pm module:      	 optional
 #endif
 	////// Host Initialization  //////////
@@ -664,7 +664,7 @@ void user_ble_normal_init(void){
 	bls_pm_setSuspendMask(SUSPEND_ADV | SUSPEND_CONN);
 	//bls_app_registerEventCallback (BLT_EV_FLAG_SUSPEND_ENTER, &ble_remote_set_sleep_wakeup);
 #else
-	//bls_pm_setSuspendMask (SUSPEND_DISABLE);
+	//bls_pm_setSuspendMask(SUSPEND_DISABLE);
 #endif
 //	advertise_begin_tick = clock_time();
 }
@@ -673,11 +673,14 @@ void user_ble_init(bool isRetention){
 #if(BLE_APP_PM_ENABLE)
 	sendTerminate_before_enterDeep = 0;
 #endif
+#if(BLE_APP_PM_ENABLE)
 	if(isRetention){
 		blc_ll_initBasicMCU();   //mandatory
 		rf_set_power_level_index(g_ble_txPowerSet);
 		blc_ll_recoverDeepRetention();
-	} else {
+	} else
+#endif
+	{
 		if (flash_supported_eep_ver(0, (APP_RELEASE<<8) | APP_BUILD)) { // next start
 			for(int i=0; i < MAX_SCAN_DEVS; i++) {
 				flash_read_cfg(dev_MAC[i], EEP_ID_DMAC(i), 6);
