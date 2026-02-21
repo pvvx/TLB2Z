@@ -59,6 +59,8 @@ void sws_putchar(unsigned char c);
 /* printf */
 int sws_printf(const char *format, ...);
 
+void sws_print_hex_dump(unsigned char * p, int len);
+
 //#define printf  sws_printf
 
 #endif

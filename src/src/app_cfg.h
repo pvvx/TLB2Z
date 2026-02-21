@@ -251,6 +251,7 @@ typedef enum{
 #define sws_printf(...)
 #define sws_puts(...)
 #define sws_putchar(...)
+#define sws_print_hex_dump(...)
 #endif
 
 /**********************************************************************

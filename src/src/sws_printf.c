@@ -236,4 +236,20 @@ int sws_printf(const char *format, ...)
     return 0;
 }
 
+extern unsigned char * str_bin2hex(unsigned char *d, unsigned char *s, int len);
+
+void sws_print_hex_dump(unsigned char * p, int len) {
+	unsigned char buf[33];
+	while(len) {
+		int cnt = sizeof(buf)/2;
+		if(len < cnt)
+			cnt = len;
+		*(str_bin2hex(buf, p, cnt)) = 0;
+		sws_puts((char *)buf);
+		p += cnt;
+		len -= cnt;
+	}
+}
+
+
 #endif // USE_DEBUG_PRINTF

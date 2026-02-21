@@ -20,13 +20,7 @@
 
 #define USE_DEBUG_SCAN		0
 
-#if (ADV_SERVICE_ENABLE)
-#define MYFIFO_BLK_SIZE		40 // min 1+6+31 = 38 bytes
-#if (MTU_DATA_SIZE < MYFIFO_BLK_SIZE)
-#error "MTU_DATA_SIZE < MYFIFO_BLK_SIZE !"
-#endif
-MYFIFO_INIT(ad_fifo, MYFIFO_BLK_SIZE, 8); 	// 40*8 = 320 bytes + sizeof(my_fifo_t)
-#endif
+#define MAX_ADV_BUF_SIZE	32
 
 typedef struct __attribute__((packed)) _ad_uuid16_t {
 	u8 size;
@@ -75,10 +69,8 @@ const u8 tblBTHome[] = {
 */
 };
 
-#if	USE_DEBUG_SCAN
-_attribute_custom_bss_ u8 debug_buf[48];
-#endif
-_attribute_custom_bss_ u8 prev_advs[MAX_SCAN_DEVS][32];
+_attribute_custom_bss_
+u8 prev_advs[MAX_SCAN_DEVS][MAX_ADV_BUF_SIZE];
 
 #if USE_BINDKEY
 const u8 ccm_aad = 0x11;
@@ -129,6 +121,9 @@ int float_pf2i_x100(u8 * pf) {
   /* Negative values */
   if (s == 1)
     x = ~x + 1;
+#if	USE_DEBUG_SCAN > 1
+  sws_printf("f: %d\n", x);
+#endif
   return x;
 }
 
@@ -140,6 +135,11 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 	u8 * pb;
 	u8 * pmac = dev_MAC[n];
 	if(len > sizeof(adv_xiaomi_t) - 6) {
+#if	USE_DEBUG_SCAN
+		sws_printf("x[%d]: ", n);
+		sws_print_hex_dump((u8 *)p, len + 1);
+		sws_putchar('\n');
+#endif
 		if(p->ctrID & 0x0010) { // MAC presents
 			len -= sizeof(adv_xiaomi_t) - 4;
 			if(memcmp(p->MAC, pmac, 6))
@@ -161,9 +161,6 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 			}
 #if USE_BINDKEY
 			if((p->ctrID & 0x08) && len > 3 + 3 + 4) { // Data encrypted, len > size (min_data[3], ext_cnt[3], mic[4])
-#if	USE_DEBUG_SCAN
-				debug_buf[0] = n;
-#endif
 /*
 				reg_clk_en1 |= FLD_CLK1_AES_EN;
 				reg_rst1 |= (FLD_RST1_AES);
@@ -187,18 +184,21 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 						pb, len, // crypt_data
 						pb, // decrypt data
 						(u8 *)&pb[len+3], 4)) { // &mic: &crypt_data[len + size (ext_cnt[3])]
+#if	USE_DEBUG_SCAN
+					sws_puts("ccm err!\n");
+#endif
 					return;
 				}
-#if	USE_DEBUG_SCAN
-				memcpy(&debug_buf[1], pb, len);
-				uart_send(debug_buf, len + 1);
+#if	USE_DEBUG_SCAN > 1
+				sws_puts("x: ");
+				sws_print_hex_dump(pb, len);
+				sws_putchar('\n');
 #endif
 			}
 #else
 			if(p->ctrID & 0x08)
 					return;
 #endif
-			// send_debug(pb, len);
 			padv_struct_xiaomi_t ps = (padv_struct_xiaomi_t)pb;
 			while(ps->size + 3 <= len) {
 				if(ps->id == MI_DATA_ID_TempAndHumidity && ps->size >= 4) { // Temp + Humi
@@ -290,6 +290,11 @@ __attribute__((optimize("-Os")))
 void filter_qingping_ad(padv_qingping_t p, int n) {
 	padv_struct_qingping_t ps = (padv_struct_qingping_t) &p->data;
 	int len = p->size;
+#if	USE_DEBUG_SCAN
+	sws_printf("q[%d]: ", n);
+	sws_print_hex_dump(p->data, len + 1);
+	sws_putchar('\n');
+#endif
 	// ..0812 005E60342D58 0201 64 0F01 7D 0904 8C120000
 	if(len > sizeof(adv_qingping_t) && (p->hlen & 0x1f) == 0x08) {
 		len -= 11;
@@ -341,6 +346,11 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 __attribute__((optimize("-Os")))
 void filter_custom_ad(adv_custom_t *p, int n) {
 	if(p->size == sizeof(adv_custom_t) - 1) {
+#if	USE_DEBUG_SCAN
+		sws_printf("c[%d]: ", n);
+		sws_print_hex_dump((u8 *)p, sizeof(adv_custom_t));
+		sws_putchar('\n');
+#endif
 		g_zcl_temperatureAttrs.measuredValue[n] = p->temperature;
 		g_zcl_relHumidityAttrs.measuredValue[n] = p->humidity;
 		g_zcl_powerAttrs[n].batteryPercentage = p->battery_level << 1;
@@ -369,13 +379,15 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 				(u8 *)&pp->data, sizeof(adv_pvvx_data_t), // len crypt_data
 				(u8 *)&pp->data, // decrypt data
 				(u8 *)&pp->mic, 4)) // &mic: &crypt_data[len + size (ext_cnt[3])]
+#if	USE_DEBUG_SCAN
+				sws_puts("ccm err!\n");
+#endif
 			return;
 #if	USE_DEBUG_SCAN
-		debug_buf[0] = n;
-		memcpy(&debug_buf[1], &pp->data, sizeof(adv_pvvx_data_t));
-		uart_send(debug_buf, sizeof(adv_pvvx_data_t) + 1);
+		sws_printf("c[%d]: ", n);
+		sws_print_hex_dump((u8 *)&pp->data, sizeof(adv_pvvx_data_t));
+		sws_putchar('\n');
 #endif
-
 		//ps = (padv_struct_xiaomi_t)&decrypt_data;
 		g_zcl_temperatureAttrs.measuredValue[n] = pp->data.temp;
 		g_zcl_relHumidityAttrs.measuredValue[n] = pp->data.humi;
@@ -401,6 +413,11 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 #endif
 	int len = p->size;
 	if(len > sizeof(padv_bthome_t)) {
+#if	USE_DEBUG_SCAN
+		sws_printf("b[%d]: ", n);
+		sws_print_hex_dump((u8 *)p, len + 1);
+		sws_putchar('\n');
+#endif
 		len -= sizeof(adv_bthome_t) - 2; // p->data len
 		if(p->ver == BtHomeID_ver_encrypt && len > 9) {
 #if USE_BINDKEY
@@ -431,8 +448,16 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 					p->data, len, // len crypt_data
 					p->data, // decrypt data
 					pmic, 4))  // &mic: &crypt_data[len + size (ext_cnt[3])]
+#if	USE_DEBUG_SCAN
+					sws_puts("ccm err!\n");
+#endif
 #endif
 				return;
+#if	USE_DEBUG_SCAN > 1
+			sws_puts("b: ");
+			sws_print_hex_dump(p->data, len);
+			sws_putchar('\n');
+#endif
 		} else if(p->ver != BtHomeID_ver) {
 			return;
 		}
@@ -493,96 +518,73 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 //_attribute_ram_code_
 __attribute__((optimize("-Os")))
 int scanning_event_callback(u32 h, u8 *p, int n) {
-	if (h & HCI_FLAG_EVENT_BT_STD) { // ble controller hci event
-		if ((h & 0xff) == HCI_EVT_LE_META) {
-			//----- hci le event: le adv report event -----
-			// send_debug(p, 10);
+	if ((h & HCI_FLAG_EVENT_BT_STD) // ble controller hci event
+	 && (h & 0xff) == HCI_EVT_LE_META) {
+	//----- hci le event: le adv report event -----
 #if (EXTENDED_ADV_ENABLE)
-			if ((p[0] == HCI_SUB_EVT_LE_EXTENDED_ADVERTISING_REPORT) //{ // Ext ADV packet?
-			|| (p[0] == HCI_SUB_EVT_LE_PERIODIC_ADVERTISING_REPORT)
-			|| (p[0] == HCI_SUB_EVT_LE_ADVERTISING_REPORT))
+		if ((p[0] == HCI_SUB_EVT_LE_EXTENDED_ADVERTISING_REPORT) //{ // Ext ADV packet?
+		|| (p[0] == HCI_SUB_EVT_LE_PERIODIC_ADVERTISING_REPORT)
+		|| (p[0] == HCI_SUB_EVT_LE_ADVERTISING_REPORT))
 #else
-			if (p[0] == HCI_SUB_EVT_LE_ADVERTISING_REPORT)
+		if (p[0] == HCI_SUB_EVT_LE_ADVERTISING_REPORT)
 #endif
-			{ // ADV packet
-				//after controller is set to scan state, it will report all the adv packet it received by this event
-				event_adv_report_t *pa = (event_adv_report_t *) p;
-				u32 adlen = pa->len;
-				u8 rssi = pa->data[adlen];
-				if (adlen && adlen < 32 && rssi != 0) { // rssi != 0
-#if 0 // =1 send all adv packets
-#if (ADV_SERVICE_ENABLE)
-								advDataValue++;
-								if (advDataCCC // Notify on?
-										&& (blc_ll_getCurrentState() & BLS_LINK_STATE_CONN)) {
-									u8 *s = my_fifo_wptr(&ad_fifo);
-									if(s) {
-										s[0] = adlen + 1 + 6;
-										s[1] = pa->subcode; //rssi;
-										memcpy(s + 2, pa->mac, 6);
-										memcpy(s + 2 + 6, pa->data, adlen);
-										my_fifo_next(&ad_fifo);
+		{ // ADV packet
+			//after controller is set to scan state, it will report all the adv packet it received by this event
+			event_adv_report_t *pa = (event_adv_report_t *) p;
+			int adlen = pa->len;
+			if(adlen > sizeof(ad_uuid16_t) + 1 && adlen <= MAX_ADV_BUF_SIZE
+			  && pa->data[adlen] != 0) { // rssi = pa->data[adlen] != 0
+				for(n = 0; n < MAX_SCAN_DEVS; n++) {
+					if(!memcmp(dev_MAC[n], pa->mac, 6)) {
+						if(memcmp(prev_advs[n], pa->data, adlen)) {
+							memcpy(prev_advs[n], pa->data, adlen);
+							pad_uuid16_t pd = (pad_uuid16_t)pa->data;
+#if	USE_DEBUG_SCAN > 1
+							sws_printf("s[%d]: ", n);
+							sws_print_hex_dump((u8 *)pd, adlen);
+							sws_putchar('\n');
+#endif
+							while(adlen > sizeof(ad_uuid16_t)) {
+								int len = pd->size;
+								if(!len)
+									break;
+								len++;
+								if(len <= adlen // struct size
+								  && len > sizeof(ad_uuid16_t)
+								  && pd->type == GAP_ADTYPE_SERVICE_DATA_UUID_16BIT) {
+									if((pd->uuid16) == ADV_CUSTOM_UUID16) {
+										// GATT Service 0x181A Environmental Sensing, ATC custom FW
+										filter_custom_ad((adv_custom_t *)pd, n);
+									} else if((pd->uuid16) == ADV_BTHOME_UUID16) {
+										// GATT Service: BTHome v2
+										filter_bthome_ad((adv_bthome_t *)pd, n);
+									} else if((pd->uuid16) == ADV_MIHOME_UUID16) {
+										// GATT Service: Xiaomi Inc.
+										filter_xiaomi_ad((adv_xiaomi_t *)pd, n);
+									} else if((pd->uuid16) == ADV_QINGPING_UUID16) {
+										// GATT Service: Qingping Technology (Beijing) Co., Ltd.
+										filter_qingping_ad((adv_qingping_t *)pd, n);
 									}
-								}
-#endif
-#else
-					u32 i = 0;
-					while(adlen) {
-						pad_uuid16_t pd = (pad_uuid16_t)&pa->data[i];
-						u32 len = pd->size + 1;
-						if(len <= adlen) {
-							if(len >= sizeof(ad_uuid16_t) && pd->type == GAP_ADTYPE_SERVICE_DATA_UUID_16BIT) {
-#if (ADV_SERVICE_ENABLE)
-								advDataValue++;
-								if (advDataCCC // Notify on?
-										&& (blc_ll_getCurrentState() & BLS_LINK_STATE_CONN)) {
-									u8 *p = my_fifo_wptr(&ad_fifo);
-									if(p) {
-										p[0] = len + 1 + 6;
-										p[1] = rssi;
-										memcpy(p + 2, pa->mac, 6);
-										memcpy(p + 2 + 6, pd, len);
-										my_fifo_next(&ad_fifo);
-									}
-								}
-#endif
-								for(int n = 0; n < MAX_SCAN_DEVS; n++) {
-									if (memcmp(dev_MAC[n], pa->mac, 6) == 0) {
-										if(memcmp(prev_advs[n], pd, len)) {
-											memcpy(prev_advs[n], pd, len);
-											if((pd->uuid16) == ADV_CUSTOM_UUID16) { // GATT Service 0x181A Environmental Sensing, ATC custom FW
-												filter_custom_ad((adv_custom_t *)prev_advs[n], n);
-											} else if((pd->uuid16) == ADV_BTHOME_UUID16) { // GATT Service: BTHome v2
-												filter_bthome_ad((adv_bthome_t *)prev_advs[n], n);
-											} else if((pd->uuid16) == ADV_MIHOME_UUID16) { // GATT Service: Xiaomi Inc.
-												filter_xiaomi_ad((adv_xiaomi_t *)prev_advs[n], n);
-											} else if((pd->uuid16) == ADV_QINGPING_UUID16) { // GATT Service: Qingping Technology (Beijing) Co., Ltd.
-												filter_qingping_ad((adv_qingping_t *)prev_advs[n], n);
-											}
 #if LED_FLASH_RGBE
-											switch(n) {
-											case 0:
-												LED_R_ON();
-												break;
-											case 1:
-												LED_G_ON();
-												break;
-											case 2:
-												LED_B_ON();
-												break;
-											}
+									switch(n) {
+									case 0:
+										LED_R_ON();
+										break;
+									case 1:
+										LED_G_ON();
+										break;
+									case 2:
+										LED_B_ON();
+										break;
+									}
 #endif
-											break;
-										}
-									};
 								}
+								pd = (pad_uuid16_t)((u32)pd + len);
+								adlen -= len;
 							}
-						} else
-							break;
-						adlen -= len;
-						i += len;
+						}
+						break;
 					}
-#endif
 				}
 			}
 		}

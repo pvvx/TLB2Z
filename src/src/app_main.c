@@ -345,7 +345,7 @@ static void app_zb_task(void)
 				g_sensorAppCtx.reportupsec++; // + 1 sec
 				g_sensorAppCtx.utc_time_sec++;
 			}
-			if(g_sensorAppCtx.reportupsec) { // >= READ_SENSOR_TIMER_SEC ?
+			if(g_sensorAppCtx.reportupsec >= 5) { // >= READ_SENSOR_TIMER_SEC ?
 				app_chk_report(g_sensorAppCtx.reportupsec);
 				g_sensorAppCtx.reportupsec = 0;
 			}

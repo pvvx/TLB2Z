@@ -360,6 +360,7 @@ unsigned char * str_bin2hex(unsigned char *d, unsigned char *s, int len) {
 	return d;
 }
 
+
 static void my_att_init(void){
 #if USE_FLASH_SERIAL_UID
 	u8 buf[16];
@@ -638,7 +639,7 @@ void user_ble_normal_init(void){
 	blc_ll_setScanParameter(SCAN_TYPE_PASSIVE, SCAN_INTERVAL_50MS, SCAN_INTERVAL_50MS-4, // SCAN_INTERVAL_30MS
 							  OWN_ADDRESS_PUBLIC, SCAN_FP_ALLOW_ADV_ANY);
 	blc_ll_setScanWin(30000);//30ms
-	blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_ENABLE); // DUP_FILTER_DISABLE
+	blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
 	//blc_ll_addScanningInAdvState();  //add scan in adv state
 	blc_ll_addScanningInConnSlaveRole();  //add scan in conn slave role
 #endif
@@ -648,14 +649,10 @@ void user_ble_normal_init(void){
 	user_set_rf_power(0, 0, 0);
 	bls_app_registerEventCallback (BLT_EV_FLAG_SUSPEND_EXIT, &user_set_rf_power);
 
-
-
 	//ble event call back
 	bls_app_registerEventCallback (BLT_EV_FLAG_CONNECT, &task_connect);
 	bls_app_registerEventCallback (BLT_EV_FLAG_TERMINATE, &ble_remote_terminate);
 //	bls_app_registerEventCallback (BLT_EV_FLAG_RX_DATA_ABANDOM, &ble_exception_data_abandom);
-
-
 //	bls_app_registerEventCallback (BLT_EV_FLAG_CONN_PARA_REQ, &task_conn_update_req);
 //	bls_app_registerEventCallback (BLT_EV_FLAG_CONN_PARA_UPDATE, &task_conn_update_done);
 
