@@ -4,7 +4,7 @@
         "fileSize": 158498,
         "manufacturerCode": 4417,
         "imageType": 8720,
-        "sha512": "edd873f1c7e44bdbd0f4cecaac9756302ce12e385a2417a41c6c6bcf04e699d67b1e8f5ae46f4f37bcf6d40cc646e8ca06e617d0b339f36765347dc5dc37f95c",
+        "sha512": "cfbe65ab79d6cf285931022c1360f0967891cfa97e18ffed05bad233f88b69d612875579798a0447b46639a66c3ae6c5339ec9fa92055d2376b4bf5b123f4646",
         "otaHeaderString": "B2Z:TB03F-bz",
         "modelId": "TB03F-bz",
         "manufacturerName": [
@@ -17,7 +17,7 @@
         "fileSize": 158626,
         "manufacturerCode": 4417,
         "imageType": 8747,
-        "sha512": "a2185268b04082696960353d2761da537dab3d3211d18c73c9bf8ea37e12c3db06296d060718773503dbd71a5a1a31e80a19e23a7a1d173d5edd26d1a57716c3",
+        "sha512": "20e496af594ead844aac7b2334982a15c40d870fe134d4ae5ff98937147a4932cdb89e2afd6853706636ad1bb0bdf279fab9bd4d1a5e8c85f84b318f916950ef",
         "otaHeaderString": "B2Z:REL-BZ01",
         "modelId": "REL-BZ01",
         "manufacturerName": [
@@ -30,7 +30,7 @@
         "fileSize": 160162,
         "manufacturerCode": 4417,
         "imageType": 8748,
-        "sha512": "ff21aed1a584fc7cfdfac0051a4d872904963629efb93749156a9a34598d79a4533785f6d9a5a83d3a4c8464238dfd052bed690761ce727383b377f357a868f0",
+        "sha512": "7dedf6596cdc101efe5fe23ffd106a28205e7e08fa778914a6a53dbceaf32c95463576f3074a9d7828e5ba4f6aa83609011be5c8dbda9c826af45ecb450efa0a",
         "otaHeaderString": "B2Z:ZG-807Z",
         "modelId": "ZG-807Z",
         "manufacturerName": [
