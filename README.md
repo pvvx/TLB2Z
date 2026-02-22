@@ -106,7 +106,7 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
 | 3 | 0x0006 On/Off | 0x0000 OnOff | 3 |
-| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
+| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
