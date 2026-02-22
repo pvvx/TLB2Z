@@ -49,7 +49,7 @@
  *  @brief  ZCL: MAX number of cluster list, in cluster number add  + out cluster number
  *
  */
-#define	ZCL_CLUSTER_NUM_MAX						18 // 15 min
+#define	ZCL_CLUSTER_NUM_MAX						20 // 15 min
 
 /**
  *  @brief  ZCL: maximum number for zcl reporting table

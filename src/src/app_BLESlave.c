@@ -700,6 +700,12 @@ typedef struct __attribute__((packed)) {
 	u16	humidity; // x 0.01 %
 	u8	battery_level; // 0..200 -> 0..100 %
 	u8	battery_v01; // x 0.1V
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+	u32 illuminance;
+#endif
+#if SCAN_TRG_ENABLE
+	u8 tigger;
+#endif
 } msg_notify_t;
 
 
@@ -715,6 +721,12 @@ void task_ble(void) {
 				msg.humidity = g_zcl_relHumidityAttrs.measuredValue[n];
 				msg.battery_level = g_zcl_powerAttrs[n].batteryPercentage;
 				msg.battery_v01 = g_zcl_powerAttrs[n].batteryVoltage;
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+				msg.illuminance = ble_illuminance[n];
+#endif
+#if SCAN_TRG_ENABLE
+				msg.tigger = g_zcl_onOffAttrs.ble_trigger[n];
+#endif
 				bls_att_pushNotifyData(RxTx_CMD_OUT_DP_H, (u8 *) &msg , sizeof(msg));
 			}
 		}

@@ -18,7 +18,11 @@
 #include "adv_qingping.h"
 #include "app_ui.h"
 
-#define USE_DEBUG_SCAN		0	// 0,1,2
+#if USE_DEBUG_PRINTF
+#define USE_DEBUG_SCAN		2	// 0,1,2,3
+#else
+#define USE_DEBUG_SCAN		0	// 0,1,2,3
+#endif
 
 #define MAX_ADV_BUF_SIZE	32
 
@@ -127,6 +131,78 @@ int float_pf2i_x100(u8 * pf) {
   return x;
 }
 
+static void zb_batteryVoltage(u8 bat, u8 n) {
+	g_zcl_powerAttrs[n].batteryVoltage = (220 + bat) / 10;
+	g_zcl_powerAttrs[n].batteryPercentage = bat << 1;
+	update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
+}
+
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+
+u32 ble_illuminance[MAX_SCAN_DEVS] = {0xffffffff,0xffffffff,0xffffffff};
+
+// Таблица 10000 * log10(i/10) для i = 10..100 (мантисса от 1.0 до 10.0 с шагом 0.1)
+static const u16 log_table[91] = {
+	   0,  414,	 792, 1139, 1461, 1761, 2041, 2304, 2553, 2788, // 1.0..1.9
+	3010, 3222, 3424, 3617, 3802, 3979, 4150, 4314, 4472, 4624, // 2.0..2.9
+	4771, 4914, 5052, 5185, 5315, 5441, 5563, 5682, 5798, 5911, // 3.0..3.9
+	6021, 6128, 6232, 6335, 6435, 6532, 6628, 6721, 6812, 6902, // 4.0..4.9
+	6990, 7076, 7160, 7243, 7324, 7404, 7482, 7559, 7634, 7709, // 5.0..5.9
+	7782, 7853, 7924, 7993, 8062, 8129, 8195, 8261, 8325, 8388, // 6.0..6.9
+	8451, 8513, 8573, 8633, 8692, 8751, 8808, 8865, 8921, 8976, // 7.0..7.9
+	9031, 9085, 9138, 9191, 9243, 9294, 9345, 9395, 9445, 9494, // 8.0..8.9
+	9542, 9590, 9638, 9685, 9731, 9777, 9823, 9868, 9912, 9956, // 9.0..9.9
+   10000														  // 10.0
+};
+
+// Степени десяти: 10^0 .. 10^6 (последняя для проверки границы)
+static const u32 powers[8] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000};
+
+/**
+ * Вычисляет 10000 * log10(x) для 1 <= x <= 3576000
+ * с использованием целочисленной арифметики и таблицы логарифмов.
+ */
+static u16 calk_10000_log10(u32 x) {
+	if (x < 1)
+		return 0;
+	else if(x >= 3576000)
+		return 65534;
+
+	// Определяем порядок B: 10^B <= x < 10^(B+1)
+	u32 B = 0;
+	while (powers[B + 1] <= x) {
+		B++;
+	}
+	u32 p = powers[B];	// 10^B
+
+	// Масштабируем x для получения мантиссы с одним знаком после запятой
+	u32 tmp = x * 10;		// x * 10
+	u32 a = (int)(tmp / p);	// целая часть мантиссы *10 (от 10 до 99)
+	u32 r = (int)(tmp % p);	// остаток для интерполяции
+
+	u32 index = a - 10;		// индекс в таблице (0..89)
+	u32 base = B * 10000;	// вклад порядка
+
+	// Линейная интерполяция между соседними значениями таблицы
+	u32 diff = log_table[index + 1] - log_table[index];
+	// Округление: добавляем половину знаменателя перед делением
+	u32 add = (diff * r + (p >> 1)) / p;
+
+	return (u16)(base + log_table[index] + add);
+}
+
+static void zb_illuminance(u32 lx, u8 n) {
+	ble_illuminance[n] = lx;
+	g_zcl_illuminanceAttrs.measuredVal[n] = calk_10000_log10(lx);
+#if	USE_DEBUG_SCAN > 1
+	sws_printf("i: %d,%d\n", lx, g_zcl_illuminanceAttrs.measuredVal[n]);
+#endif
+	update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_LGH | FLG_UPDATE_FLG;
+}
+
+#endif // ZCL_ILLUMINANCE_MEASUREMENT
+
+
 //u8 x_buf[16];
 __attribute__((optimize("-Os")))
 void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
@@ -210,36 +286,28 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 						|| ps->id == MI_DATA1_ID_Battery
 						|| ps->id == MI_DATA2_ID_Battery
 						|| ps->id == MI_DATA3_ID_Battery)) { // Battery
-					g_zcl_powerAttrs[n].batteryVoltage = 30;
-					g_zcl_powerAttrs[n].batteryPercentage = ps->data_ub[0] << 1;
-					update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
+					zb_batteryVoltage(ps->data_ub[0], n);
 				 // Temperature
 				} else if(ps->id == MI_DATA_ID_Temperature && ps->size >= 2) { // Temperature
 					g_zcl_temperatureAttrs.measuredValue[n] = ps->data_is[0]*10; // in 0.1 C
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATA_ID_SwitchTemperature && ps->size >= 2) { // Temperature
+				} else if(ps->id == MI_DATA_ID_SwitchTemperature && ps->size >= 2) { // Switch + Temperature
 					g_zcl_temperatureAttrs.measuredValue[n] = ps->data_ib[1]*100; // in 1 C
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATAF_ID_Temperature && ps->size >= 4) { // Temperature, float
-					g_zcl_temperatureAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
-					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATAF_ID2_Temperature && ps->size >= 4) { // Temperature, float
+				} else if((ps->id == MI_DATAF_ID_Temperature || ps->id == MI_DATAF_ID2_Temperature)
+					&& ps->size >= 4) { // Temperature, float
 					g_zcl_temperatureAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
 				// Humidity
-				} else if(ps->id == MI_DATA1_ID_Humidity && ps->size >= 1) { // Humidity, byte
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*100; // in 1 %
+				} else if((ps->id == MI_DATA1_ID_Humidity || ps->id == MI_DATA1_ID2_Humidity)
+					&& ps->size >= 1) { // Humidity, byte
+					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_ub[0]*100; // in 1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATA1_ID2_Humidity && ps->size >= 1) { // Humidity, byte
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*100; // in 1 %
+				} else if(ps->id == MI_DATA_ID_SwitchHumidity && ps->size >= 2) { // Switch + Humidity
+					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[1]*10;  // in 0.1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATA_ID_Humidity && ps->size >= 2) { // Humidity
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*10;  // in 0.1 %
-					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATAF_ID_Humidity && ps->size >= 4) { // Humidity, float
-					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
-					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATAF_ID2_Humidity && ps->size >= 4) { // Humidity, float
+				} else if((ps->id == MI_DATAF_ID_Humidity || ps->id == MI_DATAF_ID2_Humidity)
+					&& ps->size >= 4) { // Humidity, float
 					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 #if SCAN_TRG_ENABLE
@@ -249,35 +317,24 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
 					g_zcl_onOffAttrs.ble_trigger[n] = 1;
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
+#else
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+#endif
 				} else if((ps->id == MI_DATA_ID_NoOneMoves)&&(ps->size >= 4)) { // No one moves over time / 171004 3c000000 / 171004 78000000 / 1710042c010000 / 171004 58020000
 					g_zcl_onOffAttrs.ble_trigger[n] = 0;
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
+#else
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
-/*
-#ifdef ZCL_ILLUMINANCE_MEASUREMENT
-				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
-					set_lm_out(ps->data_ub[0]);
-				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
-					if(ps->data_ub[2])
-						wrk.illuminance = -1;
-					else
-						wrk.illuminance = ps->data_us[0];
-					wrk.motion_event = 1;
-					set_lm_out(1);
-				} else if((ps->id == MI_DATA_ID_LightIlluminance)&&(ps->size >= 3)) { // Light Illuminance 071003 af1500
-					if(ps->data_ub[2])
-						wrk.illuminance = -1;
-					else
-						wrk.illuminance = ps->data_us[0];
-					set_lm_out(0);
-				} else if((ps->id == MI_DATA_ID_NoOneMoves)&&(ps->size >= 4)) { // No one moves over time / 171004 3c000000 / 171004 78000000 / 1710042c010000 / 171004 58020000
-					wrk.motion_event = ps->data_uw == 0;
-					set_lm_out(wrk.motion_event);
-				} else if((ps->id == MI_DATA_ID_LightIntensity)&&(ps->size >= 1)) { // Light on/off, Light Intensity 18100101 / 18100100
-					wrk.light_on = ps->data_ub[0];
+
 #endif
-*/
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+				} else if((ps->id == MI_DATA_ID_LightIlluminance) && ps->size >= 3) { // Light Illuminance 071003 af1500
+					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
+#endif
 				}
 				len -= ps->size + 3;
 				ps = (padv_struct_xiaomi_t)((u32)ps + ps->size + 3);
@@ -286,8 +343,10 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 	}
 }
 
-// e72e0183486e 020106 03021a18 131695fe70205b043a6e4883012ee7090a100117
-// e72e0183486e 02010603021a18141695fe70205b04376e4883012ee709041002e400
+// 17 16 CDFD 08 12 005E60342D58 0201 50 0F01 59 0804 00 000000
+// 17 16 CDFD 08 12 005E60342D58 0201 62 0F01 0B 0804 01830800
+// 14 16 CDFD 48 12 005E60342D58 0804 01000000 0F01F4
+// 11 16 CDFD 48 12 005E60342D58 1101 01 0F01F7
 //_attribute_ram_code_
 __attribute__((optimize("-Os")))
 void filter_qingping_ad(padv_qingping_t p, int n) {
@@ -295,49 +354,44 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 	int len = p->size;
 #if	USE_DEBUG_SCAN
 	sws_printf("q[%d]: ", n);
-	sws_print_hex_dump(p->data, len + 1);
+	sws_print_hex_dump((u8 *)p, len + 1);
 	sws_putchar('\n');
 #endif
 	// ..0812 005E60342D58 0201 64 0F01 7D 0904 8C120000
 	if(len > sizeof(adv_qingping_t) && (p->hlen & 0x1f) == 0x08) {
 		len -= 11;
 		while((ps->size + 2) <= len) {
-			if(ps->id_size == 0x0401) { // Temp + Humi
+			if(ps->id_size == QP_DATA_TemperatyreHumidity) { // Temp + Humi
 				g_zcl_temperatureAttrs.measuredValue[n] = ps->data_is[0]*10; // in 0.1 C
 				g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_is[1]*10;  // in 0.1 %
 				update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
-			} else if(ps->id_size == 0x0102) { // Batt %
-				g_zcl_powerAttrs[n].batteryPercentage = ps->data_us[0];  // in %
-				g_zcl_powerAttrs[n].batteryVoltage = 30;
-				update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
-
+			} else if(ps->id_size == QP_DATA_Battery) { // Batt %
+				zb_batteryVoltage(ps->data_ub[0], n);
 #if SCAN_TRG_ENABLE
-			} else if(ps->id_size == 0x0408) { // Motion + Light
+			} else if(ps->id_size == QP_DATA_MotionIlluminance) { // Motion + Light
 				g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
 				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
-#endif
-/*
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
-			} else if(ps->id_size == 0x0408) { // Motion + Light
-				wrk.motion_event = ps->data_ub[0];
-				if(ps->data_ub[3])
-					wrk.illuminance = -1;
-				else
-					wrk.illuminance = ps->data_uw >> 8;
-				set_lm_out(wrk.motion_event);
-			} else if(ps->id_size == 0x0409) { // Light
-				if(ps->data_ub[2])
-					wrk.illuminance = -1;
-				else
-					wrk.illuminance = ps->data_us[0];
-				set_lm_out(0);
-			} else if(ps->id_size == 0x0111) { // Light on/off
-				wrk.light_on = ps->data_ub[0];
+				if((p->hlen & 0x40) == 0) {
+					zb_illuminance(ps->data_uw >> 8, n);
+				}
 #endif
-*/
-				//				} else if(ps->id_size == 0x0207) { // Pressure
-				//					extdev_pressure = ps->data_us[0];  // in 0.01
-				//				} else if(ps->id_size == 0x010f) { // Count
+#endif
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+			} else if(ps->id_size == QP_DATA_Illuminance) { // Light
+				zb_illuminance(ps->data_uw, n);
+#endif
+			//	} else if(ps->id_size == QP_DATA_Pressure) { // Pressure
+			//		pressure = ps->data_us[0];  // in 0.1
+			//	} else if(ps->id_size == QP_DATA_light) { // light (bool)
+			//     light = ps->data_us[0];
+			//	} else if(ps->id_size == QP_DATA_AdvCount) { // Count
+			//     adv_count = ps->data_us[0]
+			//	} else if(ps->id_size == QP_DATA_Concentration) { // Concentration
+			//     pm2_5 = ps->data_us[0];
+			//     pm10 = ps->data_us[1];
+			//	} else if(ps->id_size == QP_DATA_CO2Concentration) { // CO2 Concentration
+			//     ppm = ps->data_us[0];
 			}
 			len -= ps->size + 2;
 			ps = (padv_struct_qingping_t)((u32)ps + ps->size + 2);
@@ -394,8 +448,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		//ps = (padv_struct_xiaomi_t)&decrypt_data;
 		g_zcl_temperatureAttrs.measuredValue[n] = pp->data.temp;
 		g_zcl_relHumidityAttrs.measuredValue[n] = pp->data.humi;
-		g_zcl_powerAttrs[n].batteryPercentage = pp->data.bat << 1;
-		g_zcl_powerAttrs[n].batteryVoltage = 30;
+		zb_batteryVoltage(pp->data.bat, n);
 #if SCAN_TRG_ENABLE
 		g_zcl_onOffAttrs.ble_trigger[n] = p->flags.trg_output;
 #endif
@@ -492,7 +545,8 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 					g_zcl_powerAttrs[n].batteryVoltage = ps->data_us[0]/100; // in 0.001V
 					update_enable[n] |= FLG_UPDATE_VBAT | FLG_UPDATE_FLG;
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
-// TODO: ZCL_ILLUMINANCE_MEASUREMENT
+				} else if(ps->type == BtHomeID_illuminance) { // uint24, 0.01 lux
+					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
 #endif
 #if SCAN_TRG_ENABLE
 				} else if(ps->type == BtHomeID_switch) {
@@ -542,7 +596,7 @@ int scanning_event_callback(u32 h, u8 *p, int n) {
 						if(memcmp(prev_advs[n], pa->data, adlen)) {
 							memcpy(prev_advs[n], pa->data, adlen);
 							pad_uuid16_t pd = (pad_uuid16_t)pa->data;
-#if	USE_DEBUG_SCAN > 1
+#if	USE_DEBUG_SCAN > 2
 							sws_printf("s[%d]: ", n);
 							sws_print_hex_dump((u8 *)pd, adlen);
 							sws_putchar('\n');

@@ -87,7 +87,7 @@ typedef struct{
 }zcl_powerAttr_t;
 
 typedef struct{
-	u16 measuredVal;
+	u16 measuredVal[MAX_SCAN_DEVS];
 	u16 minMeasuredVal;
 	u16 maxMeasuredVal;
 #ifdef ZCL_ATTR_TOLERANCE_ENABLE
@@ -182,6 +182,9 @@ extern zcl_temperatureAttr_t g_zcl_temperatureAttrs;
 #endif
 #ifdef ZCL_RELATIVE_HUMIDITY_MEASUREMENT
 extern zcl_relHumidityAttr_t g_zcl_relHumidityAttrs;
+#endif
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+extern zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs;
 #endif
 extern zcl_pollCtrlAttr_t g_zcl_pollCtrlAttrs;
 #ifdef ZCL_ON_OFF

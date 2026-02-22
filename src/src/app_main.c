@@ -221,7 +221,21 @@ static void user_app_init(void)
     		3600,
     		(u8 *)&reportableChange);
 #endif
-    	reportableChange = 10;
+
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+        reportableChange = 10;
+		bdb_defaultReportingCfg(
+			i,
+			HA_PROFILE_ID,
+			ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
+			ZCL_ATTRID_MEASURED_VALUE,
+			30,
+			180,
+			(u8 *)&reportableChange
+		);
+#endif
+
+        reportableChange = 10;
 		bdb_defaultReportingCfg(
 			i,
 			HA_PROFILE_ID,
@@ -231,6 +245,7 @@ static void user_app_init(void)
 			180,
 			(u8 *)&reportableChange
 		);
+
         reportableChange = 50;
 		bdb_defaultReportingCfg(
 			i,
@@ -345,7 +360,7 @@ static void app_zb_task(void)
 				g_sensorAppCtx.reportupsec++; // + 1 sec
 				g_sensorAppCtx.utc_time_sec++;
 			}
-			if(g_sensorAppCtx.reportupsec >= 5) { // >= READ_SENSOR_TIMER_SEC ?
+			if(g_sensorAppCtx.reportupsec >= MIN_REPORT_INTERVAL) {
 				app_chk_report(g_sensorAppCtx.reportupsec);
 				g_sensorAppCtx.reportupsec = 0;
 			}

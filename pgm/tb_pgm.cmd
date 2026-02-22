@@ -1,1 +1,1 @@
-python3 TlsrComProg.py -p COM6 -t500 we 0 ../fw/tb3f_v0107.bin
+python3 TlsrComProg.py -p COM6 -t500 we 0 ../fw/tb3f_v0108.bin

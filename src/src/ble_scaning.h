@@ -22,6 +22,9 @@ enum {
 } FLG_UPDATE_E;
 
 extern u8 update_enable[MAX_SCAN_DEVS];
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+extern u32 ble_illuminance[MAX_SCAN_DEVS];
+#endif
 extern u8 dev_MAC[MAX_SCAN_DEVS][6]; // [0] - lo, .. [6] - hi digits
 #if USE_BINDKEY
 extern u8 bindkey[MAX_SCAN_DEVS][16]; // for MAC1

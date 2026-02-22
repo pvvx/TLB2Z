@@ -4,7 +4,6 @@
  *  Created on: 21.03.2024
  *      Author: pvvx
  */
-
 #ifndef _QINGPING_ADV_H_
 #define _QINGPING_ADV_H_
 
@@ -12,6 +11,22 @@
 //=================== Qingping =================
 // GATT Service 0xfdcd Qingping Technology (Beijing) Co., Ltd.
 // All data little-endian
+
+// size + (id<<8)
+enum {
+	QP_DATA_TemperatyreHumidity = 0x0401, // i16 0.1 C + i16 0.1 %
+	QP_DATA_Battery = 0x0102, // u8 %
+	QP_DATA_Door = 0x0104, // u8
+	QP_DATA_Pressure = 0x0207, // u16 0.1
+	QP_DATA_MotionIlluminance = 0x0408, // u8 Motion + u24 Light lx
+	QP_DATA_Illuminance = 0x0409, // u32 lx
+	QP_DATA_light = 0x0111, // u8 bool
+	QP_DATA_Concentration = 0x0412, // u16 pm2_5 + u16 pm10
+	QP_DATA_CO2Concentration = 0x0213, // u16 ppm
+	QP_DATA_AdvCount = 0x010f, // u8
+} QP_DATA_ID;
+
+
 
 typedef struct __attribute__((packed)) _adv_qingping_t {
 	u8	size;	// = ?
@@ -40,5 +55,6 @@ typedef struct __attribute__((packed)) _adv_struct_qingping_t {
 		s32	data_iw;
 	};
 } adv_struct_qingping_t, * padv_struct_qingping_t;
+
 
 #endif /* _QINGPING_ADV_H_ */
