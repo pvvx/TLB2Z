@@ -22,6 +22,10 @@ Alternative 2: **[TS0001_TZ3000_gjrubzje](https://pvvx.github.io/TS0001_TZ3000/)
 
 ![ZigbeeSwitch](https://raw.githubusercontent.com/pvvx/pvvx.github.io/refs/heads/master/TS0001_TZ3000_fdxihpp7/img/ZigbeeSwitch.jpg)
 
+Alternative 3: **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
+
+![ZG-807Z](https://pvvx.github.io/ZG-807Z/img/ZG-807Z.jpg)
+
 
 * BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 * Initial programming (https://github.com/pvvx/TLB2Z/tree/master/pgm)

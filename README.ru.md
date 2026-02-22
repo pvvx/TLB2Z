@@ -19,9 +19,14 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 * [Начальное программирование модуля](https://github.com/pvvx/TLB2Z/tree/master/pgm)
 * [Файлы прошивки и Zigbee OTA](https://github.com/pvvx/TLB2Z/tree/master/fw)
 
-И вариант на [TS0001_TZ3000_gjrubzje](https://pvvx.github.io/TS0001_TZ3000/)
+Вариант на [TS0001_TZ3000_gjrubzje](https://pvvx.github.io/TS0001_TZ3000/)
 
 ![ZigbeeSwitch](https://raw.githubusercontent.com/pvvx/pvvx.github.io/refs/heads/master/TS0001_TZ3000_fdxihpp7/img/ZigbeeSwitch.jpg)
+
+Вариант на **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
+
+![ZG-807Z](https://pvvx.github.io/ZG-807Z/img/ZG-807Z.jpg)
+
 
 ## Основные технические характеристики
 
