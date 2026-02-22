@@ -227,14 +227,14 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					g_zcl_temperatureAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_TEMP | FLG_UPDATE_FLG;
 				// Humidity
-				} else if(ps->id == MI_DATA1_ID2_Humidity && ps->size >= 1) { // Humidity
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]; // 1 byte, in 1 %
+				} else if(ps->id == MI_DATA1_ID_Humidity && ps->size >= 1) { // Humidity, byte
+					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*100; // in 1 %
+					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
+				} else if(ps->id == MI_DATA1_ID2_Humidity && ps->size >= 1) { // Humidity, byte
+					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*100; // in 1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 				} else if(ps->id == MI_DATA_ID_Humidity && ps->size >= 2) { // Humidity
 					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*10;  // in 0.1 %
-					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
-				} else if(ps->id == MI_DATA1_ID_Humidity && ps->size >= 1) { // Humidity, byte
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_ib[1]*100; // in 1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 				} else if(ps->id == MI_DATAF_ID_Humidity && ps->size >= 4) { // Humidity, float
 					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
