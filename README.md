@@ -46,12 +46,12 @@ Alternative 3: **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
 
 # Customizing the module
 
-1.  Connect the programmed module to the power supply
-2.  Open [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
+1. Connect the programmed module to the power supply
+2. Open [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 3. Press the button labeled "PROG" for 1 second. This action will switch the module to the BLE connection standby mode. The waiting time for BLE connection is up to 80 seconds.
-4.  In [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html) make a connection to the BLE device "B2Z-xxxxxxx".
-5.  Enter the MAC of the thermometers and the BindKey used if necessary.
-6.  Verify that the data is being received:
+4. In [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html) make a connection to the BLE device "B2Z-xxxxxxx".
+5. Enter the MAC of the thermometers and the BindKey used if necessary.
+6. Verify that the data is being received:
 
 ![b2z_html.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_html.gif)
 
@@ -63,7 +63,7 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 1.  Enable pairing mode on the Zigbee coordinator or router.
 2.  Press and hold the button on the module labeled "PROG" for 8 seconds. This action will reset the Zigbee bindings and settings.
-3.  Trace the pairing of the temperature, humidity, and battery clusters. Set the desired values for "Report".
+3.  Trace the pairing clusters. Set the desired values for "Report".
 
 ![b2z_zha.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_zha.gif)
 
@@ -73,14 +73,14 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 ### RGB LED blinks briefly when receiving data from BLE devices.
 
-* Red LED color - reception from the 1st thermometer
-* Green color LED - reception from 2nd thermometer
-* Blue LED color - reception from the 3rd thermometer
+* Red LED color - reception from the 1rd BLE device.
+* Green color LED - reception from the 2rd BLE device.
+* Blue LED color - reception from the 3rd BLE device.
 
 ### White LED indicates Zigbee status. 
 
-* Lights up constantly if there is no pairing
-* Blinks 7 times when pairing
+* If there is no pairing, the indicator flashes slowly.
+* Fast blinking when pairing
 * Blinks on "Identify" command
 
 ### Yellow LED indicates BLE status. 
@@ -102,11 +102,11 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | 1 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 1 |
 | 2 | 0x0006 On/Off | 0x0000 OnOff | 2 |
-| 2 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
+| 2 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
 | 3 | 0x0006 On/Off | 0x0000 OnOff | 3 |
-| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
+| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 

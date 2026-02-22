@@ -30,20 +30,22 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
 ## Основные технические характеристики
 
-* Прием BLE рекламы до 3-х термометров-гигрометров или детекторов движения и освещенности и перевод показаний в виде конечного устройства Zigbee.
+* Прием BLE рекламы до 3-х термометров-гигрометров или детекторов движения и освещенности с переводом показаний в Zigbee.
 * Рекламные объявления BLE принимаются 99.5% времени: опрос Zigbee происходит 16 мс каждые 4 секунды. Это обеспечивает минимальные потери приема от BLE устройств.
-* Zigbee устройство использует 3 endpoint. По одному для каждого BLE термометра-гигрометра.
-* Zigbee TX +10 дБм, BLE TX +0 дБм (BLE используется только для настройки).
+* Zigbee устройство использует 3 endpoint. По одному для каждого BLE устройства.
 * Поддержка Zigbee OTA.
 * Поддержка рекламных BLE форматов Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
 * Поддержка вариантов зашифрованной рекламы BLE с помощью bindkey.
+* Поддержка триггера BLE вкл/выкл (настроенного в BThome в прошивках [ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer?tab=readme-ov-file#temperature-or-humidity-trigger-gpio-pc4-lywsd03mmc-label-on-the-p9-pin), и датчика движения.
+* Поддержка прямого binding для On/Off.
+* Zigbee TX +10 дБм, BLE TX +0 дБм (BLE используется только для настройки).
 * Среднее потребление при работе модуля TB-03F-KIT от USB (5V): 10 мА
 
 ## Настройка модуля
 
-1.	Подключите запрограммированный модуль к питанию
+1.	Подключите запрограммированный модуль к источнику питания.
 2.	Загрузите [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html)
-3.	На 1 секунду нажмите кнопку с надписью “PROG”. Это действие переключит модуль на работу в режим ожидания подключения по BLE. Время ожидания BLE подключения до 80 секунд.
+3.	Коротко нажмите кнопку с надписью “PROG”. Это действие переключит модуль на работу в режим ожидания подключения по BLE. Время ожидания BLE подключения до 80 секунд.
 4.	В [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee.html) произведите подключение к BLE устройству “B2Z-xxxxxx”.
 5.	Введите MAC термометров и по необходимости используемые BindKey.
 6.	Проследите, что данные принимаются:
@@ -56,7 +58,7 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
 1.	Включите режим сопряжения на Zigbee координаторе или роутере.
 2.	Нажмите и удерживайте кнопку на модуле с надписью “PROG” в течении 8 секунд. Это действие сбросит привязки и настройки Zigbee.
-3.	Проследите сопряжение кластеров температуры, влажности и батареи. Установите желаемые значения для “Report”.
+3.	Проследите сопряжение необходимых кластеров. Установите желаемые значения для “Report”.
 
 ![b2z_zha.gif](https://github.com/pvvx/TLB2Z/blob/master/web/b2z_zha.gif)
 
@@ -67,14 +69,14 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
 ### Светодиод RGB коротко мигает при приеме данных от BLE устройств.
 
-* Красный цвет светодиода – прием от 1-го термометра
-* Зеленый цвет светодиода – прием от 2-го термометра
-* Синий цвет светодиода – прием от 3-го термометра
+* Красный цвет светодиода – прием от 1-го BLE устройства
+* Зеленый цвет светодиода – прием от 2-го BLE устройства
+* Синий цвет светодиода – прием от 3-го BLE устройства
 
 ### Белый светодиод отображает состояние Zigbee. 
 
-* Светится постоянно, если сопряжения нет
-* Мигает 7 раз при сопряжении
+* Медленно мигает, если сопряжения нет
+* Быстро мигает при сопряжении
 * Мигает по команде “Identify”
 
 ### Желтый светодиод отображает состояние BLE. 
@@ -91,15 +93,20 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 | 1 | 0x0001 Power Configuration | 0x0041 BatteryPercentageRemaining | 2 |
 | 1 | 0x0001 Power Configuration | 0x0060 BatteryVoltage | 3 |
 | 1 | 0x0001 Power Configuration | 0x0061 BatteryPercentageRemaining | 3 |
+| 1 | 0x0006 On/Off | 0x0000 OnOff | 1 |
+| 1 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 1 |
+| 2 | 0x0006 On/Off | 0x0000 OnOff | 2 |
+| 2 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
+| 3 | 0x0006 On/Off | 0x0000 OnOff | 3 |
+| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
 * Если используется менее 3-х BLE термометров-гигрометров или термометр-гигрометр не передает какой параметр, тогда нет необходимости связывать данные кластеры в Zigbee координаторе.
-* Если протокол BLE рекламы (Xiaomi, Qingping) термометра не предусматривает передачу напряжения батареи, тогда при приеме процентов заряда в напряжение батареи подставляется значение 3.0В.
 * ZHA не умеет принимать 3 батарейки. Т.е. не имеет полной поддержки Zigbee 3.0, как пишет в совей рекламе.
 
 ### Default Report Setting:
