@@ -33,13 +33,15 @@ Alternative 3: **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
 
 ## Main Specifications
 
-* Receive BLE advertisements from up to 3 thermometer-hygrometers and translate the readings as a Zigbee end device.
+* Receive BLE advertisements from up to 3 thermometer-hygrometers or motion-light sensors and translate the readings as a Zigbee end device.
 * BLE advertisements are received 99.5% of the time: Zigbee polling occurs 16ms every 4 seconds. This ensures minimal reception loss from BLE devices.
-* Zigbee device uses 3 endpoints. One for each BLE thermometer-hygrometer.
+* Zigbee device uses 3 endpoints. One for each BLE device.
 * Zigbee TX +10dBm, BLE TX +0dBm (BLE is used for customization only).
 * Zigbee OTA support.
 * Support advertising BLE formats Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
 * Support encrypted BLE advertising options with bindkey.
+* Support BLE trigger On/Off ([ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer?tab=readme-ov-file#temperature-or-humidity-trigger-gpio-pc4-lywsd03mmc-label-on-the-p9-pin)), Motion.
+* Support Direct binding On/Off.
 * Average consumption when operating the TB-03F-KIT module from USB (5V): 10 mA
 
 # Customizing the module
@@ -95,15 +97,20 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | 1 | 0x0001 Power Configuration | 0x0041 BatteryPercentageRemaining | 2 |
 | 1 | 0x0001 Power Configuration | 0x0060 BatteryVoltage | 3 |
 | 1 | 0x0001 Power Configuration | 0x0061 BatteryPercentageRemaining | 3 |
+| 1 | 0x0006 On/Off | 0x0000 OnOff | 1 |
+| 1 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 1 |
+| 2 | 0x0006 On/Off | 0x0000 OnOff | 2 |
+| 2 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
 | 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
+| 3 | 0x0006 On/Off | 0x0000 OnOff | 3 |
+| 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
 * If less than 3 BLE thermometer-hygrometers are used or the thermometer-hygrometer does not transmit any parameter, then there is no need to link these clusters in the Zigbee coordinator.
-* If the BLE advertising protocol (Xiaomi, Qingping) of the thermometer does not provide for the transmission of battery voltage, then the battery voltage is substituted with 3.0V when receiving percent of charge.
 * ZHA does not know how to accept 3 batteries. I.e. does not have full support for Zigbee 3.0, as it says in its advertising.
 
 ### Default Report Setting:
