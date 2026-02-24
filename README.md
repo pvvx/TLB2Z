@@ -85,7 +85,15 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 ### Yellow LED indicates BLE status. 
 
-* Blinks briefly when waiting for BLE connection
+* Blinks briefly when waiting for BLE connection.
+
+### LED on SmartSwitch devices with a relay.
+
+* If there is no pairing, the indicator flashes slowly.
+* Fast blinking when pairing.
+* Blinks on "Identify" command.
+* Steady on or off - indicates the relay status.
+
 
 ## TLB2Z Reportable:
 

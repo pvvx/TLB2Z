@@ -83,6 +83,13 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
 * Коротко мигает при ожидании BLE подключения
 
+### Светодиод на устройствах SmartSwitch с реле. 
+
+* Медленно мигает, если сопряжения нет
+* Быстро мигает при сопряжении
+* Мигает по команде “Identify”
+* Светится постянно или отключен - отображает состяние реле
+
 ## TLB2Z Reportable:
 
 | Endpoint | Cluster | Attribute | NN BLE device |
