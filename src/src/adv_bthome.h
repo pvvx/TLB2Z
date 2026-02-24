@@ -75,7 +75,7 @@ enum {
 	BtHomeID_0x38 = 0x38,		//0x38, uint8
 	BtHomeID_0x39 = 0x39,		//0x39, uint8
 	BtHomeID_button = 0x3a,			//0x3a, uint8, =1 press, =2 double_press ... https://bthome.io/format/
-	BtHomeID_0x3b = 0x3b,		//0x3b, uint8
+	BtHomeID_0x3b = 0x3b,		    //0x3b, uint8
 	BtHomeID_dimmer = 0x3c,			//0x3c, uint16 ?, =1 rotate left 3 steps, ... https://bthome.io/format/
 	BtHomeID_count16 = 0x3d,		//0x3d, uint16
 	BtHomeID_count32 = 0x3e,		//0x3e, uint32
