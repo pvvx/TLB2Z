@@ -36,7 +36,7 @@ Alternative 3: **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
 * Receive BLE advertisements from up to 3 thermometer-hygrometers or motion-light sensors and translate the readings as a Zigbee end device.
 * BLE advertisements are received 99.5% of the time: Zigbee polling occurs 16ms every 4 seconds. This ensures minimal reception loss from BLE devices.
 * Zigbee device uses 3 endpoints. One for each BLE device.
-* Zigbee TX +10dBm, BLE TX +0dBm (BLE is used for customization only).
+* Zigbee TX +10dBm, BLE TX +10dBm (BLE is used for customization only).
 * Zigbee OTA support.
 * Support advertising BLE formats Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
 * Support encrypted BLE advertising options with bindkey.
@@ -117,8 +117,10 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 
 | Name | Tmin | Tmax | Change |
 | --- | --- | --- | --- |
+| OnOff | 0 sec | 3600 sec | 0 |
 | BatteryVoltage | 360 sec | 3600 sec | 0 |
 | BatteryPercentageRemaining | 360 sec | 3600 sec | 0 |
+| Illuminance Measurement | 30 sec | 180 sec | 0 |
 | Temperature Measurement | 30 sec | 180 sec | 10 (0.1 C) |
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 

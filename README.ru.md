@@ -36,9 +36,9 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 * Поддержка Zigbee OTA.
 * Поддержка рекламных BLE форматов Xiaomi(Mi-Home), Qingping, BTHome v2, Custom.
 * Поддержка вариантов зашифрованной рекламы BLE с помощью bindkey.
-* Поддержка триггера BLE вкл/выкл (настроенного в BThome в прошивках [ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer?tab=readme-ov-file#temperature-or-humidity-trigger-gpio-pc4-lywsd03mmc-label-on-the-p9-pin), и датчика движения.
-* Поддержка прямого binding для On/Off.
-* Zigbee TX +10 дБм, BLE TX +0 дБм (BLE используется только для настройки).
+* Поддержка триггера BLE вкл/выкл (настроенного в BThome в прошивках [ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer?tab=readme-ov-file#temperature-or-humidity-trigger-gpio-pc4-lywsd03mmc-label-on-the-p9-pin), и датчиков движения Xiaomi и Qingping.
+* Поддержка прямого binding для On/Off (передача события On/Off дублируется).
+* Zigbee TX +10 дБм, BLE TX +10 дБм (BLE используется только для настройки).
 * Среднее потребление при работе модуля TB-03F-KIT от USB (5V): 10 мА
 
 ## Настройка модуля
@@ -113,8 +113,10 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 
 | Name | Tmin | Tmax | Change |
 | --- | --- | --- | --- |
+| OnOff | 0 sec | 3600 sec | 0 |
 | BatteryVoltage | 360 sec | 3600 sec | 0 |
 | BatteryPercentageRemaining | 360 sec | 3600 sec | 0 |
+| Illuminance Measurement | 30 sec | 180 sec | 0 |
 | Temperature Measurement | 30 sec | 180 sec | 10 (0.1 C) |
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 
