@@ -100,6 +100,7 @@ extern "C" {
          |            |
  0x00000  ------------
 */
+#define OTA_IMAGE_MAX_SIZE 	0x32000 // (NV_BASE_ADDRESS - 0x2000)
 /**********************************************************************
  * Product Information
  */
@@ -179,7 +180,7 @@ extern "C" {
 #define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P0p04dBm
 #else
 #define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P10p46dBm
-#define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P3p01dBm
+#define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P10p46dBm
 #endif
 
 /**********************************************************************
@@ -211,7 +212,7 @@ extern "C" {
 #define BLE_APP_PM_ENABLE					PM_ENABLE
 #define USE_DEVICE_INFO_CHR_UUID			1
 #define USE_FLASH_SERIAL_UID				1
-#define USE_BLE_OTA							0 //ZCL_OTA_SUPPORT
+#define USE_BLE_OTA							1 //ZCL_OTA_SUPPORT
 #define SCAN_IN_ADV_STATE					0
 
 #define USE_BINDKEY		1

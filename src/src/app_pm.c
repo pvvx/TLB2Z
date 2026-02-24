@@ -67,7 +67,7 @@ void app_pm_task(void) {
 	 *    deep mode(poll rate is disabled)
 	 *
 	 * */
-	if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_attr.g_bleConnDoing){
+	if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_wrk.g_bleConnDoing){
 		if(!bls_pm_conditionCbIsValid()){
 			bls_pm_conditionCbRegister(app_zigbeeIdle);   // register it to enable ble suspend mode
 		}
@@ -93,7 +93,7 @@ void app_pm_task(void) {
 		} else if(!is_switch_to_ble()) {
 			if(APP_BLE_STATE_GET() == BLS_LINK_STATE_ADV){
 				drv_pm_sleep(sleepMode, wakeupSrc, get_ble_next_event_tick());
-			} else if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_attr.g_bleConnDoing){
+			} else if(APP_BLE_STATE_GET() == BLS_LINK_STATE_CONN || ble_wrk.g_bleConnDoing){
 				g_dualModeInfo.switch_to_ble = 1;
 			}
 		}

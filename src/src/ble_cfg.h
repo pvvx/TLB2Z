@@ -71,15 +71,15 @@ typedef enum{
 	BATT_LEVEL_INPUT_CD_H,					//UUID: 2803, 	VALUE:  			Prop: Read | Notify
 	BATT_LEVEL_INPUT_DP_H,					//UUID: 2A19 	VALUE: batVal
 	BATT_LEVEL_INPUT_CCB_H,					//UUID: 2902, 	VALUE: batValCCC
-
-
+*/
+#if USE_BLE_OTA
 	//// Ota ////
 	// **********************************************************************************************
 	OTA_PS_H, 								//UUID: 2800, 	VALUE: telink ota service uuid
 	OTA_CMD_OUT_CD_H,						//UUID: 2803, 	VALUE:  			Prop: read | write_without_rsp
 	OTA_CMD_OUT_DP_H,						//UUID: telink ota uuid,  VALUE: otaData
 	OTA_CMD_OUT_DESC_H,						//UUID: 2901, 	VALUE: otaName
-*/
+#endif
 	//// Custom RxTx ////
 	/**********************************************************************************************/
 	RxTx_PS_H, 								//UUID: 2800, 	VALUE: 1F10 RxTx service uuid
@@ -90,12 +90,5 @@ typedef enum{
 	ATT_END_H
 
 } ATT_HANDLE;
-
-/* BLE */
-extern u8 my_HardStr[3];
-//extern u8 my_batVal;
-//extern u16 batteryValueInCCC;
-#define SEND_BUFFER_SIZE	20
-
 
 #endif /* SRC_BLE_CFG_H_ */

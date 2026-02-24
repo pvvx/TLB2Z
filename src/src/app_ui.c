@@ -138,17 +138,17 @@ void task_keys(void) {
 		// button on
 		light_blink_stop();
 		light_on();
-		if(!g_sensorAppCtx.keyPressed) {
+		if(!ble_wrk.keyPressed) {
 			// event button on
-			g_sensorAppCtx.keyPressedTime = clock_time();
+			ble_wrk.keyPressedTime = clock_time();
 			// set next adv. interval
 		} else {
 			// button hold
-			if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 10000)) {
+			if(clock_time_exceed(ble_wrk.keyPressedTime, 10000)) {
 				// button hold > 10 ms
-				if(clock_time_exceed(g_sensorAppCtx.keyPressedTime, 7000 * 1000)) {
+				if(clock_time_exceed(ble_wrk.keyPressedTime, 7000 * 1000)) {
 					// button hold > 7 sec
-					//g_sensorAppCtx.keyPressedTime = clock_time();
+					//ble_wrk.keyPressedTime = clock_time();
 #ifdef GPIO_LED
 					for(int i = 0; i < 15; i++) {  // 15*0.2 = 3 sec
 						gpio_write(GPIO_LED, LED_ON);
@@ -169,21 +169,30 @@ void task_keys(void) {
 #endif
 				} else {
 					// 10 ms > button hold < 7 sec
-					if(!g_sensorAppCtx.ble_on) {
-						g_sensorAppCtx.ble_on = 1;
-						g_sensorAppCtx.key1flag = 1;
+					if(!ble_wrk.ble_on) {
+						ble_wrk.ble_on = 1;
+						ble_wrk.key1flag = 1;
 					}
-					if(g_sensorAppCtx.adv_restore_count)
-						g_sensorAppCtx.adv_restore_count = (80000/900); // 80 sec 80000/900 = 88.888..
+					if(ble_wrk.adv_restore_count)
+						ble_wrk.adv_restore_count = (80000/900); // 80 sec 80000/900 = 88.888..
 				}
 			} // button hold < 10 ms
 		}
 	} else {
-		// g_sensorAppCtx.keyPressedTime = clock_time();
-		if(!g_sensorAppCtx.timerLedEvt)
+		// ble_wrk.keyPressedTime = clock_time();
+		if(!g_sensorAppCtx.timerLedEvt) {
+#ifdef GPIO_RELAY
+			if(g_sensorAppCtx.oriSta){
+				light_on();
+			}else{
+				light_off();
+			}
+#else
 			light_off();
+#endif
+		}
 	}
-	g_sensorAppCtx.keyPressed = button_on;
+	ble_wrk.keyPressed = button_on;
 #if PM_ENABLE
 	cpu_set_gpio_wakeup(BUTTON1, button_on , 1); // button_on: Level_Low=0, Level_High =1
 #endif

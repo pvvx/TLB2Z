@@ -108,8 +108,9 @@ $(OUT_PATH)/zigbee/gp/gp.o \
 $(OUT_PATH)/zigbee/gp/gpEpCfg.o \
 $(OUT_PATH)/zigbee/gp/gp_proxyTab.o \
 $(OUT_PATH)/zigbee/ss/ss_nv.o \
-$(OUT_PATH)/zigbee/ota/ota.o \
 $(OUT_PATH)/zigbee/ota/otaEpCfg.o
+
+#$(OUT_PATH)/zigbee/ota/ota.o 
 
 # Each subdirectory must supply rules for building sources it contributes
 $(OUT_PATH)/zigbee/%.o: $(SDK_PATH)/stack/zigbee/%.c

@@ -31,6 +31,7 @@
 #include "zcl_include.h"
 #ifdef ZCL_ON_OFF
 #include "app.h"
+#include "app_ui.h"
 #include "ble_scaning.h"
 
 /**********************************************************************
@@ -130,6 +131,12 @@ void app_onOffUpdate(u8 cmd)
 #endif
 #ifdef GPIO_RELAY
    	gpio_write(GPIO_RELAY, onOff);
+   	g_sensorAppCtx.oriSta = onOff;
+	if(onOff){
+		light_on();
+	}else{
+		light_off();
+	}
 #endif
    	zcl_onOffAttr_save();
 }

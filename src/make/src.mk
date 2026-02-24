@@ -13,6 +13,7 @@ $(OUT_PATH)$(SRC_DIR)/patch_sdk/hw_drv.o \
 $(OUT_PATH)$(SRC_DIR)/patch_sdk/i2c_drv.o \
 $(OUT_PATH)$(SRC_DIR)/patch_sdk/cstartup_8258.o \
 $(OUT_PATH)$(SRC_DIR)/patch_sdk/drv_nv.o \
+$(OUT_PATH)$(SRC_DIR)/patch_sdk/ota.o \
 $(OUT_PATH)$(SRC_DIR)/sws_printf.o \
 $(OUT_PATH)$(SRC_DIR)/app_BLESlave.o \
 $(OUT_PATH)$(SRC_DIR)/app_EpCfg.o \

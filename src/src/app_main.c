@@ -43,7 +43,7 @@ u16 bdb_findBindClusterList[] =
 /**********************************************************************
  * GLOBAL VARIABLES
  */
-app_ctx_t g_sensorAppCtx = { .keyPressed = 1 };
+app_ctx_t g_sensorAppCtx;
 
 #if ZCL_OTA_SUPPORT
 extern ota_callBack_t app_otaCb;

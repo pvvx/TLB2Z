@@ -69,7 +69,8 @@ typedef struct __attribute__((packed)) _tbl_advData_t {
 	tbl_scanRsp_t nm;
 } tbl_advData_t;
 
-u8  mac_public[6];
+ble_wrk_t ble_wrk  = { .keyPressed = 1 };
+// u8  mac_public[6];
 
 //const u8  ble_name_prefix[3] = BLE_NAME_PEFIX;
 
@@ -218,15 +219,18 @@ u8 my_batVal = 99;
 _attribute_custom_bss_ u16 batteryValueInCCC; */
 
 
+#if USE_BLE_OTA
 /*
  * ota
- * *
+ * */
 const u8 my_OtaUUID[16]		= TELINK_SPP_DATA_OTA;
 const u8 my_OtaServiceUUID[16]		= TELINK_OTA_UUID_SERVICE;
 const u16 userdesc_UUID		= GATT_UUID_CHAR_USER_DESC;
 const u8  my_OtaName[]      = {'O', 'T', 'A'};
+u8  ota_is_working;
 u8	my_OtaData;
-*/
+int otaWritePre(void * p);
+#endif
 
 
 // TM : to modify
@@ -282,24 +286,21 @@ const attribute_t my_Attributes[] = {
 		{0,ATT_PERMISSIONS_READ,2,1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_NOTIFY), 0},				//prop
 		{0,ATT_PERMISSIONS_READ,2,sizeof(my_batVal),(u8*)(&my_batCharUUID), 	(u8*)(&my_batVal), 0},	//value
 		{0,ATT_PERMISSIONS_RDWR,2,sizeof(batteryValueInCCC),(u8*)(&clientCharacterCfgUUID), 	(u8*)(&batteryValueInCCC), 0},	//value
-
+*/
+#if USE_BLE_OTA
 	////////////////////////////////////// OTA /////////////////////////////////////////////////////
 	// 001D - 0021
 	{4,ATT_PERMISSIONS_READ, 2,16,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_OtaServiceUUID), 0},
 		{0,ATT_PERMISSIONS_READ, 2, 1,(u8*)(&my_characterUUID), 		(u8*)(&PROP_READ_WRITE_NORSP), 0},				//prop
-#if USE_BLE_OTA
-		{0,ATT_PERMISSIONS_RDWR,16,sizeof(my_OtaData),(u8*)(&my_OtaUUID),	(u8 *)(&my_OtaData), &app_bleOtaWrite, &otaRead},
-#else
-		{0,ATT_PERMISSIONS_RDWR,16,sizeof(my_OtaData),(u8*)(&my_OtaUUID),	(u8 *)(&my_OtaData), &app_bleOtaWrite, &app_bleOtaRead},
-#endif
+		{0,ATT_PERMISSIONS_RDWR,16,sizeof(my_OtaData),(u8*)(&my_OtaUUID),	(u8 *)(&my_OtaData), &otaWritePre, &otaRead},
 		{0,ATT_PERMISSIONS_READ, 2,sizeof (my_OtaName),(u8*)(&userdesc_UUID), (u8*)(my_OtaName), 0},
-*/
-		////////////////////////////////////// RxTx ////////////////////////////////////////////////////
-		// 002B - 002E RxTx Communication
-		{4,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_RxTx_ServiceUUID), 0},
-			{0,ATT_PERMISSIONS_READ, 2,sizeof(my_RxTxCharVal),(u8*)(&my_characterUUID),	(u8*)(my_RxTxCharVal), 0},				//prop
-			{0,ATT_PERMISSIONS_RDWR, 2,sizeof(my_RxTx_Data),(u8*)(&my_RxTxUUID), (u8*)&my_RxTx_Data, &RxTxWrite, 0},
-			{0,ATT_PERMISSIONS_RDWR, 2,sizeof(RxTxValueInCCC),(u8*)(&clientCharacterCfgUUID), 	(u8*)(&RxTxValueInCCC), 0}	//value
+#endif
+	////////////////////////////////////// RxTx ////////////////////////////////////////////////////
+	// 002B - 002E RxTx Communication
+	{4,ATT_PERMISSIONS_READ,2,2,(u8*)(&my_primaryServiceUUID), 	(u8*)(&my_RxTx_ServiceUUID), 0},
+		{0,ATT_PERMISSIONS_READ, 2,sizeof(my_RxTxCharVal),(u8*)(&my_characterUUID),	(u8*)(my_RxTxCharVal), 0},				//prop
+		{0,ATT_PERMISSIONS_RDWR, 2,sizeof(my_RxTx_Data),(u8*)(&my_RxTxUUID), (u8*)&my_RxTx_Data, &RxTxWrite, 0},
+		{0,ATT_PERMISSIONS_RDWR, 2,sizeof(RxTxValueInCCC),(u8*)(&clientCharacterCfgUUID), 	(u8*)(&RxTxValueInCCC), 0}	//value
 
 
 };
@@ -326,18 +327,16 @@ _attribute_data_retention_	my_fifo_t	blt_txfifo = {
 _attribute_data_retention_	own_addr_type_t 	app_own_address_type = OWN_ADDRESS_PUBLIC;
 
 
-u8	g_ble_txPowerSet = BLE_DEFAULT_TX_POWER_IDX; // RF_POWER_P3p01dBm;
+u8	g_ble_txPowerSet = BLE_DEFAULT_TX_POWER_IDX;
 
-_attribute_data_retention_	u8 device_in_connection_state;
-//_attribute_data_retention_	u32 advertise_begin_tick;
-_attribute_data_retention_	u32	interval_update_tick;
+//_attribute_data_retention_	u32	interval_update_tick;
 #if (BLE_APP_PM_ENABLE)
 _attribute_data_retention_	u8	sendTerminate_before_enterDeep = 0;
 #endif
 #if (MTU_SIZE_SETTING)
 _attribute_data_retention_ 	int  mtuExchange_started_flg = 0;
 #endif
-volatile bool g_bleConnDoing = 0;
+//volatile bool g_bleConnDoing = 0;
 /*
  *  functions
  *
@@ -400,11 +399,11 @@ void app_switch_to_indirect_adv(u8 e, u8 *p, int n){
 
 void ble_remote_terminate(u8 e,u8 *p, int n){ //*p is terminate reason
 
-	device_in_connection_state = 0;
-	g_sensorAppCtx.adv_restore_count = 6;
+	ble_wrk.device_in_connection_state = 0;
+	ble_wrk.adv_restore_count = 6;
 
 #if (MTU_SIZE_SETTING)
-	mtuExchange_started_flg = 0;
+	ble_wrk.mtuExchange_started_flg = 0;
 #endif
 	if(*p == HCI_ERR_CONN_TIMEOUT){
 
@@ -437,22 +436,20 @@ void task_connect (u8 e, u8 *p, int n){
 
 	bls_l2cap_requestConnParamUpdate (DEF_CON_PAR_UPDATE);
 
-	device_in_connection_state = 1;//
+	ble_wrk.device_in_connection_state = 1;//
 
-	interval_update_tick = clock_time() | 1; //none zero
-
-	g_sensorAppCtx.adv_restore_count = 6;
+	ble_wrk.adv_restore_count = 6;
 }
 
 
-void	task_conn_update_req (u8 e, u8 *p, int n){
-	device_in_connection_state |= 2;
-	g_sensorAppCtx.adv_restore_count = 6;
+void task_conn_update_req (u8 e, u8 *p, int n){
+	ble_wrk.device_in_connection_state |= 2;
+	ble_wrk.adv_restore_count = 6;
 }
 
-void	task_conn_update_done (u8 e, u8 *p, int n){
-	device_in_connection_state |= 4;
-	g_sensorAppCtx.adv_restore_count = 6;
+void task_conn_update_done (u8 e, u8 *p, int n){
+	ble_wrk.device_in_connection_state |= 4;
+	ble_wrk.adv_restore_count = 6;
 }
 
 void blc_initMacAddress(int flash_addr, u8 *mac_public, u8 *mac_random_static){
@@ -461,34 +458,35 @@ void blc_initMacAddress(int flash_addr, u8 *mac_public, u8 *mac_random_static){
 	flash_read_page(flash_addr, 8, mac_read);
 	u8 ff_six_byte[8] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	if ( memcmp(mac_read, ff_six_byte, sizeof(mac_read)) ) {
-		memcpy(mac_public, mac_read, 6);  //copy public address from flash
+		memcpy(ble_wrk.mac_public, mac_read, 6);  //copy public address from flash
 	}
 	else {  //no public address on flash
 		generateRandomNum(sizeof(value_rand), value_rand);
-		mac_public[0] = value_rand[0];
-		mac_public[1] = value_rand[1];
-		mac_public[2] = value_rand[2];
-		mac_public[3] = 0x38;             //company id: 0xA4C138
-		mac_public[4] = 0xC1;
-		mac_public[5] = 0xA4;
-		mac_public[6] = value_rand[3];
-		mac_public[7] = value_rand[4];
+		ble_wrk.mac_public[0] = value_rand[0];
+		ble_wrk.mac_public[1] = value_rand[1];
+		ble_wrk.mac_public[2] = value_rand[2];
+		ble_wrk.mac_public[3] = 0x38;             //company id: 0xA4C138
+		ble_wrk.mac_public[4] = 0xC1;
+		ble_wrk.mac_public[5] = 0xA4;
+		ble_wrk.mac_public[6] = value_rand[3];
+		ble_wrk.mac_public[7] = value_rand[4];
 
-		flash_write_page (flash_addr, sizeof(mac_public), mac_public);
+		flash_write_page (flash_addr, sizeof(ble_wrk.mac_public), ble_wrk.mac_public);
 	}
 
-	mac_random_static[0] = mac_public[0];
-	mac_random_static[1] = mac_public[1];
-	mac_random_static[2] = mac_public[2];
+	mac_random_static[0] = ble_wrk.mac_public[0];
+	mac_random_static[1] = ble_wrk.mac_public[1];
+	mac_random_static[2] = ble_wrk.mac_public[2];
 	mac_random_static[3] = value_rand[3];
 	mac_random_static[4] = value_rand[4];
 	mac_random_static[5] = 0xC0; 			//for random static
 }
 
+#if PM_ENABLE
 bool ble_connection_doing(void){
-	return g_bleConnDoing;
+	return ble_wrk.g_bleConnDoing;
 }
-
+#endif
 int app_host_event_callback (u32 h, u8 *para, int n){
 	u8 event = h & 0xFF;
 
@@ -496,26 +494,32 @@ int app_host_event_callback (u32 h, u8 *para, int n){
 	{
 		case GAP_EVT_SMP_PARING_BEAGIN:
 		{
-			g_bleConnDoing = 1;
+#if PM_ENABLE
+			ble_wrk.g_bleConnDoing = 1;
+#endif
 		}
 		break;
 
 		case GAP_EVT_SMP_PARING_SUCCESS:
 		{
-			g_bleConnDoing = 0;
+#if PM_ENABLE
+			ble_wrk.g_bleConnDoing = 0;
+#endif
 		}
 		break;
 
 		case GAP_EVT_SMP_PARING_FAIL:
 		{
-			g_bleConnDoing = 0;
+#if PM_ENABLE
+			ble_wrk.g_bleConnDoing = 0;
+#endif
 		}
 		break;
 
 		case GAP_EVT_SMP_CONN_ENCRYPTION_DONE:
 		{
 #if (MTU_SIZE_SETTING)
-			if(!mtuExchange_started_flg){  //master do not send MTU exchange request in time
+			if(!ble_wrk.mtuExchange_started_flg){  //master do not send MTU exchange request in time
 				blc_att_requestMtuSizeExchange(BLS_CONN_HANDLE, MTU_SIZE_SETTING);
 			}
 #endif
@@ -526,7 +530,7 @@ int app_host_event_callback (u32 h, u8 *para, int n){
 		{
 #if (MTU_SIZE_SETTING)
 //			gap_gatt_mtuSizeExchangeEvt_t *pEvt = (gap_gatt_mtuSizeExchangeEvt_t *)para;
-			mtuExchange_started_flg = 1;   //set MTU size exchange flag here
+			ble_wrk.mtuExchange_started_flg = 1;   //set MTU size exchange flag here
 #endif
 		}
 		break;
@@ -542,10 +546,10 @@ int app_host_event_callback (u32 h, u8 *para, int n){
 //	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
 int app_advertise_prepare_handler(rf_packet_adv_t * p)	{
 	(void) p;
-	if(g_sensorAppCtx.adv_restore_count) {
-		if(--g_sensorAppCtx.adv_restore_count == 0) {
+	if(ble_wrk.adv_restore_count) {
+		if(--ble_wrk.adv_restore_count == 0) {
 			//blc_ll_setScanEnable(BLC_SCAN_DISABLE, DUP_FILTER_DISABLE);
-			g_sensorAppCtx.ble_on = 0;
+			ble_wrk.ble_on = 0;
 			bls_ll_setAdvEnable(BLC_ADV_DISABLE);  // adv disable
 			blc_ll_removeScanningFromAdvState();  //remove scan in adv state
 			blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
@@ -557,6 +561,19 @@ int app_advertise_prepare_handler(rf_packet_adv_t * p)	{
 	return 1;		// = 1 ready to send ADV packet, = 0 not send ADV
 }
 
+#if USE_BLE_OTA
+int otaWritePre(void * p) {
+	blt_ota_start_tick = clock_time() | 1;
+	return otaWrite(p);
+}
+
+void app_enter_ota_mode(void) {
+	ble_wrk.ota_is_working = 1;
+	bls_pm_setManualLatency(0);
+	bls_ota_setTimeout(16 * 1000000); // set OTA timeout  16 seconds
+}
+#endif
+
 void user_ble_normal_init(void){
 
 	bls_smp_configParingSecurityInfoStorageAddr(CFG_NV_START_FOR_BLE);
@@ -564,7 +581,7 @@ void user_ble_normal_init(void){
 
 ////////////////// BLE stack initialization ////////////////////////////////////
 	u8  mac_random_static[6];
-	blc_initMacAddress(CFG_MAC_ADDRESS, mac_public, mac_random_static);
+	blc_initMacAddress(CFG_MAC_ADDRESS, ble_wrk.mac_public, mac_random_static);
 
 #if(BLE_DEVICE_ADDRESS_TYPE == BLE_DEVICE_ADDRESS_RANDOM_STATIC)
 	blc_ll_setRandomAddr(mac_random_static);
@@ -572,14 +589,14 @@ void user_ble_normal_init(void){
 
 	////// Controller Initialization  //////////
 	blc_ll_initBasicMCU();                      //mandatory
-	blc_ll_initStandby_module(mac_public);				//mandatory
+	blc_ll_initStandby_module(ble_wrk.mac_public);				//mandatory
 #if USE_SCAN
-	blc_ll_initScanning_module(mac_public);
+	blc_ll_initScanning_module(ble_wrk.mac_public);
 //	blc_ll_initInitiating_module();						//initiate module: 	 mandatory for BLE master,
 //	blc_ll_initConnection_module();						//connection module  mandatory for BLE slave/master
 //	blc_ll_initMasterRoleSingleConn_module();			//master module: 	 mandatory for BLE master,
 #endif
-	blc_ll_initAdvertising_module(mac_public); 	//adv module: 		 mandatory for BLE slave,
+	blc_ll_initAdvertising_module(ble_wrk.mac_public); 	//adv module: 		 mandatory for BLE slave,
 	blc_ll_initSlaveRole_module();				//slave module: 	 mandatory for BLE slave,
 #if (BLE_APP_PM_ENABLE) // =?
 	blc_ll_initPowerManagement_module();        //pm module:      	 optional
@@ -597,27 +614,44 @@ void user_ble_normal_init(void){
 #else
 	blc_smp_setSecurityLevel(No_Security);
 #endif
-
+#if PM_ENABLE || MTU_SIZE_SETTING
 	blc_gap_registerHostEventHandler( app_host_event_callback );
 	blc_gap_setEventMask( GAP_EVT_MASK_SMP_PARING_BEAGIN 			|  \
 						  GAP_EVT_MASK_SMP_PARING_SUCCESS   		|  \
 						  GAP_EVT_MASK_SMP_PARING_FAIL				|  \
 						  GAP_EVT_MASK_SMP_CONN_ENCRYPTION_DONE 	|  \
 						  GAP_EVT_MASK_ATT_EXCHANGE_MTU);
+#endif
 
-
+#if USE_BLE_OTA
+	////////////////// OTA relative ////////////////////////
+	extern u32 mcuBootAddrGet(void);
+	extern u32 ota_program_bootAddr;
+	// ota_program_offset = ota boot [00844b6c] ota_set_flag 0x4b
+	// ota_program_bootAddr = current boot [00843fc8] ota_clr_flag 0
+	// ota_firmware_size_k = [00843fd8]
+	ota_program_bootAddr = mcuBootAddrGet();
+	ota_program_offset = (ota_program_bootAddr) ? 0 : FLASH_ADDR_OF_OTA_IMAGE;
+	ota_firmware_size_k = (OTA_IMAGE_MAX_SIZE) >> 10;
+/*		bls_ota_set_fwSize_and_fwBootAddr(
+			((OTA_IMAGE_MAX_SIZE) >> 10),
+			ota_program_offset); */
+	bls_ota_clearNewFwDataArea();
+	//ota_program_bootAddr = mcuBootAddrGet();
+	bls_ota_registerStartCmdCb(app_enter_ota_mode);
+#endif
 
 ///////////////////// USER application initialization ///////////////////
 
 
 	////////////////// config adv packet /////////////////////
 
-	tbl_advData.nm.name[4] = int_to_hex(mac_public[2] >> 4);
-	tbl_advData.nm.name[5] = int_to_hex(mac_public[2] & 0x0f);
-	tbl_advData.nm.name[6] = int_to_hex(mac_public[1] >> 4);
-	tbl_advData.nm.name[7] = int_to_hex(mac_public[1] & 0x0f);
-	tbl_advData.nm.name[8] = int_to_hex(mac_public[0] >> 4);
-	tbl_advData.nm.name[9] = int_to_hex(mac_public[0] & 0x0f);
+	tbl_advData.nm.name[4] = int_to_hex(ble_wrk.mac_public[2] >> 4);
+	tbl_advData.nm.name[5] = int_to_hex(ble_wrk.mac_public[2] & 0x0f);
+	tbl_advData.nm.name[6] = int_to_hex(ble_wrk.mac_public[1] >> 4);
+	tbl_advData.nm.name[7] = int_to_hex(ble_wrk.mac_public[1] & 0x0f);
+	tbl_advData.nm.name[8] = int_to_hex(ble_wrk.mac_public[0] >> 4);
+	tbl_advData.nm.name[9] = int_to_hex(ble_wrk.mac_public[0] & 0x0f);
 
 	bls_set_advertise_prepare(app_advertise_prepare_handler); // TODO: not work if EXTENDED_ADVERTISING
 
@@ -632,13 +666,13 @@ void user_ble_normal_init(void){
 	bls_ll_setAdvEnable(BLC_ADV_DISABLE);
 
 #if USE_SCAN
-//	blc_ll_initScanning_module(mac_public);
+//	blc_ll_initScanning_module(ble_wrk.mac_public);
 	blc_hci_le_setEventMask_cmd(HCI_LE_EVT_MASK_ADVERTISING_REPORT | HCI_LE_EVT_MASK_SCAN_REQUEST_RECEIVED | HCI_SUB_EVT_LE_DIRECT_ADVERTISE_REPORT);
 	blc_hci_registerControllerEventHandler(scanning_event_callback); //controller hci event to host all processed in this func
 	//set scan parameter and scan enable
 	blc_ll_setScanParameter(SCAN_TYPE_PASSIVE, SCAN_INTERVAL_50MS, SCAN_INTERVAL_50MS-4, // SCAN_INTERVAL_30MS
 							  OWN_ADDRESS_PUBLIC, SCAN_FP_ALLOW_ADV_ANY);
-	blc_ll_setScanWin(30000);//30ms
+	blc_ll_setScanWin(30000); // 30ms
 	blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
 	//blc_ll_addScanningInAdvState();  //add scan in adv state
 	blc_ll_addScanningInConnSlaveRole();  //add scan in conn slave role
@@ -710,7 +744,7 @@ typedef struct __attribute__((packed)) {
 
 
 void task_ble(void) {
-	if(device_in_connection_state && RxTxValueInCCC) {
+	if(ble_wrk.device_in_connection_state && RxTxValueInCCC) {
 		for(int n = 0; n < MAX_SCAN_DEVS; n++) {
 			if(update_enable[n] & FLG_UPDATE_FLG) {
 				update_enable[n] &= ~ FLG_UPDATE_FLG;

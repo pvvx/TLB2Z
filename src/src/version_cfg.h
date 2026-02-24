@@ -45,7 +45,7 @@
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_DEBUG
+#define BOARD					BOARD_TS0001_TZ3000_RBZ
 #endif
 
 /* Chip IDs */
@@ -71,7 +71,7 @@
 #endif
 
 #define APP_RELEASE				0x01	//BCD app release "0.2"
-#define APP_BUILD				0x08	//BCD app build "0.3"
+#define APP_BUILD				0x09	//BCD app build "0.3"
 #define STACK_RELEASE			0x30	//BCD stack release 3.0
 #define STACK_BUILD				0x01	//BCD stack build 01
 

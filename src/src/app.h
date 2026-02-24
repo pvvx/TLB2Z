@@ -20,16 +20,10 @@ typedef struct{
 }app_linkKey_info_t;
 
 typedef struct{
-	// key
-	u8  keyPressed;
-	u8  key1flag;	// switch ble work
-	volatile u8  ble_on; // adv/connect ble work
-	u8  adv_restore_count; // count adv
 	//
 	u32 utc_time_sec;
 	u16 reportupsec; // report add (sec)
 	u32 secTimeTik; // used time_sec_task()
-	u32 keyPressedTime;
 	// timers
 	ev_timer_event_t *timerLedEvt;	// timer light blink
 	ev_timer_event_t *timerKeyEvt;	// timer key press
@@ -50,6 +44,32 @@ typedef struct{
 	//
 	app_linkKey_info_t tcLinkKey;
 } app_ctx_t;
+
+extern app_ctx_t g_sensorAppCtx;
+
+/**
+ *  @brief Defined for BLE work
+ */
+typedef struct {
+	u32 keyPressedTime;
+	u8  keyPressed;
+	u8  key1flag;	// switch ble work
+	volatile u8  ble_on; // adv/connect ble work
+	u8  adv_restore_count; // count adv
+	u8  device_in_connection_state;
+#if USE_BLE_OTA
+	u8  ota_is_working;
+#endif
+#if (MTU_SIZE_SETTING)
+	u8 mtuExchange_started_flg;
+#endif
+#if PM_ENABLE
+	volatile bool g_bleConnDoing;
+#endif
+	u8  mac_public[8];
+} ble_wrk_t;
+
+extern ble_wrk_t ble_wrk;
 
 /**
  *  @brief Defined for basic cluster attributes
@@ -156,7 +176,6 @@ typedef struct{
 /**********************************************************************
  * GLOBAL VARIABLES
  */
-extern app_ctx_t g_sensorAppCtx;
 
 extern bdb_appCb_t g_zbDemoBdbCb;
 

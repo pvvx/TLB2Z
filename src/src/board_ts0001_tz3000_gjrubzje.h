@@ -33,8 +33,8 @@
 #define	PULL_WAKEUP_SRC_PB5	PM_PIN_PULLUP_10K
 
 // LED
-#define LED_ON				1
-#define LED_OFF				0
+#define LED_ON				0
+#define LED_OFF				(!LED_ON)
 
 #define LED_FLASH_RGBE		0
 

@@ -2,6 +2,8 @@
 #ifndef _CMD_PARSER_H_
 #define _CMD_PARSER_H_
 
+#define SEND_BUFFER_SIZE	20
+
 // A complete list of interface commands for different devices.
 // Not all commands are supported by a specific device (!)
 enum {

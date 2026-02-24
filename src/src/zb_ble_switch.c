@@ -127,20 +127,25 @@ void concurrent_mode_main_loop(void){
 #if SCAN_IN_ADV_STATE
 		g_dualModeInfo.bleTaskTick = clock_time();
 #endif
-		if(g_sensorAppCtx.key1flag) {
-			g_sensorAppCtx.key1flag = 0;
-			g_sensorAppCtx.ble_on = 1;
+		if(ble_wrk.key1flag) {
+			ble_wrk.key1flag = 0;
+			ble_wrk.ble_on = 1;
 			blc_ll_setScanEnable(BLC_SCAN_DISABLE, DUP_FILTER_DISABLE);
 			blc_ll_addScanningInAdvState();  //add scan in adv state
-			g_sensorAppCtx.adv_restore_count = (80000/900); // 80 sec 80000/900 = 88.888..
+			ble_wrk.adv_restore_count = (80000/900); // 80 sec 80000/900 = 88.888..
 			bls_ll_setAdvEnable(BLC_ADV_ENABLE);  // adv enable
 			blc_ll_setScanEnable(BLC_SCAN_ENABLE, DUP_FILTER_DISABLE);
 		}
 #if  1 // USE_BLE_OTA  ?
-		while(g_sensorAppCtx.ble_on && !zb_isDeviceJoinedNwk()) {
-			blt_sdk_main_loop();
 #if USE_BLE_OTA
-			if(ble_attr.ota_is_working) {
+		while(ble_wrk.ota_is_working || (ble_wrk.ble_on && !zb_isDeviceJoinedNwk()))
+#else
+		while(g_sensorAppCtx.ble_on && !zb_isDeviceJoinedNwk())
+#endif
+		{
+			blt_sdk_main_loop();
+#if 0 // USE_BLE_OTA -> if my_periConnParameters x,x,!=0,x
+			if(ble_wrk.ota_is_working) {
 				bls_pm_setManualLatency(0);
 			}
 #endif
