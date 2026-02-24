@@ -111,7 +111,6 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
 * If less than 3 BLE thermometer-hygrometers are used or the thermometer-hygrometer does not transmit any parameter, then there is no need to link these clusters in the Zigbee coordinator.
-* ZHA does not know how to accept 3 batteries. I.e. does not have full support for Zigbee 3.0, as it says in its advertising.
 
 ### Default Report Setting:
 

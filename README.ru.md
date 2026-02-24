@@ -107,7 +107,6 @@ Low cost BLE Advertisements Repeater into Zigbee 3.0 on TLRS825x
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
 * Если используется менее 3-х BLE термометров-гигрометров или термометр-гигрометр не передает какой параметр, тогда нет необходимости связывать данные кластеры в Zigbee координаторе.
-* ZHA не умеет принимать 3 батарейки. Т.е. не имеет полной поддержки Zigbee 3.0, как пишет в совей рекламе.
 
 ### Default Report Setting:
 
