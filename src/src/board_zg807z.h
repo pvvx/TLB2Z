@@ -33,8 +33,8 @@
 #define	PULL_WAKEUP_SRC_PD4	PM_PIN_PULLUP_10K
 
 // LED
-#define LED_ON				1
-#define LED_OFF				0
+#define LED_ON				0
+#define LED_OFF				(!LED_ON)
 
 #define GPIO_LED			GPIO_PA0	// Zigbee light_blink
 #define PA0_DATA_OUT		LED_OFF

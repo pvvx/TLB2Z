@@ -586,7 +586,11 @@ void user_ble_normal_init(void){
 #if(BLE_DEVICE_ADDRESS_TYPE == BLE_DEVICE_ADDRESS_RANDOM_STATIC)
 	blc_ll_setRandomAddr(mac_random_static);
 #endif
-
+#if PA_ENABLE
+	/* external RF PA used */
+	// g_ble_txPowerSet = ZB_RADIO_TX_0DBM;   //set to 0dBm
+	ble_rf_pa_init(0, PA_TX, PA_RX);
+#endif
 	////// Controller Initialization  //////////
 	blc_ll_initBasicMCU();                      //mandatory
 	blc_ll_initStandby_module(ble_wrk.mac_public);				//mandatory

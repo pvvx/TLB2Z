@@ -45,7 +45,7 @@
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_TS0001_TZ3000_RBZ
+#define BOARD					BOARD_DEBUG
 #endif
 
 /* Chip IDs */

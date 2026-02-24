@@ -33,7 +33,7 @@
 
 // LED
 #define LED_ON				1
-#define LED_OFF				0
+#define LED_OFF				(!LED_ON)
 
 #define LED_FLASH_RGBE		1
 

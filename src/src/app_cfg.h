@@ -176,8 +176,8 @@ extern "C" {
 #endif
 
 #if PA_ENABLE
-#define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P0p04dBm
-#define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P0p04dBm
+#define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P0p04dBm // set to 0dBm
+#define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P0p04dBm // set to 0dBm
 #else
 #define ZB_DEFAULT_TX_POWER_IDX					RF_POWER_P10p46dBm
 #define	BLE_DEFAULT_TX_POWER_IDX				RF_POWER_P10p46dBm

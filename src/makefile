@@ -116,6 +116,7 @@ LS_INCLUDE := -L$(SDK_PATH)/platform/lib -L$(SDK_PATH)/stack/zigbee/lib/tc32 -L$
 -include $(MAKE_PATH)/platform.mk
 -include $(MAKE_PATH)/proj.mk
 -include $(MAKE_PATH)/zigbee.mk
+-include $(MAKE_PATH)/ble.mk
 #-include $(MAKE_PATH)/zbhci.mk
 
 # Add inputs and outputs from these tool invocations to the build variables
