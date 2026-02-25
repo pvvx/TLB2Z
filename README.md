@@ -26,10 +26,21 @@ Alternative 3: **[Zigbee Repeater HOBEIAN](https://pvvx.github.io/ZG-807Z/)**
 
 ![ZG-807Z](https://pvvx.github.io/ZG-807Z/img/ZG-807Z.jpg)
 
-
 * BLE Configuration page [BLE2Zigbee.html](https://pvvx.github.io/TLB2Z/BLE2Zigbee_en.html)
 * Initial programming (https://github.com/pvvx/TLB2Z/tree/master/pgm)
 * Firmware and Zigbee OTA files (https://github.com/pvvx/TLB2Z/tree/master/fw)
+
+
+## Warning: 
+
+Z2M has some bugs:
+
+Incorrectly interprets values in the Illuminance Measure cluster!
+
+1. Doesn't understand special values – Illuminance Value = 0, 0xffff.
+2. Doesn't understand constraints – min/max Measured Value.
+
+Z2M is not recommended for use with devices operating under Zigbee 3.0 specifications.
 
 ## Main Specifications
 
