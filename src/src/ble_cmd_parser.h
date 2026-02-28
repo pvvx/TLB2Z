@@ -23,6 +23,8 @@ enum {
 	CMD_ID_MI_REST  = 0x16, // Restore prev mi token & bindkeys
 	CMD_ID_MI_CLR	= 0x17, // Delete all mi keys
 	CMD_ID_BKEY		= 0x18, // Get/Set beacon bindkey in EEP
+	CMD_ID_ILLUMI	= 0x19, // Get/Set illuminance min (minLevelLx)
+	CMD_ID_CMDONOFF	= 0x1A, // Get/Set cmd On/Off
 	CMD_ID_COMFORT  = 0x20, // Get/Set comfort parameters
 	CMD_ID_EXTDATA  = 0x22, // Get/Set show ext. data
 	CMD_ID_UTC_TIME = 0x23, // Get/Set utc time (if USE_CLOCK = 1)

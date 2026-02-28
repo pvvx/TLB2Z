@@ -106,7 +106,7 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 * Steady on or off - indicates the relay status.
 
 
-## TLB2Z Reportable:
+## TLB2Z Zigbee Reportable:
 
 | Endpoint | Cluster | Attribute | NN BLE device |
 | --- | --- | --- | --- |
@@ -143,3 +143,17 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 
 * Xiaomi thermometer-hygrometers use a large data transmission interval, lasting tens of minutes. To avoid unnecessary duplicate points on the graphs, it is desirable to set appropriate (multiple) intervals in the Zigbee report.
+
+## TLB2Z Zigbee Settings:
+
+| Endpoint | Cluster | Attribute | NN BLE device |
+| --- | --- | --- | --- |
+| 1 | 0x0006 On/Off | 0x4003 StartUpOnOff | 1 |
+| 2 | 0x0006 On/Off | 0x4003 StartUpOnOff | 2 |
+| 3 | 0x0006 On/Off | 0x4003 StartUpOnOff | 3 |
+| 1 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 1 |
+| 2 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 2 |
+| 3 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 3 |
+| 1 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 1 |
+| 2 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 2 |
+| 3 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 3 |

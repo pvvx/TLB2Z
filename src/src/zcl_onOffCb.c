@@ -42,7 +42,7 @@
 /**********************************************************************
  * LOCAL VARIABLES
  */
-static ev_timer_event_t *onWithTimedOffTimerEvt = NULL;
+static ev_timer_event_t *onWithTimedOffTimerEvt[MAX_SCAN_DEVS];
 
 /**********************************************************************
  * FUNCTIONS
@@ -71,21 +71,6 @@ void remoteCmdOnOff(u8 srcEp, u8 cmd) {
             break;
     }
 }
-/*********************************************************************
- * @fn      app_onOffInit
- *
- * @brief
- *
- * @param   None
- *
- * @return  None
- */
-void app_onOffInit(void)
-{
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
-
-    app_onOffUpdate(pOnOff->onOff[0]);
-}
 
 /*********************************************************************
  * @fn      app_onOffUpdate
@@ -96,9 +81,9 @@ void app_onOffInit(void)
  *
  * @return  None
  */
-void app_onOffUpdate(u8 cmd)
+void app_onOffUpdate(u8 cmd, u8 n)
 {
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
     bool onOff = ZCL_ONOFF_STATUS_ON;
 
     if (cmd == ZCL_CMD_ONOFF_ON) {
@@ -106,7 +91,7 @@ void app_onOffUpdate(u8 cmd)
     } else if (cmd == ZCL_CMD_ONOFF_OFF) {
         onOff = ZCL_ONOFF_STATUS_OFF;
     } else if (cmd == ZCL_CMD_ONOFF_TOGGLE) {
-        onOff = (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_ON) ? ZCL_ONOFF_STATUS_OFF
+        onOff = (pOnOff->onOff == ZCL_ONOFF_STATUS_ON) ? ZCL_ONOFF_STATUS_OFF
                                                        : ZCL_ONOFF_STATUS_ON;
     } else {
         return;
@@ -115,30 +100,38 @@ void app_onOffUpdate(u8 cmd)
     //update attributes
     if (onOff == ZCL_ONOFF_STATUS_ON) {
         pOnOff->globalSceneControl = TRUE;
-        pOnOff->onOff[0] = ZCL_ONOFF_STATUS_ON;
+        pOnOff->onOff = ZCL_ONOFF_STATUS_ON;
         if (pOnOff->onTime == 0) {
             pOnOff->offWaitTime = 0;
         }
     } else {
-        pOnOff->onOff[0] = ZCL_ONOFF_STATUS_OFF;
+        pOnOff->onOff = ZCL_ONOFF_STATUS_OFF;
         pOnOff->onTime = 0;
     }
-    remoteCmdOnOff(APP_ENDPOINT1, onOff);
-
-#ifdef ZCL_SCENE
-    zcl_sceneAttr_t *pScene = zcl_sceneAttrGet();
-    pScene->sceneValid = 0;
-#endif
+	if(dev_MAC[n][5] == 0) {
 #ifdef GPIO_RELAY
-   	gpio_write(GPIO_RELAY, onOff);
-   	g_sensorAppCtx.oriSta = onOff;
-	if(onOff){
-		light_on();
-	}else{
-		light_off();
-	}
+		if(!n) {
+			gpio_write(GPIO_RELAY, onOff);
+			g_sensorAppCtx.oriSta = onOff;
+			if(onOff){
+				light_on();
+			}else{
+				light_off();
+		   }
+		}
 #endif
-   	zcl_onOffAttr_save();
+		g_zcl_onOffAttrs[n].onOffrm = onOff;
+		remoteCmdOnOff(n + APP_ENDPOINT1, onOff);
+	} else {
+		if(onOff == ZCL_ONOFF_STATUS_OFF) {
+			// отключить (срабатывание от BLE)
+			pOnOff->onOffrm = ZCL_ONOFF_STATUS_OFF;
+			remoteCmdOnOff(n + APP_ENDPOINT1, ZCL_ONOFF_STATUS_OFF);
+		} else {
+			// работа от BLE
+		}
+	}
+   	zcl_onOffAttr_save(n);
 }
 
 /*********************************************************************
@@ -152,20 +145,22 @@ void app_onOffUpdate(u8 cmd)
  */
 static s32 app_onWithTimedOffTimerCb(void *arg)
 {
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+	u8 n = (u8)((u32)arg);
 
-    if ((pOnOff->onOff[0] == ZCL_ONOFF_STATUS_ON) && pOnOff->onTime) {
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
+
+    if ((pOnOff->onOff == ZCL_ONOFF_STATUS_ON) && pOnOff->onTime) {
         pOnOff->onTime--;
         if (pOnOff->onTime <= 0) {
             pOnOff->offWaitTime = 0;
-            app_onOffUpdate(ZCL_CMD_ONOFF_OFF);
+            app_onOffUpdate(ZCL_CMD_ONOFF_OFF, n);
         }
     }
 
-    if ((pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF) && pOnOff->offWaitTime) {
+    if ((pOnOff->onOff == ZCL_ONOFF_STATUS_OFF) && pOnOff->offWaitTime) {
         pOnOff->offWaitTime--;
         if (pOnOff->offWaitTime <= 0) {
-            onWithTimedOffTimerEvt = NULL;
+            onWithTimedOffTimerEvt[n] = NULL;
             return -1;
         }
     }
@@ -173,26 +168,9 @@ static s32 app_onWithTimedOffTimerCb(void *arg)
     if (pOnOff->onTime || pOnOff->offWaitTime) {
         return 0;
     } else {
-        onWithTimedOffTimerEvt = NULL;
+        onWithTimedOffTimerEvt[n] = NULL;
         return -1;
     }
-}
-
-/*********************************************************************
- * @fn      app_onWithTimedOffTimerStart
- *
- * @brief   start the onWithTimedOff timer
- *
- * @param
- *
- * @return
- */
-static void app_onWithTimedOffTimerStart(void)
-{
-    if (onWithTimedOffTimerEvt) {
-        TL_ZB_TIMER_CANCEL(&onWithTimedOffTimerEvt);
-    }
-    onWithTimedOffTimerEvt = TL_ZB_TIMER_SCHEDULE(app_onWithTimedOffTimerCb, NULL, ZCL_ONOFF_TIMER_INTERVAL);
 }
 
 /*********************************************************************
@@ -204,25 +182,28 @@ static void app_onWithTimedOffTimerStart(void)
  *
  * @return  None
  */
-static void app_onoff_onWithTimedOffProcess(zcl_onoff_onWithTimeOffCmd_t *cmd)
+static void app_onoff_onWithTimedOffProcess(zcl_onoff_onWithTimeOffCmd_t *cmd, u8 n)
 {
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
 
-    if (cmd->onOffCtrl.bits.acceptOnlyWhenOn && (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF)) {
+    if (cmd->onOffCtrl.bits.acceptOnlyWhenOn && (pOnOff->onOff == ZCL_ONOFF_STATUS_OFF)) {
         return;
     }
 
-    if (pOnOff->offWaitTime && (pOnOff->onOff[0] == ZCL_ONOFF_STATUS_OFF)) {
+    if (pOnOff->offWaitTime && (pOnOff->onOff == ZCL_ONOFF_STATUS_OFF)) {
         pOnOff->offWaitTime = min2(pOnOff->offWaitTime, cmd->offWaitTime);
     } else {
         pOnOff->onTime = max2(pOnOff->onTime, cmd->onTime);
         pOnOff->offWaitTime = cmd->offWaitTime;
-        app_onOffUpdate(ZCL_CMD_ONOFF_ON);
+        app_onOffUpdate(ZCL_CMD_ONOFF_ON, n);
     }
 
     if ((pOnOff->onTime < 0xFFFF) && (pOnOff->offWaitTime < 0xFFFF)) {
         if(pOnOff->onTime || pOnOff->offWaitTime){
-            app_onWithTimedOffTimerStart();
+            if (onWithTimedOffTimerEvt[n]) {
+                TL_ZB_TIMER_CANCEL(&onWithTimedOffTimerEvt[n]);
+            }
+            onWithTimedOffTimerEvt[n] = TL_ZB_TIMER_SCHEDULE(app_onWithTimedOffTimerCb, (void *)((u32)n), ZCL_ONOFF_TIMER_INTERVAL);
         }
     }
 }
@@ -236,14 +217,14 @@ static void app_onoff_onWithTimedOffProcess(zcl_onoff_onWithTimeOffCmd_t *cmd)
  *
  * @return  None
  */
-static void app_onoff_offWithEffectProcess(zcl_onoff_offWithEffectCmd_t *cmd)
+static void app_onoff_offWithEffectProcess(zcl_onoff_offWithEffectCmd_t *cmd, u8 n)
 {
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
     pOnOff->globalSceneControl = FALSE;
 
     //TODO:
 
-    app_onOffUpdate(ZCL_CMD_ONOFF_OFF);
+    app_onOffUpdate(ZCL_CMD_ONOFF_OFF, n);
 }
 
 /*********************************************************************
@@ -255,9 +236,9 @@ static void app_onoff_offWithEffectProcess(zcl_onoff_offWithEffectCmd_t *cmd)
  *
  * @return  None
  */
-static void app_onoff_onWithRecallGlobalSceneProcess(void)
+static void app_onoff_onWithRecallGlobalSceneProcess(u8 n)
 {
-    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
     pOnOff->globalSceneControl = TRUE;
 
     //TODO:
@@ -276,21 +257,23 @@ static void app_onoff_onWithRecallGlobalSceneProcess(void)
  */
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-    if (pAddrInfo->dstEp == APP_ENDPOINT1) {
+	u8 n = pAddrInfo->dstEp;
+    if (n >= APP_ENDPOINT1 && n < APP_ENDPOINT1 + MAX_SCAN_DEVS) {
+    	n -= APP_ENDPOINT1;
         switch (cmdId) {
         case ZCL_CMD_ONOFF_ON:
         case ZCL_CMD_ONOFF_OFF:
         case ZCL_CMD_ONOFF_TOGGLE:
-            app_onOffUpdate(cmdId);
+            app_onOffUpdate(cmdId, n);
             break;
         case ZCL_CMD_OFF_WITH_EFFECT:
-            app_onoff_offWithEffectProcess((zcl_onoff_offWithEffectCmd_t *)cmdPayload);
+            app_onoff_offWithEffectProcess((zcl_onoff_offWithEffectCmd_t *)cmdPayload, n);
             break;
         case ZCL_CMD_ON_WITH_RECALL_GLOBAL_SCENE:
-            app_onoff_onWithRecallGlobalSceneProcess();
+            app_onoff_onWithRecallGlobalSceneProcess(n);
             break;
         case ZCL_CMD_ON_WITH_TIMED_OFF:
-            app_onoff_onWithTimedOffProcess((zcl_onoff_onWithTimeOffCmd_t *)cmdPayload);
+            app_onoff_onWithTimedOffProcess((zcl_onoff_onWithTimeOffCmd_t *)cmdPayload, n);
             break;
         default:
             break;

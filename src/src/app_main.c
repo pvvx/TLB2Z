@@ -17,6 +17,7 @@
 #include "zb_reporting.h"
 #include "ble_cfg.h"
 #include "ble_scaning.h"
+#include "flash_eep.h"
 
 /**********************************************************************
  * LOCAL CONSTANTS
@@ -137,9 +138,43 @@ static void user_app_init(void)
 	u32 reportableChange;
 	/* Populate properties with compiled-in values */
 	populate_date_code();
-
+#if USE_EEP
+	if (flash_supported_eep_ver(IMAGE_TYPE, (APP_RELEASE<<24) | (APP_BUILD)<<16) | IMAGE_TYPE) {
+		// next start
+		for(int i = 0; i < MAX_SCAN_DEVS; i++) {
+			flash_read_cfg(dev_MAC[i], 0, EEP_ID_DMAC(i), 6);
+#if USE_BINDKEY
+			flash_read_cfg(bindkey[i], 0, EEP_ID_BKEY(i), 16);
+#endif
+#ifdef ZCL_ON_OFF
+			zcl_onOffAttr_restore(i);
 #ifdef GPIO_RELAY
-	zcl_onOffAttr_restore();
+			app_onOffUpdate(g_zcl_onOffAttrs[i].onOff, i);
+#endif
+#endif
+		}
+		zcl_onOffTypeAttr_restore();
+	}
+#else
+	for(int i = 0; i < MAX_SCAN_DEVS; i++) {
+		nv_flashReadNew(1, NV_MODULE_APP, NV_ITEM_APP_BLE_MAC + i,
+		        		6,
+						dev_MAC[i]);
+#if USE_BINDKEY
+		nv_flashReadNew(1, NV_MODULE_APP, NV_ITEM_APP_BLE_KEY + i,
+		        		16,
+						bindkey[i]);
+#endif
+#ifdef ZCL_ON_OFF
+		zcl_onOffAttr_restore(i);
+#ifdef GPIO_RELAY
+	    app_onOffUpdate(g_zcl_onOffAttrs[i].onOff, i);
+#endif
+#endif
+	}
+#endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+	zcl_illuminance_restore();
 #endif
 	/* Initialize ZB stack */
 	zb_init();
@@ -264,10 +299,6 @@ static void user_app_init(void)
 	u8 repower = drv_pm_deepSleep_flag_get() ? 0 : 1;
 	bdb_init((af_simple_descriptor_t *)&app_simpleDesc1, &g_bdbCommissionSetting, &g_zbDemoBdbCb, repower);
 
-#ifdef GPIO_RELAY
-	app_onOffInit();
-#endif
-
 #if 0 // Go zb_context
 	u32 r = drv_disable_irq();
 	switch_to_zb_context();
@@ -315,27 +346,35 @@ void user_init(bool isRetention)
 static void test_ble_trigger(void) {
 	u8 on_state;
 	for(int n = 0; n < MAX_SCAN_DEVS; n++) {
-		if(update_enable[n] & FLG_UPDATE_TRG) {
-			update_enable[n] &= ~FLG_UPDATE_TRG;
-			on_state = (g_zcl_onOffAttrs.ble_trigger[n])? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
-			if(on_state != g_zcl_onOffAttrs.onOff[n]) {
-				sws_printf("rmcOnOff %d:%d\n", n + 1, on_state);
+		zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
+		if(dev_MAC[n][5] && pOnOff->onOff) {
+			// работа от BLE
+			if(update_enable[n] & FLG_UPDATE_TRG) {
+				update_enable[n] &= ~FLG_UPDATE_TRG;
+				on_state = (pOnOff->ble_trigger)? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
+				if(on_state != pOnOff->onOffrm) {
+					sws_printf("OnOffrm %d:%d\n", n + 1, on_state);
 #ifdef GPIO_RELAY
-				if(!n)
-					app_onOffUpdate(on_state);
-				else
+					if(!n) {
+						gpio_write(GPIO_RELAY, on_state);
+						g_sensorAppCtx.oriSta = on_state;
+						if(on_state){
+							light_on();
+						}else{
+							light_off();
+						}
+					}
 #endif
-				{
-					g_zcl_onOffAttrs.onOff[n] = on_state;
+					pOnOff->onOffrm = on_state;
 					remoteCmdOnOff(APP_ENDPOINT1 + n, on_state);
+					pOnOff->ble_trigger_tik = g_sensorAppCtx.utc_time_sec;
 				}
-				g_zcl_onOffAttrs.ble_trigger_tik[n] = g_sensorAppCtx.utc_time_sec;
-			}
-		} else if(g_zcl_onOffAttrs.ble_trigger_tik[n]) {
-			if(g_sensorAppCtx.utc_time_sec - g_zcl_onOffAttrs.ble_trigger_tik[n] >= 3) {
-				sws_printf("rmcOnOff2 %d:%d\n", n + 1, g_zcl_onOffAttrs.onOff[n]);
-				remoteCmdOnOff(APP_ENDPOINT1 + n, g_zcl_onOffAttrs.onOff[n]);
-				g_zcl_onOffAttrs.ble_trigger_tik[n] = 0;
+			} else if(pOnOff->ble_trigger_tik) {
+				if(g_sensorAppCtx.utc_time_sec - pOnOff->ble_trigger_tik >= 3) {
+					sws_printf("OnOff2rm %d:%d\n", n + 1, pOnOff->onOffrm);
+					remoteCmdOnOff(APP_ENDPOINT1 + n, pOnOff->onOffrm);
+					pOnOff->ble_trigger_tik = 0;
+				}
 			}
 		}
 	}

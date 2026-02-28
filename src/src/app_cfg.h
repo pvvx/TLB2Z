@@ -34,88 +34,61 @@ extern "C" {
  */
 #include "version_cfg.h"
 /**********************************************************************
- Flash 512k map:
-
- 0x80000  ------------
-         |            |
-         |    NV_2    |
-         |            |
- 0x7A000 |------------|
-         | U_Cfg_Info | // 0x79000 CFG_FACTORY_RST_CNT
- 0x78000 |------------|
-         | F_CFG_Info | // 0x77000 FACTORY_CFG_BASE_ADD
- 0x77000 |------------|
-         |  MAC_Addr  |
- 0x76000 |------------|
-         |     ?      |
- 0x75000 |------------|
-         | CFG_NV_BLE | // configParingSecurityInfoStorageAddr
- 0x74000 |------------|
-         |    free    |
- 0x72000 |------------|
-         |            |
-         |  OTA_Image | 200k
-         |            |
- 0x40000 |------------|
-         |            |
-         |    NV_1    |
-         |            |
- 0x34000 |------------|
-         |   BLE EEP  |
- 0x32000 |------------|
-         |            |
-         |  Firmware  | 200k
-         |            |
- 0x00000  ------------
-
-
- FLASH 1M map:
-
-              1M
-0x100000  ------------
-         |  MAC_Addr  |
- 0xFF000 |------------|
-         | F_CFG_Info | // FACTORY_CFG_BASE_ADD
- 0xFE000 |------------|
-         | U_Cfg_Info | // 0xFC000 CFG_FACTORY_RST_CNT
- 0xFC000 |------------|
-         | USER_DATA  |
- 0x96000 |------------|
-         |     NV     |
- 0x80000 |------------|
-         |     ?      |
- 0x75000 |------------|
-         | CFG_NV_BLE | // configParingSecurityInfoStorageAddr
- 0x74000 |------------|
-         |    Free    |
- 0x72000 |------------|
-         |            |
-         |  OTA_Image | 256K
-         |            |
- 0x40000 |------------|
-         |   BLE EEP  |
- 0x32000 |------------|
-         |            |
-         |  Firmware  | 200K
-         |            |
- 0x00000  ------------
-*/
+ * Flash map:
+ *	 				512k							  1M
+ * 		0x80000  ------------			0x100000  ------------
+ *	 			|		     |					 |  MAC_Addr  |
+ *	  		    |  	 NV_2 	 |			 0xFF000 |------------|
+ *	 		    |		     |					 | F_CFG_Info |
+ *		0x7A000 |------------|			 0xFE000 |------------|
+ *	 		    | U_Cfg_Info |					 | U_Cfg_Info |
+ * 		0x78000 |------------|			 0xFC000 |------------|
+ *	   		    |            |                   |			  |
+ *	   		    |            |           0xF9000 |------------|
+ *		   		|            |					 |   NV_BLE   |
+ *	   		    | F_CFG_Info |           0xF7000 |------------|
+ *	   		    |            |                   |			  |
+ *		   		|		   	 |	                 |  NV_ZIGBEE |
+ *		   		|			 |                   |			  |
+ * 		0x77000 |------------|			 0xE0000 |------------|
+ * 		   		|  MAC_Addr  |					 |    Resv    |
+ * 		0x76000 |------------|			 0x80000 |------------|
+ * 		   		|  NV_BLE	 |					 |			  |
+ * 		0x74000 |------------|					 |	  free    |
+ * 		   		|	free	 |					 |			  |
+ * 		0x72000 |------------|			 0x72000 |------------|
+ * 		   		|            |					 |			  |
+ * 		   		|  OTA_Image |	200k 		     |	OTA_Image | 200k
+ * 		   		|		     |					 |			  |
+ * 		0x40000 |------------|			 0x40000 |------------|
+ * 		   		|	 NV_1	 |					 |	  free	  |
+ * 		0x34000 |------------|			 0x34000 |------------|
+ * 		   		|	EEP_BLE  |					 |	EEP_BLE   |
+ * 		0x32000 |------------|			 0x32000 |------------|
+ * 		   		|		     |					 |    		  |
+ * 		   		|  Firmware  |	200k			 |	Firmware  | 200k
+ * 		   		|		     |					 |			  |
+ * 		0x00000  ------------			 0x00000  ------------
+ */
 #define OTA_IMAGE_MAX_SIZE 	0x32000 // (NV_BASE_ADDRESS - 0x2000)
+#define USE_NV_APP	1
+#define USE_EEP		1
+
 /**********************************************************************
  * Product Information
  */
 
 /* HCI interface */
-#define ZBHCI_BLE						0
+#define ZBHCI_BLE			0
 
 /* PM */
-#define PM_ENABLE						0
-//#define DBG_ZIGBEE_STATUS_EN			1
+#define PM_ENABLE			0
+//#define DBG_ZIGBEE_STATUS_EN	1
 
 /* BLE SCAN */
 #define USE_SCAN			1
 
-#define CLOCK_SYS_CLOCK_HZ  		48000000 //48000000
+#define CLOCK_SYS_CLOCK_HZ  48000000 //48000000
 
 /**********************************************************************
  * I2C driver type
@@ -158,7 +131,7 @@ extern "C" {
 
 #define VOLTAGE_DETECT_ADC_PIN GPIO_VBAT
 
-#define MIN_REPORT_INTERVAL 	5 // second
+#define MIN_REPORT_INTERVAL 	3 // second
 #define MIN_REPORT_INTERVAL_MS 	(MIN_REPORT_INTERVAL*1000) // msecond
 
 #define VOLTAGE_DETECT_ENABLE						0
@@ -191,8 +164,8 @@ extern "C" {
 #define FIND_AND_BIND_SUPPORT						0
 #define ZCL_POWER_CFG_SUPPORT						1
 #define ZCL_ON_OFF_SUPPORT							1
-#define SCAN_TRG_ENABLE								1
-//#define ZCL_IAS_ZONE_SUPPORT						1
+#define SCAN_TRG_ENABLE								ZCL_ON_OFF_SUPPORT
+#define ZCL_IAS_ZONE_SUPPORT						0
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
 #define ZCL_RELATIVE_HUMIDITY_SUPPORT   			1
 #define ZCL_ILLUMINANCE_MEASUREMENT_SUPPORT			1

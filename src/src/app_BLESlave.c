@@ -716,14 +716,6 @@ void user_ble_init(bool isRetention){
 	} else
 #endif
 	{
-		if (flash_supported_eep_ver(0, (APP_RELEASE<<8) | APP_BUILD)) { // next start
-			for(int i=0; i < MAX_SCAN_DEVS; i++) {
-				flash_read_cfg(dev_MAC[i], EEP_ID_DMAC(i), 6);
-#if USE_BINDKEY
-				flash_read_cfg(bindkey[i], EEP_ID_BKEY(i), 16);
-#endif
-			}
-		}
 		user_ble_normal_init();
 	}
 #if	USE_DEBUG_UART
@@ -763,7 +755,7 @@ void task_ble(void) {
 				msg.illuminance = ble_illuminance[n];
 #endif
 #if SCAN_TRG_ENABLE
-				msg.tigger = g_zcl_onOffAttrs.ble_trigger[n];
+				msg.tigger = g_zcl_onOffAttrs[n].ble_trigger;
 #endif
 				bls_att_pushNotifyData(RxTx_CMD_OUT_DP_H, (u8 *) &msg , sizeof(msg));
 			}

@@ -13,43 +13,37 @@ extern "C" {
 #endif
 
 // EEPROM IDs
-/*
-#define EEP_ID_CFG (0x0CFC) // EEP ID config data
-#define EEP_ID_CFS (0x0CF5) // EEP ID sensor coefficients
-#define EEP_ID_TRG (0x0DFE) // EEP ID trigger data
-#define EEP_ID_RPC (0x0DF5) // EEP ID reed switch pulse counter
-#define EEP_ID_PCD (0xC0DE) // EEP ID pincode
-#define EEP_ID_CMF (0x0FCC) // EEP ID comfort data
-#define EEP_ID_DVN (0x0DB5) // EEP ID device name
-#define EEP_ID_TIM (0x0ADA) // EEP ID time adjust
-#define EEP_ID_KEY (0xBEAC) // EEP ID bkey
-#define EEP_ID_HWV (0x1234) // EEP ID Mi HW version
-*/
-#define EEP_ID_BKEY(a) (0xBE00+a) // EEP ID bindkey
-#define EEP_ID_DMAC(a) (0xDC00+a) // EEP ID devs mac
-#define EEP_ID_VER (0x5555) // EEP ID blk: unsigned int = minimum supported version
+#define EEP_ID_VER (0) // EEP ID blk: unsigned int = minimum supported version
+#define EEP_ID_ONOFF_TYPE 0x01 // EEP ID OnOff BLE Type
+#define EEP_ID_ONOFF(a) (0x10+a) // EEP ID OnOff
+#define EEP_ID_BKEY(a) (0x20+a) // EEP ID bindkey
+#define EEP_ID_DMAC(a) (0x30+a) // EEP ID devs mac
 //-----------------------------------------------------------------------------
 #define FLASH_BASE_ADDR			0x00000000
-//#define FLASH_SIZE				(512*1024)
 #define FLASH_SECTOR_SIZE		4096
-#define FMEMORY_SCFG_BANK_SIZE	FLASH_SECTOR_SIZE // размер сектора, 4096 bytes
-#define FMEMORY_SCFG_BANKS 		2 // кол-во секторов для работы 2..
-#define FMEMORY_SCFG_BASE_ADDR	(NV_BASE_ADDRESS - (FMEMORY_SCFG_BANKS*FMEMORY_SCFG_BANK_SIZE)) // 0x32000
-#define FMEMORY_SCFG_END_ADDR	(FMEMORY_SCFG_BASE_ADDR + FMEMORY_SCFG_BANKS * FMEMORY_SCFG_BANK_SIZE) // 0x34000
-//-----------------------------------------------------------------------------
-enum eFMEMORY_ERRORS {
-	FMEM_NOT_FOUND = -1,	//  -1 - не найден
-	FMEM_FLASH_ERR = -2,	//  -2 - flash rd/wr/erase error
-	FMEM_ERROR = 	-3,		//  -3 - error
-	FMEM_OVR_ERR = 	-4,		//  -4 - переполнение FMEMORY_SCFG_BANK_SIZE
-	FMEM_MEM_ERR = 	-5		//  -5 - heap alloc error
-};
-//-----------------------------------------------------------------------------
+#define FMEMORY_EEP_BANKS_SHL 	1 // кол-во секторов для работы 2,4,8,..
+#define FMEMORY_EEP_BANKS_SIZE	(FLASH_SECTOR_SIZE << FMEMORY_EEP_BANKS_SHL) // размер FMEMORY
+#define FMEMORY_EEP_BASE_ADDR1	(NV_BASE_ADDRESS - (FMEMORY_EEP_BANKS_SIZE)) // 0x32000
+#define FMEMORY_EEP_BASE_ADDR2	(FMEMORY_EEP_BASE_ADDR1 + 0x40000) // 0x72000
+
+//--Option---------------------------------------------------------------------
+#define USE_EEP_BANKS	2
 #define MAX_FOBJ_SIZE 64 // максимальный размер сохраняемых объeктов (32..512)
-// extern QueueHandle_t flash_mutex;
-signed short flash_read_cfg(void *ptr, unsigned short id, unsigned short maxsize); // возврат: размер объекта последнего сохранения, -1 - не найден, -2 - error
-bool flash_write_cfg(void *ptr, unsigned short id, unsigned short size);
-bool flash_supported_eep_ver(unsigned int min_ver, unsigned int new_ver);
+//-----------------------------------------------------------------------------
+typedef enum {
+	FMEM_NOT_FOUND = -1,	//  -1 - не найден
+	FMEM_SIZE_ERR  = -2,	//  -2 - задан неверный размер
+	FMEM_OVERFLOW  = -3		//  -3 - переполнение банка
+} fmemory_errors_t;
+//-----------------------------------------------------------------------------
+#if USE_EEP_BANKS
+s32 flash_read_cfg(void *ptr, u8 nv, u8 id, u8 maxsize); // возврат: размер объекта последнего сохранения, -1 - не найден, -2 - error
+s32 flash_write_cfg(void *ptr, u8 nv, u8 id, u8 size);
+#else
+s32 flash_read_cfg(void *ptr, u8 id, u8 maxsize); // возврат: размер объекта последнего сохранения, -1 - не найден, -2 - error
+s32 flash_write_cfg(void *ptr, u8 id, u8 size);
+#endif
+bool flash_supported_eep_ver(u32 min_ver, u32 new_ver);
 //-----------------------------------------------------------------------------
 
 #ifdef __cplusplus

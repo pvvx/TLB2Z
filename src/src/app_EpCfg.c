@@ -7,6 +7,8 @@
 //#include "zcl_illuminance_measurement.h"
 #include "zcl_thermostat_ui_cfg.h"
 #include "app.h"
+#include "adv_bthome.h"
+#include "flash_eep.h"
 
 /**********************************************************************
  * LOCAL CONSTANTS
@@ -51,7 +53,7 @@ const u16 app_inClusterList1[] =
 #ifdef ZCL_IDENTIFY
 	ZCL_CLUSTER_GEN_IDENTIFY,
 #endif
-#ifdef GPIO_RELAY //def ZCL_ON_OFF
+#ifdef ZCL_ON_OFF
 	ZCL_CLUSTER_GEN_ON_OFF,
 #endif
 #ifdef ZCL_POLL_CTRL
@@ -70,8 +72,12 @@ const u16 app_inClusterList1[] =
 	ZCL_CLUSTER_SS_IAS_ZONE,
 #endif
 };
+
 const u16 app_inClusterList2[] =
 {
+#ifdef ZCL_ON_OFF
+	ZCL_CLUSTER_GEN_ON_OFF,
+#endif
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
 #endif
@@ -82,8 +88,12 @@ const u16 app_inClusterList2[] =
     ZCL_CLUSTER_MS_RELATIVE_HUMIDITY,
 #endif
 };
+
 const u16 app_inClusterList3[] =
 {
+#ifdef ZCL_ON_OFF
+	ZCL_CLUSTER_GEN_ON_OFF,
+#endif
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
 #endif
@@ -280,6 +290,9 @@ zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs = {
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
 		.lightSensorType = 0,
 #endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+		.minLevelLx = {0,0,0}
+#endif
 };
 
 const zclAttrInfo_t illuminanceMeasure_attrTbl1[] = {
@@ -291,6 +304,9 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl1[] = {
 #endif
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[0]},
 #endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
 };
@@ -307,6 +323,9 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl2[] = {
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
 #endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[1]},
+#endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
 };
 
@@ -321,6 +340,9 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl3[] = {
 #endif
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[2]},
 #endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
 };
@@ -355,6 +377,22 @@ const zclAttrInfo_t iasZone_attrTbl[] =
 #endif
 
 
+#ifdef ZCL_GROUP
+/* Group */
+zcl_groupAttr_t g_zcl_groupAttrs =
+{
+	.nameSupport	= 0,
+};
+
+const zclAttrInfo_t group_attrTbl[] =
+{
+	{ ZCL_ATTRID_GROUP_NAME_SUPPORT,  		ZCL_DATA_TYPE_BITMAP8,  ACCESS_CONTROL_READ,  (u8*)&g_zcl_groupAttrs.nameSupport },
+
+	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  (u8*)&zcl_attr_global_clusterRevision},
+};
+
+#define ZCL_GROUP_ATTR_NUM	  sizeof(group_attrTbl) / sizeof(zclAttrInfo_t)
+#endif
 
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 zcl_temperatureAttr_t g_zcl_temperatureAttrs =
@@ -477,23 +515,50 @@ const zclAttrInfo_t pollCtrl_attrTbl[] =
 
 #ifdef ZCL_ON_OFF
 /* On/Off */
-zcl_onOffAttr_t g_zcl_onOffAttrs =
+zcl_onOffAttr_t g_zcl_onOffAttrs[MAX_SCAN_DEVS] =
 {
-	.onOff				= {0},
-	.globalSceneControl	= 1,
-	.onTime				= 0x0000,
-	.offWaitTime		= 0x0000,
-	.startUpOnOff 		= ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
+	{
+			.onOff				= 0,
+			.globalSceneControl	= 1,
+			.onTime				= 0x0000,
+			.offWaitTime		= 0x0000,
+			.startUpOnOff 		= ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+			.onoffbType			= BtHomeID_switch
+#endif
+	},
+	{
+			.onOff				= 0,
+			.globalSceneControl	= 1,
+			.onTime				= 0x0000,
+			.offWaitTime		= 0x0000,
+			.startUpOnOff 		= ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+			.onoffbType			= BtHomeID_switch
+#endif
+	},
+	{
+			.onOff				= 0,
+			.globalSceneControl	= 1,
+			.onTime				= 0x0000,
+			.offWaitTime		= 0x0000,
+			.startUpOnOff 		= ZCL_START_UP_ONOFF_SET_ONOFF_TO_OFF,
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+			.onoffbType			= BtHomeID_switch
+#endif
+	}
 };
 
 const zclAttrInfo_t onOff_attrTbl1[] =
 {
-	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[0]},
-	{ ZCL_ATTRID_GLOBAL_SCENE_CONTROL, 		ZCL_DATA_TYPE_BOOLEAN, 	ACCESS_CONTROL_READ, 							  (u8*)&g_zcl_onOffAttrs.globalSceneControl},
-	{ ZCL_ATTRID_ON_TIME, 					ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs.onTime},
-	{ ZCL_ATTRID_OFF_WAIT_TIME, 			ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs.offWaitTime},
-	{ ZCL_ATTRID_START_UP_ONOFF, 			ZCL_DATA_TYPE_ENUM8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs.startUpOnOff},
-
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs[0].onOff},
+	{ ZCL_ATTRID_GLOBAL_SCENE_CONTROL, 		ZCL_DATA_TYPE_BOOLEAN, 	ACCESS_CONTROL_READ, 							  (u8*)&g_zcl_onOffAttrs[0].globalSceneControl},
+	{ ZCL_ATTRID_ON_TIME, 					ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[0].onTime},
+	{ ZCL_ATTRID_OFF_WAIT_TIME, 			ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[0].offWaitTime},
+	{ ZCL_ATTRID_START_UP_ONOFF, 			ZCL_DATA_TYPE_ENUM8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[0].startUpOnOff},
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+	{ ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE, 		ZCL_DATA_TYPE_UINT8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[0].onoffbType},
+#endif
 	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
 };
 
@@ -501,7 +566,14 @@ const zclAttrInfo_t onOff_attrTbl1[] =
 
 const zclAttrInfo_t onOff_attrTbl2[] =
 {
-	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[1]},
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs[1].onOff},
+	{ ZCL_ATTRID_GLOBAL_SCENE_CONTROL, 		ZCL_DATA_TYPE_BOOLEAN, 	ACCESS_CONTROL_READ, 							  (u8*)&g_zcl_onOffAttrs[1].globalSceneControl},
+	{ ZCL_ATTRID_ON_TIME, 					ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[1].onTime},
+	{ ZCL_ATTRID_OFF_WAIT_TIME, 			ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[1].offWaitTime},
+	{ ZCL_ATTRID_START_UP_ONOFF, 			ZCL_DATA_TYPE_ENUM8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[1].startUpOnOff},
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+	{ ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE, 		ZCL_DATA_TYPE_UINT8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[1].onoffbType},
+#endif
 	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
 };
 
@@ -509,7 +581,14 @@ const zclAttrInfo_t onOff_attrTbl2[] =
 
 const zclAttrInfo_t onOff_attrTbl3[] =
 {
-	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs.onOff[2]},
+	{ ZCL_ATTRID_ONOFF,  					ZCL_DATA_TYPE_BOOLEAN,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE,  (u8*)&g_zcl_onOffAttrs[2].onOff},
+	{ ZCL_ATTRID_GLOBAL_SCENE_CONTROL, 		ZCL_DATA_TYPE_BOOLEAN, 	ACCESS_CONTROL_READ, 							  (u8*)&g_zcl_onOffAttrs[2].globalSceneControl},
+	{ ZCL_ATTRID_ON_TIME, 					ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[2].onTime},
+	{ ZCL_ATTRID_OFF_WAIT_TIME, 			ZCL_DATA_TYPE_UINT16, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[2].offWaitTime},
+	{ ZCL_ATTRID_START_UP_ONOFF, 			ZCL_DATA_TYPE_ENUM8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[2].startUpOnOff},
+#ifdef	ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+	{ ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE, 		ZCL_DATA_TYPE_UINT8, 	ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, 	  (u8*)&g_zcl_onOffAttrs[2].onoffbType},
+#endif
 	{ ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, 	ZCL_DATA_TYPE_UINT16,  	ACCESS_CONTROL_READ,  							  (u8*)&zcl_attr_global_clusterRevision},
 };
 
@@ -596,6 +675,69 @@ const u8 APP_CB_CLUSTER_NUM3 = (sizeof(g_appClusterList3)/sizeof(g_appClusterLis
  * FUNCTIONS
  */
 
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+/*********************************************************************
+ * @fn      zcl_illuminance_save
+ *
+ * @brief
+ *
+ * @param   None
+ *
+ * @return
+ */
+nv_sts_t zcl_illuminance_save(void)
+{
+    nv_sts_t st = NV_SUCC;
+#if NV_ENABLE
+    bool needSave = FALSE;
+    zcl_nv_illuminance_t zcl_nv_illuminance;
+
+    st = nv_flashReadNew(1, NV_MODULE_APP,  NV_ITEM_APP_ILLUMINANCE,
+    		sizeof(zcl_nv_illuminance.minLevelLx),
+			(u8 *)&zcl_nv_illuminance.minLevelLx);
+    if (st == NV_SUCC) {
+    	needSave = memcmp(&zcl_nv_illuminance.minLevelLx,
+    				&g_zcl_illuminanceAttrs.minLevelLx,
+					sizeof(g_zcl_illuminanceAttrs.minLevelLx));
+    } else if (st == NV_ITEM_NOT_FOUND) {
+        needSave = TRUE;
+    }
+    if (needSave) {
+        st = nv_flashWriteNew(1, NV_MODULE_APP, NV_ITEM_APP_ILLUMINANCE,
+        		sizeof(g_zcl_illuminanceAttrs.minLevelLx),
+				(u8 *)&g_zcl_illuminanceAttrs.minLevelLx);
+    }
+#else
+    st = NV_ENABLE_PROTECT_ERROR;
+#endif
+
+    return st;
+}
+
+/*********************************************************************
+ * @fn      zcl_illuminance_restore
+ *
+ * @brief
+ *
+ * @param   None
+ *
+ * @return
+ */
+nv_sts_t zcl_illuminance_restore(void)
+{
+    nv_sts_t st = NV_SUCC;
+
+#if NV_ENABLE
+    st = nv_flashReadNew(1, NV_MODULE_APP,  NV_ITEM_APP_ILLUMINANCE,
+    		sizeof(g_zcl_illuminanceAttrs.minLevelLx),
+			(u8 *)&g_zcl_illuminanceAttrs.minLevelLx);
+#else
+    st = NV_ENABLE_PROTECT_ERROR;
+#endif
+    return st;
+}
+#endif
+
 #ifdef ZCL_ON_OFF
 /*********************************************************************
  * @fn      zcl_onOffAttr_save
@@ -606,18 +748,27 @@ const u8 APP_CB_CLUSTER_NUM3 = (sizeof(g_appClusterList3)/sizeof(g_appClusterLis
  *
  * @return
  */
-nv_sts_t zcl_onOffAttr_save(void)
+nv_sts_t zcl_onOffAttr_save(u8 n)
 {
     nv_sts_t st = NV_SUCC;
-
+    zcl_nv_onOff_t zcl_nv_onOff;
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
+#if USE_EEP
+    zcl_nv_onOff.onOff = pOnOff->onOff;
+    zcl_nv_onOff.startUpOnOff = pOnOff->startUpOnOff;
+   	flash_write_cfg((u8 *)&zcl_nv_onOff, 1, EEP_ID_ONOFF(n), sizeof(zcl_nv_onOff_t));
+#else
 #if NV_ENABLE
     bool needSave = FALSE;
-    zcl_nv_onOff_t zcl_nv_onOff;
 
-    st = nv_flashReadNew(1, NV_MODULE_ZCL,  NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
+    st = nv_flashReadNew(1, NV_MODULE_APP,
+    		NV_ITEM_APP_ON_OFF + n,
+			sizeof(zcl_nv_onOff_t),
+			(u8 *)&zcl_nv_onOff);
     if (st == NV_SUCC) {
-        if ((zcl_nv_onOff.onOff != g_zcl_onOffAttrs.onOff[0]) ||
-            (zcl_nv_onOff.startUpOnOff != g_zcl_onOffAttrs.startUpOnOff)) {
+        if (zcl_nv_onOff.onOff != pOnOff->onOff
+            || zcl_nv_onOff.startUpOnOff != pOnOff->startUpOnOff
+        	) {
             needSave = TRUE;
         }
     } else if (st == NV_ITEM_NOT_FOUND) {
@@ -625,18 +776,19 @@ nv_sts_t zcl_onOffAttr_save(void)
     }
 
     if (needSave) {
-        zcl_nv_onOff.onOff = g_zcl_onOffAttrs.onOff[0];
-        zcl_nv_onOff.startUpOnOff = g_zcl_onOffAttrs.startUpOnOff;
-
-        st = nv_flashWriteNew(1, NV_MODULE_ZCL, NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
+        zcl_nv_onOff.onOff = pOnOff->onOff;
+        zcl_nv_onOff.startUpOnOff = pOnOff->startUpOnOff;
+        st = nv_flashWriteNew(1, NV_MODULE_APP,
+        		NV_ITEM_APP_ON_OFF + n,
+				sizeof(zcl_nv_onOff_t),
+				(u8 *)&zcl_nv_onOff);
     }
 #else
     st = NV_ENABLE_PROTECT_ERROR;
 #endif
-
+#endif
     return st;
 }
-
 /*********************************************************************
  * @fn      zcl_onOffAttr_restore
  *
@@ -646,26 +798,101 @@ nv_sts_t zcl_onOffAttr_save(void)
  *
  * @return
  */
-nv_sts_t zcl_onOffAttr_restore(void)
+nv_sts_t zcl_onOffAttr_restore(u8 n)
 {
     nv_sts_t st = NV_SUCC;
-
-#if NV_ENABLE
     zcl_nv_onOff_t zcl_nv_onOff;
+    zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
+#if USE_EEP
+   	flash_read_cfg((u8 *)&zcl_nv_onOff, 1, EEP_ID_ONOFF(n), sizeof(zcl_nv_onOff_t));
+    pOnOff->onOff = zcl_nv_onOff.onOff;
+    pOnOff->startUpOnOff = zcl_nv_onOff.startUpOnOff;
+#else
+#if NV_ENABLE
 
-    st = nv_flashReadNew(1, NV_MODULE_ZCL,  NV_ITEM_ZCL_ON_OFF, sizeof(zcl_nv_onOff_t), (u8 *)&zcl_nv_onOff);
+    st = nv_flashReadNew(1, NV_MODULE_APP,
+    		NV_ITEM_APP_ON_OFF + n,
+			sizeof(zcl_nv_onOff_t),
+			(u8 *)&zcl_nv_onOff);
     if (st == NV_SUCC) {
-        g_zcl_onOffAttrs.onOff[0] = zcl_nv_onOff.onOff;
-        g_zcl_onOffAttrs.startUpOnOff = zcl_nv_onOff.startUpOnOff;
+        pOnOff->onOff = zcl_nv_onOff.onOff;
+        pOnOff->startUpOnOff = zcl_nv_onOff.startUpOnOff;
     }
 #else
     st = NV_ENABLE_PROTECT_ERROR;
-#endif
-
+#endif // NV_ENABLE
+#endif // USE_EEP
     return st;
 }
+
+#ifdef ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+
+nv_sts_t zcl_onOffTypeAttr_restore(void)
+{
+    nv_sts_t st = NV_SUCC;
+    u8 onoffbType[3];
+#if USE_EEP
+   	if(flash_read_cfg(onoffbType,
+   			0,
+			EEP_ID_ONOFF_TYPE,
+			sizeof(onoffbType)) != sizeof(onoffbType))
+#else
+    st = nv_flashReadNew(1, NV_MODULE_APP,
+    		NV_ITEM_APP_ON_OFF + n,
+			sizeof(zcl_nv_onOff_t),
+			(u8 *)&zcl_nv_onOff);
+    if (st != NV_SUCC)
+#endif
+    {
+    	g_zcl_onOffAttrs[0].onoffbType = BtHomeID_switch;
+    	g_zcl_onOffAttrs[1].onoffbType = BtHomeID_switch;
+    	g_zcl_onOffAttrs[2].onoffbType = BtHomeID_switch;
+    } else {
+    	g_zcl_onOffAttrs[0].onoffbType = onoffbType[0];
+    	g_zcl_onOffAttrs[1].onoffbType = onoffbType[1];
+    	g_zcl_onOffAttrs[2].onoffbType = onoffbType[2];
+    }
+    return st;
+}
+
+nv_sts_t zcl_onOffTypeAttr_save(void)
+{
+    nv_sts_t st = NV_SUCC;
+    u8 onoffbType[3];
+#if USE_EEP
+	onoffbType[0] = g_zcl_onOffAttrs[0].onoffbType;
+	onoffbType[1] = g_zcl_onOffAttrs[1].onoffbType;
+	onoffbType[2] = g_zcl_onOffAttrs[2].onoffbType;
+   	flash_write_cfg(onoffbType, 0, EEP_ID_ONOFF_TYPE, sizeof(onoffbType));
+#else
+	needSave = TRUE;
+    st = nv_flashReadNew(1, NV_MODULE_APP,
+    		NV_ITEM_APP_BLE_ONOFF,
+			sizeof(onoffbType),
+			(u8 *)&onoffbType);
+    if (st == NV_SUCC
+    	&& g_zcl_onOffAttrs[0].onoffbType == onoffbType[0]
+		&& g_zcl_onOffAttrs[1].onoffbType == onoffbType[1]
+		&& g_zcl_onOffAttrs[2].onoffbType == onoffbType[2]) {
+    	needSave = FALSE;
+    }
+    if(needSave) {
+    	onoffbType[0] = g_zcl_onOffAttrs[0].onoffbType;
+    	onoffbType[1] = g_zcl_onOffAttrs[1].onoffbType;
+    	onoffbType[2] = g_zcl_onOffAttrs[2].onoffbType;
+    	st = nv_flashWriteNew(1, NV_MODULE_APP,
+    		NV_ITEM_APP_BLE_ONOFF,
+			sizeof(onoffbType),
+			(u8 *)&onoffbType);
+    }
+#endif
+    return st;
+}
+
 #endif
 
+
+#endif // ZCL_ON_OFF
 /*********************************************************************
  * @fn      populate_date_code
  *

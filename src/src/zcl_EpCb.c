@@ -23,18 +23,18 @@
  * LOCAL FUNCTIONS
  */
 #ifdef ZCL_READ
-void app_zclReadRspCmd(u16 clusterId, zclReadRspCmd_t *pReadRspCmd);
+void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd);
 #endif
 #ifdef ZCL_WRITE
-void app_zclWriteRspCmd(u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd);
-void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd);
+void app_zclWriteRspCmd(u8 endpoint, u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd);
+void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd);
 #endif
 #ifdef ZCL_REPORT
 void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgReportCmd);
-void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd);
-void app_zclReportCmd(u16 clusterId, zclReportCmd_t *pReportCmd);
+void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd);
+void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd);
 #endif
-void app_zclDfltRspCmd(u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd);
+void app_zclDfltRspCmd(u8 endpoint, u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd);
 #ifdef ZCL_IDENTIFY
 void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 #endif
@@ -62,34 +62,35 @@ void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
 {
 	u16 cluster = pInHdlrMsg->msg->indInfo.cluster_id;
+	u8 endpoint = pInHdlrMsg->msg->indInfo.dst_ep;
 	switch(pInHdlrMsg->hdr.cmd)
 	{
 #ifdef ZCL_READ
 		case ZCL_CMD_READ_RSP:
-			app_zclReadRspCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclReadRspCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 #endif
 #ifdef ZCL_WRITE
 		case ZCL_CMD_WRITE_RSP:
-			app_zclWriteRspCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclWriteRspCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 		case ZCL_CMD_WRITE:
-			app_zclWriteReqCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclWriteReqCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 #endif
 #ifdef ZCL_REPORT
 		case ZCL_CMD_CONFIG_REPORT:
-			app_zclCfgReportCmd(pInHdlrMsg->msg->indInfo.dst_ep, cluster, pInHdlrMsg->attrCmd);
+			app_zclCfgReportCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 		case ZCL_CMD_CONFIG_REPORT_RSP:
-			app_zclCfgReportRspCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclCfgReportRspCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 		case ZCL_CMD_REPORT:
-			app_zclReportCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclReportCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 #endif
 		case ZCL_CMD_DEFAULT_RSP:
-			app_zclDfltRspCmd(cluster, pInHdlrMsg->attrCmd);
+			app_zclDfltRspCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
 			break;
 		default:
 			break;
@@ -106,9 +107,9 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
  *
  * @return  None
  */
-void app_zclReadRspCmd(u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
+void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
 {
-	sws_printf("rdrspcmd :0x%04x\n", clusterId);
+	sws_printf("rdrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclReadRspCmd\n");
 
 }
@@ -124,9 +125,9 @@ void app_zclReadRspCmd(u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
  *
  * @return  None
  */
-void app_zclWriteRspCmd(u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
+void app_zclWriteRspCmd(u8 endpoint, u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
 {
-	sws_printf("wrrspcmd :0x%04x\n", clusterId);
+	sws_printf("wrrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclWriteRspCmd\n");
 
 }
@@ -140,19 +141,34 @@ void app_zclWriteRspCmd(u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
  *
  * @return  None
  */
-void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
+void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 {
 	u8 numAttr = pWriteReqCmd->numAttr;
 	zclWriteRec_t *attr = pWriteReqCmd->attrList;
-#ifdef GPIO_RELAY
+#ifdef ZCL_ON_OFF
     if (clusterId == ZCL_CLUSTER_GEN_ON_OFF) {
         for (u8 i = 0; i < numAttr; i++) {
             if (attr[i].attrID == ZCL_ATTRID_START_UP_ONOFF) {
             	sws_puts("onOffAttr_save\n");
-                zcl_onOffAttr_save();
+                zcl_onOffAttr_save(endpoint - APP_ENDPOINT1);
             }
+#ifdef  ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+            else if(attr[i].attrID == ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE) {
+            	sws_puts("onOffType_save\n");
+            	zcl_onOffTypeAttr_save();
+            }
+#endif
         }
     } else
+#endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+   	if(clusterId == ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT) {
+		for(int i = 0; i < numAttr; i++){
+			if(attr[i].attrID == ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL) {
+				zcl_illuminance_save();
+			}
+		}
+   	} else
 #endif
 #ifdef ZCL_THERMOSTAT_UI_CFG
 	if(clusterId == ZCL_CLUSTER_HAVC_USER_INTERFACE_CONFIG) {
@@ -193,9 +209,9 @@ void app_zclWriteReqCmd(u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
  *
  * @return  None
  */
-void app_zclDfltRspCmd(u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd)
+void app_zclDfltRspCmd(u8 endpoint, u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd)
 {
-	sws_printf("dfrspcmd :0x%04x\n", clusterId);
+	sws_printf("dfrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclDfltRspCmd\n");
 
 }
@@ -230,9 +246,9 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
  *
  * @return  None
  */
-void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd)
+void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd)
 {
-	sws_printf("cfgrprsp :0x%04x\n", clusterId);
+	sws_printf("cfgrprsp :0x%04x\n", endpoint, clusterId);
     //printf("app_zclCfgReportRspCmd\n");
 
 }
@@ -246,9 +262,9 @@ void app_zclCfgReportRspCmd(u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCm
  *
  * @return  None
  */
-void app_zclReportCmd(u16 clusterId, zclReportCmd_t *pReportCmd)
+void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd)
 {
-	sws_printf("rpcmd :0x%04x\n", clusterId);
+	sws_printf("rpcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclReportCmd\n");
 
 }
@@ -681,9 +697,13 @@ status_t app_sceneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
  *
  * @return  None
  */
-static void app_zclIasZoneEnrollRspCmdHandler(zoneEnrollRsp_t *pZoneEnrollRsp)
+void app_zclIasZoneEnrollRspCmdHandler(zoneEnrollRsp_t *pZoneEnrollRsp, u8 ep)
 {
-
+    if (pZoneEnrollRsp->zoneId != ZCL_ZONE_ID_INVALID) {
+        u8 zoneState = ZONE_STATE_ENROLLED;
+        zcl_setAttrVal(ep, ZCL_CLUSTER_SS_IAS_ZONE, ZCL_ATTRID_ZONE_ID, &(pZoneEnrollRsp->zoneId));
+        zcl_setAttrVal(ep, ZCL_CLUSTER_SS_IAS_ZONE, ZCL_ATTRID_ZONE_STATE, &zoneState);
+    }
 }
 
 /*********************************************************************
@@ -695,7 +715,7 @@ static void app_zclIasZoneEnrollRspCmdHandler(zoneEnrollRsp_t *pZoneEnrollRsp)
  *
  * @return  status
  */
-static status_t app_zclIasZoneInitNormalOperationModeCmdHandler(void)
+status_t app_zclIasZoneInitNormalOperationModeCmdHandler(void)
 {
 	u8 status = ZCL_STA_FAILURE;
 
@@ -711,7 +731,7 @@ static status_t app_zclIasZoneInitNormalOperationModeCmdHandler(void)
  *
  * @return  status
  */
-static status_t app_zclIasZoneInitTestModeCmdHandler(zoneInitTestMode_t *pZoneInitTestMode)
+status_t app_zclIasZoneInitTestModeCmdHandler(zoneInitTestMode_t *pZoneInitTestMode)
 {
 	u8 status = ZCL_STA_FAILURE;
 
@@ -733,24 +753,23 @@ status_t app_iasZoneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayl
 {
 	status_t status = ZCL_STA_SUCCESS;
 
-	if(pAddrInfo->dstEp == APP_ENDPOINT1){
-		if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
-			switch(cmdId){
-				case ZCL_CMD_ZONE_ENROLL_RSP:
-					app_zclIasZoneEnrollRspCmdHandler((zoneEnrollRsp_t *)cmdPayload);
-					break;
-				case ZCL_CMD_INIT_NORMAL_OPERATION_MODE:
-					app_zclIasZoneInitNormalOperationModeCmdHandler();
-					break;
-				case ZCL_CMD_INIT_TEST_MODE:
-					app_zclIasZoneInitTestModeCmdHandler((zoneInitTestMode_t *)cmdPayload);
-					break;
-				default:
-					break;
-			}
+	if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
+		switch(cmdId){
+			case ZCL_CMD_ZONE_ENROLL_RSP:
+				app_zclIasZoneEnrollRspCmdHandler((zoneEnrollRsp_t *)cmdPayload, pAddrInfo->dstEp);
+				break;
+/*
+			case ZCL_CMD_INIT_NORMAL_OPERATION_MODE:
+				app_zclIasZoneInitNormalOperationModeCmdHandler();
+				break;
+			case ZCL_CMD_INIT_TEST_MODE:
+				app_zclIasZoneInitTestModeCmdHandler((zoneInitTestMode_t *)cmdPayload);
+				break;
+			default:
+				break;
+*/
 		}
 	}
-
 	return status;
 }
 #endif  /* ZCL_IAS_ZONE */

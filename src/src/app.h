@@ -10,6 +10,22 @@
 #define APP_ENDPOINT2  0x02
 #define APP_ENDPOINT3  0x03 // MAX_SCAN_DEVS
 
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+#define ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL	0xF000
+#endif
+#ifdef ZCL_ON_OFF
+#define ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE		0xF001
+#endif
+
+typedef enum {
+	NV_ITEM_APP_VERSION			= 0x40,
+	NV_ITEM_APP_ILLUMINANCE		= 0x41,
+	NV_ITEM_APP_ON_OFF			= 0x50, // 0x50,0x51,0x52
+	NV_ITEM_APP_BLE_MAC			= 0x60, // 0x60,0x61,0x62
+	NV_ITEM_APP_BLE_KEY			= 0x70,  // 0x70,0x71,0x72
+	NV_ITEM_APP_BLE_ONOFF		= 0x78
+} nv_item_app_t;
+
 /**********************************************************************
  * TYPEDEFS
  */
@@ -106,6 +122,9 @@ typedef struct{
 	u8  batteryPercentage;   //0x21
 }zcl_powerAttr_t;
 
+/**
+ *  @brief Defined for Illuminance Measure cluster attributes
+ */
 typedef struct{
 	u16 measuredVal[MAX_SCAN_DEVS];
 	u16 minMeasuredVal;
@@ -116,15 +135,45 @@ typedef struct{
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
 	u8 lightSensorType;
 #endif
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+	u16 minLevelLx[MAX_SCAN_DEVS];
+#endif
 } zcl_illuminanceAttr_t;
+
+typedef struct{
+	u16 minLevelLx[MAX_SCAN_DEVS];
+} zcl_nv_illuminance_t;
+
+/**
+ *  @brief Defined for group cluster attributes
+ */
+typedef struct{
+	u8	nameSupport;
+}zcl_groupAttr_t;
+
+/**
+ *  @brief Defined for ias zone cluster attributes
+ */
+typedef struct {
+    u8  zoneState;
+    u16 zoneType;
+    u16 zoneStatus;
+    extAddr_t iasCieAddr;
+    u8  zoneId;
+} zcl_iasZoneAttr_t;
+
 
 /**
  *  @brief Defined for on/off cluster attributes
  */
 typedef struct{
-	u32 ble_trigger_tik[MAX_SCAN_DEVS];
-	u8  onOff[MAX_SCAN_DEVS];
-	u8  ble_trigger[MAX_SCAN_DEVS];
+	u32 ble_trigger_tik;
+	u8  onOff;
+	u8  onOffrm;
+	u8  ble_trigger;
+#ifdef ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+	u8  onoffbType;
+#endif
 	u16	onTime;
 	u16	offWaitTime;
 	u8	startUpOnOff;
@@ -207,8 +256,11 @@ extern zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs;
 #endif
 extern zcl_pollCtrlAttr_t g_zcl_pollCtrlAttrs;
 #ifdef ZCL_ON_OFF
-extern zcl_onOffAttr_t g_zcl_onOffAttrs;
-#define zcl_onoffAttrGet()      &g_zcl_onOffAttrs
+extern zcl_onOffAttr_t g_zcl_onOffAttrs[];
+#define zcl_onoffAttrGet(n)      &g_zcl_onOffAttrs[n]
+#endif
+#ifdef ZCL_GROUP
+extern zcl_groupAttr_t g_zcl_groupAttrs;
 #endif
 
 #define zcl_iasZoneAttrGet()	&g_zcl_iasZoneAttrs
@@ -243,11 +295,17 @@ void app_leaveIndHandler(nlme_leave_ind_t *pLeaveInd);
 void app_otaProcessMsgHandler(u8 evt, u8 status);
 
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
-void app_onOffUpdate(u8 cmd);
+void app_onOffUpdate(u8 cmd, u8 n);
 void remoteCmdOnOff(u8 srcEp, u8 cmd);
-void app_onOffInit(void);
-nv_sts_t zcl_onOffAttr_restore(void);
-nv_sts_t zcl_onOffAttr_save(void);
+//void app_onOffInit(void);
+nv_sts_t zcl_onOffAttr_restore(u8 n);
+nv_sts_t zcl_onOffAttr_save(u8 n);
+nv_sts_t zcl_onOffbleAttr_restore(void);
+nv_sts_t zcl_onOffbleAttr_save(void);
+nv_sts_t zcl_illuminance_restore(void);
+nv_sts_t zcl_illuminance_save(void);
+nv_sts_t zcl_onOffTypeAttr_restore(void);
+nv_sts_t zcl_onOffTypeAttr_save(void);
 
 void scan_task(void);
 int blt_pm_proc(void);

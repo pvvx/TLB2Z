@@ -200,6 +200,26 @@ static void zb_illuminance(u32 lx, u8 n) {
 	update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_LGH | FLG_UPDATE_FLG;
 }
 
+static void zb_moving(u8 n, u8 onoff) {
+	u32 min_lx = (u32)g_zcl_illuminanceAttrs.minLevelLx[n];
+	if(g_zcl_illuminanceAttrs.measuredVal[n] != 0xffff
+		&& min_lx != 0) {
+		if(onoff) {
+			if(g_zcl_onOffAttrs[n].ble_trigger == 0 // first On?
+			&& ble_illuminance[n] < min_lx) {
+				g_zcl_onOffAttrs[n].ble_trigger = onoff;
+			    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+			}
+		} else {
+			g_zcl_onOffAttrs[n].ble_trigger = onoff;
+		    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+		}
+	} else {
+		g_zcl_onOffAttrs[n].ble_trigger = onoff;
+	    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+	}
+}
+
 #endif // ZCL_ILLUMINANCE_MEASUREMENT
 
 
@@ -310,23 +330,40 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					&& ps->size >= 4) { // Humidity, float
 					g_zcl_relHumidityAttrs.measuredValue[n] = float_pf2i_x100(ps->data_ub);
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
+					// Motion
 #if SCAN_TRG_ENABLE
-				// Motion
+				} else if((ps->id == MI_DATA_EV_Door)&&(ps->size >= 1)) {
+					g_zcl_onOffAttrs[n].ble_trigger = ps->data_ub[0];
+					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+				} else if((ps->id == MI_DATA_EV_Button)&&(ps->size >= 3)) { // button_type, value, press
+					if(ps->data_ub[0] == 0 // toggle
+					   || ps->data_ub[0] == 1 // light toggle
+					   || ps->data_ub[0] == 6 // light toggle
+					   ) {
+						g_zcl_onOffAttrs[n].ble_trigger = !g_zcl_onOffAttrs[n].ble_trigger;
+					}
+					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 				} else if((ps->id == MI_DATA_EV_Motion)&&(ps->size >= 1)) { // Motion
+#ifdef ZCL_ILLUMINANCE_MEASUREMENT
+					zb_moving(n, ps->data_ub[0]);
+#else
 					g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+#endif
 				} else if((ps->id == MI_DATA_EV_MovingWithLight)&&(ps->size >= 3)) { // Moving With Light 0f0003 540f00 / 0f0003 620e00
-					g_zcl_onOffAttrs.ble_trigger[n] = 1;
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
+					zb_moving(n, 1);
 #else
+					g_zcl_onOffAttrs.ble_trigger[n] = 1;
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
 				} else if((ps->id == MI_DATA_ID_NoOneMoves)&&(ps->size >= 4)) { // No one moves over time / 171004 3c000000 / 171004 78000000 / 1710042c010000 / 171004 58020000
-					g_zcl_onOffAttrs.ble_trigger[n] = 0;
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
+					zb_moving(n, 0);
 #else
+					g_zcl_onOffAttrs.ble_trigger[n] = 0;
 					update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
 
@@ -369,18 +406,24 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 				zb_batteryVoltage(ps->data_ub[0], n);
 #if SCAN_TRG_ENABLE
 			} else if(ps->id_size == QP_DATA_MotionIlluminance) { // Motion + Light
-				g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
-				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 				if((p->hlen & 0x40) == 0) {
 					zb_illuminance(ps->data_uw >> 8, n);
 				}
+				zb_moving(n, ps->data_ub[0]);
+#else
+				g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
+				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
+			} else if(ps->id_size == QP_DATA_Door) {
+				g_zcl_onOffAttrs[n].ble_trigger = ps->data_ub[0] == 2;
+				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 #endif
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 			} else if(ps->id_size == QP_DATA_Illuminance) { // Light
 				zb_illuminance(ps->data_uw, n);
 #endif
+
 			//	} else if(ps->id_size == QP_DATA_Pressure) { // Pressure
 			//		pressure = ps->data_us[0];  // in 0.1
 			//	} else if(ps->id_size == QP_DATA_light) { // light (bool)
@@ -413,7 +456,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_powerAttrs[n].batteryPercentage = p->battery_level << 1;
 		g_zcl_powerAttrs[n].batteryVoltage = p->battery_mv/100;
 #if SCAN_TRG_ENABLE
-		g_zcl_onOffAttrs.ble_trigger[n] = p->flags.trg_output;
+		g_zcl_onOffAttrs[n].ble_trigger = p->flags.trg_output;
 #endif
 		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = p->flags.rds_input;
@@ -450,7 +493,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 		g_zcl_relHumidityAttrs.measuredValue[n] = pp->data.humi;
 		zb_batteryVoltage(pp->data.bat, n);
 #if SCAN_TRG_ENABLE
-		g_zcl_onOffAttrs.ble_trigger[n] = p->flags.trg_output;
+		g_zcl_onOffAttrs[n].ble_trigger = p->flags.trg_output;
 #endif
 		update_enable[n] |= FLG_UPDATE_BAT | FLG_UPDATE_VBAT | FLG_UPDATE_TEMP | FLG_UPDATE_HUMI | FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		//wrk.flg.rds_output = pp->data.flags.rds_input;
@@ -549,13 +592,28 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 					zb_illuminance(ps->data_us[0] | (ps->data_ub[3] << 16), n);
 #endif
 #if SCAN_TRG_ENABLE
-				} else if(ps->type == BtHomeID_switch) {
+				} else if(ps->type ==
+#ifdef ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+						g_zcl_onOffAttrs[n].onoffbType
+#else
+						BtHomeID_switch
+//						|| ps->type == BtHomeID_opened
+						|| ps->type == BtHomeID_door
+						|| ps->type == BtHomeID_moving
+						|| ps->type == BtHomeID_occupancy
+						|| ps->type == BtHomeID_vibration
+						|| ps->type == BtHomeID_window
+#endif
+						) {
 					if(!next_trg) {
-						g_zcl_onOffAttrs.ble_trigger[n] = ps->data_ub[0];
+						g_zcl_onOffAttrs[n].ble_trigger = ps->data_ub[0];
 						update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 						next_trg = true;
 					}
 #endif
+				} else if(ps->type == BtHomeID_motion) {
+					zb_moving(n, ps->data_ub[0]);
+
 				}
 			} else
 					break;

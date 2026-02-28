@@ -495,13 +495,13 @@ nv_sts_t nv_flashWriteNew(u8 single, u16 id, u8 itemId, u16 len, u8 *buf);
 nv_sts_t nv_flashReadNew(u8 single, u8 id, u8 itemId, u16 len, u8 *buf);
 nv_sts_t nv_itemDeleteByIndex(u8 id, u8 itemId, u8 opSect, u16 opIdx);
 nv_sts_t nv_flashSingleItemRemove(u8 id, u8 itemId, u16 len);
-nv_sts_t nv_flashReadByIndex(u8 id, u8 itemId, u8 opSect, u16 opIdx, u16 len, u8 *buf);
-void nv_itemLengthCheckAdd(u8 itemId, u16 len);
-nv_sts_t nv_resetToFactoryNew(void);
+nv_sts_t nv_flashReadByIndex(u8 id, u8 itemId, u8 opSect, u16 opIdx, u16 len, u8 *buf); // ?
+void nv_itemLengthCheckAdd(u8 itemId, u16 len); // ?
+nv_sts_t nv_resetToFactoryNew(void); // -
 bool nv_facrotyNewRstFlagCheck(void);
 void nv_facrotyNewRstFlagSet(void);
 void nv_facrotyNewRstFlagClear(void);
-nv_sts_t nv_nwkFrameCountSaveToFlash(u32 frameCount);
-nv_sts_t nv_nwkFrameCountFromFlash(u32 *frameCount);
+nv_sts_t nv_nwkFrameCountSaveToFlash(u32 frameCount); // ?
+nv_sts_t nv_nwkFrameCountFromFlash(u32 *frameCount); // ?
 nv_sts_t nv_flashSingleItemSizeGet(u8 id, u8 itemId, u16 *len);
 

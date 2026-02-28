@@ -100,7 +100,7 @@ Z2M содержит ряд ошибок:
 * Мигает по команде “Identify”
 * Светится постянно или отключен - отображает состяние реле
 
-## TLB2Z Reportable:
+## TLB2Z Zigbee Reportable:
 
 | Endpoint | Cluster | Attribute | NN BLE device |
 | --- | --- | --- | --- |
@@ -125,7 +125,7 @@ Z2M содержит ряд ошибок:
 
 * Если используется менее 3-х BLE термометров-гигрометров или термометр-гигрометр не передает какой параметр, тогда нет необходимости связывать данные кластеры в Zigbee координаторе.
 
-### Default Report Setting:
+### Zigbee Default Report Setting:
 
 | Name | Tmin | Tmax | Change |
 | --- | --- | --- | --- |
@@ -137,3 +137,17 @@ Z2M содержит ряд ошибок:
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 
 * Xiaomi термометры-гигрометры используют большой интервал передачи данных, длительностями в десятки минут. Для исключения лишних дублирующих точек на графиках желательно устанавливать соответствующие (кратные) интервалы в Zigbee репорт.
+
+## TLB2Z Zigbee Settings:
+
+| Endpoint | Cluster | Attribute | NN BLE device |
+| --- | --- | --- | --- |
+| 1 | 0x0006 On/Off | 0x4003 StartUpOnOff | 1 |
+| 2 | 0x0006 On/Off | 0x4003 StartUpOnOff | 2 |
+| 3 | 0x0006 On/Off | 0x4003 StartUpOnOff | 3 |
+| 1 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 1 |
+| 2 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 2 |
+| 3 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 3 |
+| 1 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 1 |
+| 2 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 2 |
+| 3 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 3 |
