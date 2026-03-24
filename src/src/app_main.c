@@ -13,6 +13,7 @@
 
 #include "app_ui.h"
 #include "zcl_relative_humidity.h"
+#include "zcl_illuminance_level_sensing.h"
 #include "chip_8258/timer.h"
 #include "zb_reporting.h"
 #include "ble_cfg.h"
@@ -44,7 +45,7 @@ u16 bdb_findBindClusterList[] =
 /**********************************************************************
  * GLOBAL VARIABLES
  */
-app_ctx_t g_sensorAppCtx;
+app_ctx_t g_devAppCtx;
 
 #if ZCL_OTA_SUPPORT
 extern ota_callBack_t app_otaCb;
@@ -217,9 +218,9 @@ static void user_app_init(void)
 	ev_on_poll(EV_POLL_IDLE, app_zb_task);
 
 	/* Load the pre-install code from flash */
-	if(bdb_preInstallCodeLoad(&g_sensorAppCtx.tcLinkKey.keyType, g_sensorAppCtx.tcLinkKey.key) == RET_OK){
-		g_bdbCommissionSetting.linkKey.tcLinkKey.keyType = g_sensorAppCtx.tcLinkKey.keyType;
-		g_bdbCommissionSetting.linkKey.tcLinkKey.key = g_sensorAppCtx.tcLinkKey.key;
+	if(bdb_preInstallCodeLoad(&g_devAppCtx.tcLinkKey.keyType, g_devAppCtx.tcLinkKey.key) == RET_OK){
+		g_bdbCommissionSetting.linkKey.tcLinkKey.keyType = g_devAppCtx.tcLinkKey.keyType;
+		g_bdbCommissionSetting.linkKey.tcLinkKey.key = g_devAppCtx.tcLinkKey.key;
 	}
 	/* Set default reporting configuration */
 	reportableChange = 0;
@@ -268,6 +269,18 @@ static void user_app_init(void)
 			180,
 			(u8 *)&reportableChange
 		);
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+    	reportableChange = 0;
+		bdb_defaultReportingCfg(
+			i,
+			HA_PROFILE_ID,
+			ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG,
+			ZCL_ATTRID_ILSC_LEVEL_STATUS,
+			0,
+			3600,
+			(u8 *)&reportableChange
+		);
+#endif
 #endif
 
         reportableChange = 10;
@@ -357,7 +370,7 @@ static void test_ble_trigger(void) {
 #ifdef GPIO_RELAY
 					if(!n) {
 						gpio_write(GPIO_RELAY, on_state);
-						g_sensorAppCtx.oriSta = on_state;
+						g_devAppCtx.oriSta = on_state;
 						if(on_state){
 							light_on();
 						}else{
@@ -367,10 +380,10 @@ static void test_ble_trigger(void) {
 #endif
 					pOnOff->onOffrm = on_state;
 					remoteCmdOnOff(APP_ENDPOINT1 + n, on_state);
-					pOnOff->ble_trigger_tik = g_sensorAppCtx.utc_time_sec;
+					pOnOff->ble_trigger_tik = g_devAppCtx.utc_time_sec;
 				}
 			} else if(pOnOff->ble_trigger_tik) {
-				if(g_sensorAppCtx.utc_time_sec - pOnOff->ble_trigger_tik >= 3) {
+				if(g_devAppCtx.utc_time_sec - pOnOff->ble_trigger_tik >= 3) {
 					sws_printf("OnOff2rm %d:%d\n", n + 1, pOnOff->onOffrm);
 					remoteCmdOnOff(APP_ENDPOINT1 + n, pOnOff->onOffrm);
 					pOnOff->ble_trigger_tik = 0;
@@ -394,22 +407,22 @@ static void app_zb_task(void)
 	if(bdb_isIdle()){
 		// report handler
 		if(zb_isDeviceJoinedNwk()){
-			while(clock_time() - g_sensorAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
-				g_sensorAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
-				g_sensorAppCtx.reportupsec++; // + 1 sec
-				g_sensorAppCtx.utc_time_sec++;
+			while(clock_time() - g_devAppCtx.secTimeTik >= CLOCK_16M_SYS_TIMER_CLK_1S) {
+				g_devAppCtx.secTimeTik += CLOCK_16M_SYS_TIMER_CLK_1S;
+				g_devAppCtx.reportupsec++; // + 1 sec
+				g_devAppCtx.utc_time_sec++;
 			}
-			if(g_sensorAppCtx.reportupsec >= MIN_REPORT_INTERVAL) {
-				app_chk_report(g_sensorAppCtx.reportupsec);
-				g_sensorAppCtx.reportupsec = 0;
+			if(g_devAppCtx.reportupsec >= MIN_REPORT_INTERVAL) {
+				app_chk_report(g_devAppCtx.reportupsec);
+				g_devAppCtx.reportupsec = 0;
 			}
 #ifdef ZCL_ON_OFF
 			else
 				test_ble_trigger();
 #endif
 		} else {
-			g_sensorAppCtx.reportupsec = 0;
-			if(!g_sensorAppCtx.timerLedEvt)
+			g_devAppCtx.reportupsec = 0;
+			if(!g_devAppCtx.timerLedEvt)
 				light_blink_start(128, 500, 500);
 		}
 	}

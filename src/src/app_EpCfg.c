@@ -4,7 +4,7 @@
 #include "tl_common.h"
 #include "zcl_include.h"
 #include "zcl_relative_humidity.h"
-//#include "zcl_illuminance_measurement.h"
+#include "zcl_illuminance_level_sensing.h"
 #include "zcl_thermostat_ui_cfg.h"
 #include "app.h"
 #include "adv_bthome.h"
@@ -62,6 +62,9 @@ const u16 app_inClusterList1[] =
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
 #endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG,
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,
 #endif
@@ -81,6 +84,9 @@ const u16 app_inClusterList2[] =
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
 #endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG,
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,
 #endif
@@ -96,6 +102,9 @@ const u16 app_inClusterList3[] =
 #endif
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT,
+#endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG,
 #endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT,
@@ -146,13 +155,18 @@ const u16 app_outClusterList3[] =
 #define app_IN_CLUSTER_NUM3		(sizeof(app_inClusterList3)/sizeof(app_inClusterList3[0]))
 #define app_OUT_CLUSTER_NUM3	(sizeof(app_outClusterList3)/sizeof(app_outClusterList3[0]))
 
+#define HA_DEV_IDENFIFIER 	HA_DEV_LIGHT_SENSOR
 /**
  *  @brief Definition for simple description for HA profile
+ *
+ *
+ 0x0106
+ *
  */
 const af_simple_descriptor_t app_simpleDesc1 =
 {
 	HA_PROFILE_ID,              /* Application profile identifier */
-	HA_DEV_TEMPERATURE_SENSOR,  /* Application device identifier */
+	HA_DEV_IDENFIFIER,  /* Application device identifier */
 	APP_ENDPOINT1,         		/* Endpoint */
 	1,							/* Application device version */
 	0,							/* Reserved */
@@ -164,7 +178,7 @@ const af_simple_descriptor_t app_simpleDesc1 =
 const af_simple_descriptor_t app_simpleDesc2 =
 {
 	HA_PROFILE_ID,             	/* Application profile identifier */
-	HA_DEV_TEMPERATURE_SENSOR,  /* Application device identifier */
+	HA_DEV_IDENFIFIER,  /* Application device identifier */
 	APP_ENDPOINT2,         		/* Endpoint */
 	1,							/* Application device version */
 	0,							/* Reserved */
@@ -176,7 +190,7 @@ const af_simple_descriptor_t app_simpleDesc2 =
 const af_simple_descriptor_t app_simpleDesc3 =
 {
 	HA_PROFILE_ID,              /* Application profile identifier */
-	HA_DEV_TEMPERATURE_SENSOR,  /* Application device identifier */
+	HA_DEV_IDENFIFIER,  /* Application device identifier */
 	APP_ENDPOINT3,         		/* Endpoint */
 	1,							/* Application device version */
 	0,							/* Reserved */
@@ -282,7 +296,7 @@ const zclAttrInfo_t powerCfg_attrTbl[] =
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs = {
 		.measuredVal = { 0xffff, 0xffff, 0xffff },
-		.minMeasuredVal = 0,
+		.minMeasuredVal = 1,
 		.maxMeasuredVal = 0xfffe,
 #ifdef ZCL_ATTR_TOLERANCE_ENABLE
 		.tolerance = 0,
@@ -291,7 +305,12 @@ zcl_illuminanceAttr_t	g_zcl_illuminanceAttrs = {
 		.lightSensorType = 0,
 #endif
 #ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
-		.minLevelLx = {0,0,0}
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+		.minLevelLx = {0xffff, 0xffff, 0xffff},
+		.levelStatus = {ILSC_NONE,ILSC_NONE,ILSC_NONE}, // {ILSC_NONE, ILSC_NONE, ILSC_NONE},
+#else
+		.minLevelLx = {0,0,0},
+#endif
 #endif
 };
 
@@ -305,7 +324,7 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl1[] = {
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
 #endif
-#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+#if defined(ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL) && !defined(ZCL_ILLUMINANCE_LEVEL_SENSING)
 	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[0]},
 #endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
@@ -323,7 +342,7 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl2[] = {
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
 #endif
-#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+#if defined(ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL) && !defined(ZCL_ILLUMINANCE_LEVEL_SENSING)
 	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[1]},
 #endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
@@ -341,13 +360,53 @@ const zclAttrInfo_t illuminanceMeasure_attrTbl3[] = {
 #ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
     { ZCL_ATTRID_LIGHT_SENSOR_TYPE,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
 #endif
-#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+#if defined(ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL) && !defined(ZCL_ILLUMINANCE_LEVEL_SENSING)
 	{ ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL,  ZCL_DATA_TYPE_UINT16,  ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[2]},
 #endif
     { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
 };
 
 #define ZCL_ILLUMINANCE_ATTR_NUM3  (sizeof(illuminanceMeasure_attrTbl3) / sizeof(zclAttrInfo_t))
+
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+
+// Cluster 0x0401: ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG
+
+const zclAttrInfo_t ilsc_attrTbl1[] = {
+    { ZCL_ATTRID_ILSC_LEVEL_STATUS,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE, (u8*)&g_zcl_illuminanceAttrs.levelStatus[0] },
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+    { ZCL_ATTRID_ILSC_LIGHT_SENSOR_TYPE,  ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+    { ZCL_ATTRID_ILSC_TARGET_LEVEL,       ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[0] },
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
+};
+
+#define ZCL_ILSC_ATTR_NUM1  (sizeof(ilsc_attrTbl1) / sizeof(zclAttrInfo_t))
+
+const zclAttrInfo_t ilsc_attrTbl2[] = {
+    { ZCL_ATTRID_ILSC_LEVEL_STATUS,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE, (u8*)&g_zcl_illuminanceAttrs.levelStatus[1] },
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+    { ZCL_ATTRID_ILSC_LIGHT_SENSOR_TYPE,  ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+    { ZCL_ATTRID_ILSC_TARGET_LEVEL,       ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[1] },
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
+};
+
+#define ZCL_ILSC_ATTR_NUM2  (sizeof(ilsc_attrTbl2) / sizeof(zclAttrInfo_t))
+
+const zclAttrInfo_t ilsc_attrTbl3[] = {
+    { ZCL_ATTRID_ILSC_LEVEL_STATUS,       ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ | ACCESS_CONTROL_REPORTABLE, (u8*)&g_zcl_illuminanceAttrs.levelStatus[2] },
+#ifdef ZCL_ATTR_LIGHT_SENSOR_TYPE_ENABLE
+    { ZCL_ATTRID_ILSC_LIGHT_SENSOR_TYPE,  ZCL_DATA_TYPE_ENUM8,  ACCESS_CONTROL_READ, (u8*)&g_zcl_illuminanceAttrs.lightSensorType },
+#endif
+    { ZCL_ATTRID_ILSC_TARGET_LEVEL,       ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ | ACCESS_CONTROL_WRITE, (u8*)&g_zcl_illuminanceAttrs.minLevelLx[2] },
+    { ZCL_ATTRID_GLOBAL_CLUSTER_REVISION, ZCL_DATA_TYPE_UINT16, ACCESS_CONTROL_READ, (u8*)&zcl_attr_global_clusterRevision },
+};
+
+#define ZCL_ILSC_ATTR_NUM3  (sizeof(ilsc_attrTbl3) / sizeof(zclAttrInfo_t))
+
+
+#endif // ZCL_ILLUMINANCE_LEVEL_SENSING
 
 #endif // ZCL_ILLUMINANCE_MEASUREMENT
 
@@ -621,6 +680,9 @@ const zcl_specClusterInfo_t g_appClusterList1[] =
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	{ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM1, illuminanceMeasure_attrTbl1, zcl_illuminanceMeasure_register, NULL},
 #endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	{ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM1, ilsc_attrTbl1, zcl_illuminanceLevelSensing_register, NULL},
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	{ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_TEMPERATURE_ATTR_NUM, temperature_measurement_attrTbl1, zcl_temperature_measurement_register, 	NULL},
 #endif
@@ -642,6 +704,9 @@ const zcl_specClusterInfo_t g_appClusterList2[] =
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	{ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM2, illuminanceMeasure_attrTbl2, zcl_illuminanceMeasure_register, NULL},
 #endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	{ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM2, ilsc_attrTbl2, zcl_illuminanceLevelSensing_register, NULL},
+#endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	{ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_TEMPERATURE_ATTR_NUM, temperature_measurement_attrTbl2, zcl_temperature_measurement_register, NULL},
 #endif
@@ -660,6 +725,9 @@ const zcl_specClusterInfo_t g_appClusterList3[] =
 #endif
 #ifdef ZCL_ILLUMINANCE_MEASUREMENT
 	{ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM3, illuminanceMeasure_attrTbl3, zcl_illuminanceMeasure_register, NULL},
+#endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	{ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG, MANUFACTURER_CODE_NONE, ZCL_ILLUMINANCE_ATTR_NUM3, ilsc_attrTbl3, zcl_illuminanceLevelSensing_register, NULL},
 #endif
 #ifdef ZCL_TEMPERATURE_MEASUREMENT
 	{ZCL_CLUSTER_MS_TEMPERATURE_MEASUREMENT, MANUFACTURER_CODE_NONE, ZCL_TEMPERATURE_ATTR_NUM, temperature_measurement_attrTbl3, zcl_temperature_measurement_register, NULL},
@@ -706,6 +774,10 @@ nv_sts_t zcl_illuminance_save(void)
         st = nv_flashWriteNew(1, NV_MODULE_APP, NV_ITEM_APP_ILLUMINANCE,
         		sizeof(g_zcl_illuminanceAttrs.minLevelLx),
 				(u8 *)&g_zcl_illuminanceAttrs.minLevelLx);
+        sws_printf("NV#wr_illumi: 0x%04x,0x%04x,0x%04x\n",
+        		g_zcl_illuminanceAttrs.minLevelLx[0],
+    			g_zcl_illuminanceAttrs.minLevelLx[1],
+    			g_zcl_illuminanceAttrs.minLevelLx[2]);
     }
 #else
     st = NV_ENABLE_PROTECT_ERROR;
@@ -726,17 +798,20 @@ nv_sts_t zcl_illuminance_save(void)
 nv_sts_t zcl_illuminance_restore(void)
 {
     nv_sts_t st = NV_SUCC;
-
 #if NV_ENABLE
     st = nv_flashReadNew(1, NV_MODULE_APP,  NV_ITEM_APP_ILLUMINANCE,
     		sizeof(g_zcl_illuminanceAttrs.minLevelLx),
 			(u8 *)&g_zcl_illuminanceAttrs.minLevelLx);
+    sws_printf("NV#rd_illumi: 0x%04x,0x%04x,0x%04x\n",
+    		g_zcl_illuminanceAttrs.minLevelLx[0],
+			g_zcl_illuminanceAttrs.minLevelLx[1],
+			g_zcl_illuminanceAttrs.minLevelLx[2]);
 #else
     st = NV_ENABLE_PROTECT_ERROR;
 #endif
     return st;
 }
-#endif
+#endif // ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
 
 #ifdef ZCL_ON_OFF
 /*********************************************************************

@@ -17,7 +17,7 @@ typedef enum {
 	ILSC_ON_TARGET = 0, // Illuminance on target
 	ILSC_BELOW_TARGET,	// Illuminance below target
 	ILSC_ABOVE_TARGET,	// Illuminance above target
-	ILSC_NONE			//
+	ILSC_NONE = 0xff	//
 } ilsc_level_status_e;
 
 status_t zcl_illuminanceLevelSensing_register(u8 endpoint, u16 manuCode, u8 attrNum, const zclAttrInfo_t attrTbl[], cluster_forAppCb_t cb);

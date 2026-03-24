@@ -28,7 +28,7 @@
 
 #if USE_DEBUG_PRINTF
 #define eep_printf	sws_printf
-#define eep1_printf	sws_printf
+#define eep1_printf(...)
 //#define eep1_printf(...)
 #else
 #define eep_printf(...)
@@ -70,7 +70,7 @@ static inline void _flash_read_head(u32 addr, fobj_head_t *phead) {
  -----------------------------------------------------*/
 static inline void _flash_write_obj(u32 faddr, feep_obj_t * pobj)
 {
-	eep_printf("wreep_obj: %02x,%04x\n", faddr, pobj->h.x);
+	eep1_printf("EEP#wr_obj: %02x,%04x\n", faddr, pobj->h.x);
 	// сначала записать размер и данные
 	_flash_write(faddr + sizeof(pobj->h.n.id),
 			sizeof(pobj->h.n.size) + pobj->h.n.size,
@@ -195,6 +195,7 @@ LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
 	feep_obj_t fobj;
 	fobj_head_t rh;
 	u32 fnewseg, faddr, rdaddr, wraddr, endrdaddr;
+	eep_printf("EEP#pack: %d\n", bank);
 	memset((u8 *)buf_id, 0, 256);
 	// вычислить следующий сектор банка и конец текущего сектора
 	fnewseg = sec_faddr + FLASH_SECTOR_SIZE;
@@ -289,7 +290,7 @@ LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
 s32 flash_write_cfg(void *ptr, u8 bank, u8 id, u8 size) {
-	eep1_printf("wreep: %d,%02x,%d\n", bank, id, size);
+	eep_printf("EEP#wr_obj[%d]: %d,%02x\n", size, bank, id);
 #else
 s32 flash_write_cfg(void *ptr, u8 id, u8 size) {
 #endif
@@ -319,10 +320,13 @@ s32 flash_write_cfg(void *ptr, u8 id, u8 size) {
 			eep1_printf("wreep_rad: %06x,%04x\n", faddr, fobj.h.x);
 			// сравнить данные объекта
 			if(!memcmp(ptr, &fobj.data, size)) {
+				eep_printf("EEP#wr_eq\n");
 				return size; // данные идентичны - объект уже записан
 			}
-		} else
+		} else {
+			eep_printf("EEP#wr_eq\n");
 			return size; // данные идентичны - объект уже записан и размер 0
+		}
 	}
 	// найти адрес для записи
 	faddr = get_addr_wrobj(saddr + sizeof(fobj.h));
@@ -340,6 +344,7 @@ s32 flash_write_cfg(void *ptr, u8 id, u8 size) {
 		eep1_printf("wreep_new: %06x\n", saddr);
 	}
 	if(!faddr || faddr + size + sizeof(fobj.h) >= saddr + FLASH_SECTOR_SIZE) {
+		eep_printf("EEP#wr_overflow\n");
 		return FMEM_OVERFLOW; // не влезет: переполнение банка
 	}
 	// записать объект
@@ -347,15 +352,15 @@ s32 flash_write_cfg(void *ptr, u8 id, u8 size) {
 		memcpy(fobj.data, ptr, size);
 	}
 	fobj.h.n.size = size;
-	//eep_printf("wreep_obj: %02x,%04x\n", faddr, fobj.h.x);
 	_flash_write_obj(faddr, &fobj);
+	eep_printf("EEP#wr_ok\n");
 	return size;
 }
 //=============================================================================
 void flash_erase_all_cfg(void) {
 	u32 faddr = FMEMORY_EEP_BASE_ADDR1;
 	u32 fend = faddr + FMEMORY_EEP_BANKS_SIZE;
-	eep_printf("eep_erase_all\n");
+	eep_printf("EEP#erase_all\n");
 	while(faddr < fend) {
 		_flash_erase_sector(faddr);
 		faddr += FLASH_SECTOR_SIZE;
@@ -384,7 +389,7 @@ void flash_erase_all_cfg(void) {
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
 s32 flash_read_cfg(void *ptr, u8 bank, u8 id, u8 maxsize) {
-	eep1_printf("rdeep: %d,%02x,%d\n", bank, id, maxsize);
+	eep_printf("EEP#rd_obj[%d]: %d,%02x\n", maxsize, bank, id);
 #else
 s32 flash_read_cfg(void *ptr, u8 id, u8 maxsize) {
 #endif

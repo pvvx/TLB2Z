@@ -39,13 +39,14 @@
 
 /* Board ID */
 #define BOARD_DEBUG					1  // DIY TB-03F-Kit debug
+#define BOARD_ZB_TS0001				2  // https://pvvx.github.io/Zbeacon-TS0001/
 #define BOARD_TB03F_KIT				16 // DIY TB-03F-Kit
 #define BOARD_TS0001_TZ3000_RBZ		43 // https://pvvx.github.io/TS0001_TZ3000/
 #define BOARD_ZG807Z				44 // https://pvvx.github.io/ZG-807Z/
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_DEBUG
+#define BOARD					BOARD_ZB_TS0001
 #endif
 
 /* Chip IDs */
@@ -71,7 +72,7 @@
 #endif
 
 #define APP_RELEASE				0x01	//BCD app release "0.2"
-#define APP_BUILD				0x11	//BCD app build "0.3"
+#define APP_BUILD				0x13	//BCD app build "0.3"
 #define STACK_RELEASE			0x30	//BCD stack release 3.0
 #define STACK_BUILD				0x01	//BCD stack build 01
 

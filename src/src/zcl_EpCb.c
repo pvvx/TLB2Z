@@ -5,6 +5,7 @@
 #include "zcl_include.h"
 //#include "zcl_config.h"
 //#include "zcl_thermostat_ui_cfg.h"
+#include "zcl_illuminance_level_sensing.h"
 #include "app.h"
 #include "app_ui.h"
 #include "zb_reporting.h"
@@ -109,7 +110,7 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
  */
 void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
 {
-	sws_printf("rdrspcmd %d:0x%04x\n", endpoint, clusterId);
+	sws_printf("ZCL#rdrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclReadRspCmd\n");
 
 }
@@ -127,7 +128,7 @@ void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
  */
 void app_zclWriteRspCmd(u8 endpoint, u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
 {
-	sws_printf("wrrspcmd %d:0x%04x\n", endpoint, clusterId);
+	sws_printf("ZCL#wrrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclWriteRspCmd\n");
 
 }
@@ -149,12 +150,12 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
     if (clusterId == ZCL_CLUSTER_GEN_ON_OFF) {
         for (u8 i = 0; i < numAttr; i++) {
             if (attr[i].attrID == ZCL_ATTRID_START_UP_ONOFF) {
-            	sws_puts("onOffAttr_save\n");
+            	sws_puts("ZCL#onOffAttr_save\n");
                 zcl_onOffAttr_save(endpoint - APP_ENDPOINT1);
             }
 #ifdef  ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
             else if(attr[i].attrID == ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE) {
-            	sws_puts("onOffType_save\n");
+            	sws_puts("ZCL#onOffType_save\n");
             	zcl_onOffTypeAttr_save();
             }
 #endif
@@ -162,6 +163,15 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
     } else
 #endif
 #ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+       	if(clusterId == ZCL_CLUSTER_MS_ILLUMINANCE_LEVEL_SENSING_CONFIG) {
+    		for(int i = 0; i < numAttr; i++){
+    			if(attr[i].attrID == ZCL_ATTRID_ILSC_TARGET_LEVEL) {
+    				zcl_illuminance_save();
+    			}
+    		}
+       	} else
+#else
    	if(clusterId == ZCL_CLUSTER_MS_ILLUMINANCE_MEASUREMENT) {
 		for(int i = 0; i < numAttr; i++){
 			if(attr[i].attrID == ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL) {
@@ -169,6 +179,7 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 			}
 		}
    	} else
+#endif
 #endif
 #ifdef ZCL_THERMOSTAT_UI_CFG
 	if(clusterId == ZCL_CLUSTER_HAVC_USER_INTERFACE_CONFIG) {
@@ -179,7 +190,7 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
 	if(clusterId == ZCL_CLUSTER_GEN_POLL_CONTROL){
 		for(int i = 0; i < numAttr; i++){
 			if(attr[i].attrID == ZCL_ATTRID_CHK_IN_INTERVAL) {
-				sws_puts("CheckInStart\n");
+				sws_puts("ZCL#CheckInStart\n");
 				app_zclCheckInStart();
 				return;
 			}
@@ -211,7 +222,7 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
  */
 void app_zclDfltRspCmd(u8 endpoint, u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd)
 {
-	sws_printf("dfrspcmd %d:0x%04x\n", endpoint, clusterId);
+	sws_printf("ZCL#dfrspcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclDfltRspCmd\n");
 
 }
@@ -231,7 +242,7 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
 	for(u8 i = 0; i < ZCL_REPORTING_TABLE_NUM; i++){
 		reportCfgInfo_t *pEntry = &reportingTab.reportCfgInfo[i];
 		if(pEntry->used && pEntry->clusterID == clusterId && pEntry->endPoint == endpoint) {
-			sws_printf("cfgrpcmd %d:0x%04x\n", endpoint, clusterId);
+			sws_printf("ZCL#cfgrpcmd %d:0x%04x\n", endpoint, clusterId);
 			pEntry->minIntCnt = 0;
 			pEntry->maxIntCnt = 0;
 		}
@@ -248,7 +259,7 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
  */
 void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd)
 {
-	sws_printf("cfgrprsp :0x%04x\n", endpoint, clusterId);
+	sws_printf("ZCL#cfgrprsp :0x%04x\n", endpoint, clusterId);
     //printf("app_zclCfgReportRspCmd\n");
 
 }
@@ -264,7 +275,7 @@ void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pC
  */
 void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd)
 {
-	sws_printf("rpcmd %d:0x%04x\n", endpoint, clusterId);
+	sws_printf("ZCL#rpcmd %d:0x%04x\n", endpoint, clusterId);
     //printf("app_zclReportCmd\n");
 
 }
@@ -284,7 +295,7 @@ void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd)
  */
 status_t app_basicCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-	sws_printf("basicCb: %d\n", cmdId);
+	sws_printf("ZCL#basicCb: %d\n", cmdId);
 	if(cmdId == ZCL_CMD_BASIC_RESET_FAC_DEFAULT){
 		//Reset all the attributes of all its clusters to factory defaults
 		//zcl_nv_attr_reset();
@@ -298,7 +309,7 @@ status_t app_basicCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
 s32 app_zclIdentifyTimerCb(void *arg)
 {
 	if(g_zcl_identifyAttrs.identifyTime <= 0){
-		g_sensorAppCtx.timerIdentifyEvt = NULL;
+		g_devAppCtx.timerIdentifyEvt = NULL;
 		return -1;
 	}
 	g_zcl_identifyAttrs.identifyTime--;
@@ -307,8 +318,8 @@ s32 app_zclIdentifyTimerCb(void *arg)
 
 void app_zclIdentifyTimerStop(void)
 {
-	if(g_sensorAppCtx.timerIdentifyEvt){
-		TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerIdentifyEvt);
+	if(g_devAppCtx.timerIdentifyEvt){
+		TL_ZB_TIMER_CANCEL(&g_devAppCtx.timerIdentifyEvt);
 	}
 }
 
@@ -331,9 +342,9 @@ void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime)
 		app_zclIdentifyTimerStop();
 		light_blink_stop();
 	}else{
-		if(!g_sensorAppCtx.timerIdentifyEvt){
+		if(!g_devAppCtx.timerIdentifyEvt){
 			light_blink_start(identifyTime, 500, 500);
-			g_sensorAppCtx.timerIdentifyEvt = TL_ZB_TIMER_SCHEDULE(app_zclIdentifyTimerCb, NULL, 1000);
+			g_devAppCtx.timerIdentifyEvt = TL_ZB_TIMER_SCHEDULE(app_zclIdentifyTimerCb, NULL, 1000);
 		}
 	}
 }
@@ -508,7 +519,7 @@ status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
 {
 	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
-			sws_printf("groupCb: %d\n", cmdId);
+			sws_printf("ZCL#groupCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_GROUP_ADD_GROUP_RSP:
 					app_zclAddGroupRspCmdHandler((zcl_addGroupRsp_t *)cmdPayload);
@@ -545,7 +556,7 @@ status_t app_groupCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
  */
 status_t app_powerCfgCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload)
 {
-	sws_printf("powerCfgCb: %d\n", cmdId);
+	sws_printf("ZCL#powerCfgCb: %d\n", cmdId);
 //	if(cmdId == ZCL_CMD_BASIC_RESET_FAC_DEFAULT){
 		//Reset all the attributes of all its clusters to factory defaults
 		//zcl_nv_attr_reset();
@@ -655,7 +666,7 @@ status_t app_sceneCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayloa
 {
 	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_SERVER_CLIENT_DIR){
-			sws_printf("sceneCb: %d\n", cmdId);
+			sws_printf("ZCL#sceneCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_SCENE_ADD_SCENE_RSP:
 				case ZCL_CMD_SCENE_ENHANCED_ADD_SCENE_RSP:
@@ -934,7 +945,7 @@ status_t app_pollCtrlCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPay
 
 	if(pAddrInfo->dstEp == APP_ENDPOINT1){
 		if(pAddrInfo->dirCluster == ZCL_FRAME_CLIENT_SERVER_DIR){
-			sws_printf("pollCtrlCb: %d\n", cmdId);
+			sws_printf("ZCL#pollCtrlCb: %d\n", cmdId);
 			switch(cmdId){
 				case ZCL_CMD_CHK_IN_RSP:
 					status = app_zclPollCtrlChkInRspCmdHandler((zcl_chkInRsp_t *)cmdPayload);

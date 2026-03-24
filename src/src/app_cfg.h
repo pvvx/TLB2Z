@@ -101,6 +101,8 @@ extern "C" {
 /* Board include */
 #if BOARD == BOARD_TB03F_KIT
 #include "board_tb03f_kit.h"
+#elif BOARD == BOARD_ZB_TS0001
+#include "board_zb_ts0001.h"
 #elif BOARD == BOARD_TS0001_TZ3000_RBZ
 #include "board_ts0001_tz3000_gjrubzje.h"
 #elif BOARD == BOARD_ZG807Z
@@ -116,7 +118,7 @@ extern "C" {
 #define	UART_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
 #endif
 #ifndef SWS_PRINTF_MODE
-#define SWS_PRINTF_MODE         		0   // pin: SWS, Telink SWire
+#define SWS_PRINTF_MODE         		1   // pin: SWS, Telink SWire
 #endif
 #define USE_DEBUG_PRINTF		(UART_PRINTF_MODE || SWS_PRINTF_MODE)
 
@@ -169,6 +171,7 @@ extern "C" {
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
 #define ZCL_RELATIVE_HUMIDITY_SUPPORT   			1
 #define ZCL_ILLUMINANCE_MEASUREMENT_SUPPORT			1
+#define ZCL_ILLUMINANCE_LEVEL_SENSING_SUPPORT		ZCL_ILLUMINANCE_MEASUREMENT_SUPPORT
 #define ZCL_THERMOSTAT_UI_CFG_SUPPORT				0
 #define ZCL_POLL_CTRL_SUPPORT						1
 #define ZCL_GROUP_SUPPORT							0

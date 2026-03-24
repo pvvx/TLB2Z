@@ -140,7 +140,7 @@ void concurrent_mode_main_loop(void){
 #if USE_BLE_OTA
 		while(ble_wrk.ota_is_working || (ble_wrk.ble_on && !zb_isDeviceJoinedNwk()))
 #else
-		while(g_sensorAppCtx.ble_on && !zb_isDeviceJoinedNwk())
+		while(g_devAppCtx.ble_on && !zb_isDeviceJoinedNwk())
 #endif
 		{
 			blt_sdk_main_loop();

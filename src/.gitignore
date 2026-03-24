@@ -1,6 +1,5 @@
+/bin/
 /build/
-.idea
-.vscode
 .SDK
 ./tools/widows/
 ./tools/linux/

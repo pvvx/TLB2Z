@@ -17,9 +17,10 @@
 #include "adv_mihome.h"
 #include "adv_qingping.h"
 #include "app_ui.h"
+#include "zcl_illuminance_level_sensing.h"
 
 #if USE_DEBUG_PRINTF
-#define USE_DEBUG_SCAN		2	// 0,1,2,3
+#define USE_DEBUG_SCAN		1	// 0,1,2,3
 #else
 #define USE_DEBUG_SCAN		0	// 0,1,2,3
 #endif
@@ -67,7 +68,7 @@ const u8 tblBTHome[] = {
 	0x04, 0x32, 0x32, 0x0f, 0x0f, 0x34, 0x02, 0x81, 0x81, 0x81, 0x82, 0x84, 0xA4, 0xB2, 0x22, 0x22, // 5x
 	0x81 // 6x
 /*
-	0xF0	device type id		uint16 (2 bytes)	F00100	1
+	0xF0	device type id	uint16 (2 bytes)	F00100	1
 	0xF1	firmware version	uint32 (4 bytes)	F100010204	4.2.1.0
 	0xF2	firmware version	uint24 (3 bytes)	F1000106	6.1.0
 */
@@ -126,7 +127,7 @@ int float_pf2i_x100(u8 * pf) {
   if (s == 1)
     x = ~x + 1;
 #if	USE_DEBUG_SCAN > 1
-  sws_printf("f: %d\n", x);
+  sws_printf("BLE#f: %d\n", x);
 #endif
   return x;
 }
@@ -193,24 +194,51 @@ static u16 calk_10000_log10(u32 x) {
 
 static void zb_illuminance(u32 lx, u8 n) {
 	ble_illuminance[n] = lx;
-	g_zcl_illuminanceAttrs.measuredVal[n] = calk_10000_log10(lx);
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	u32 ilz = calk_10000_log10(lx);
+	u8 il_status = ILSC_NONE;
+	g_zcl_illuminanceAttrs.measuredVal[n] = ilz;
 #if	USE_DEBUG_SCAN > 1
-	sws_printf("i: %d,%d\n", lx, g_zcl_illuminanceAttrs.measuredVal[n]);
+	sws_printf("BLE#i: %d,%d\n", lx, g_zcl_illuminanceAttrs.measuredVal[n]);
 #endif
 	update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_LGH | FLG_UPDATE_FLG;
+	u32 min_lx = (u32)g_zcl_illuminanceAttrs.minLevelLx[n];
+	if(ilz != 0xffff && min_lx != 0xffff) {
+		if(min_lx) {
+			if(ilz < min_lx) {
+				il_status = ILSC_BELOW_TARGET;
+			} else if (ilz == min_lx) {
+				il_status = ILSC_ON_TARGET;
+			} else {
+				il_status = ILSC_ABOVE_TARGET;
+			}
+		} else {
+			il_status = ILSC_BELOW_TARGET;
+		}
+	} else {
+		il_status = ILSC_NONE;
+	}
+	g_zcl_illuminanceAttrs.levelStatus[n] = il_status;
+#else
+	g_zcl_illuminanceAttrs.measuredVal[n] = calk_10000_log10(lx);
+#endif // ZCL_ILLUMINANCE_LEVEL_SENSING
 }
+
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
 
 static void zb_moving(u8 n, u8 onoff) {
 	u32 min_lx = (u32)g_zcl_illuminanceAttrs.minLevelLx[n];
-	if(g_zcl_illuminanceAttrs.measuredVal[n] != 0xffff
-		&& min_lx != 0) {
+	if(min_lx != 0
+		&& min_lx != 0xffff) {
 		if(onoff) {
+			// On
 			if(g_zcl_onOffAttrs[n].ble_trigger == 0 // first On?
-			&& ble_illuminance[n] < min_lx) {
-				g_zcl_onOffAttrs[n].ble_trigger = onoff;
-			    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+				&& g_zcl_illuminanceAttrs.levelStatus[n] == ILSC_BELOW_TARGET) {
+				g_zcl_onOffAttrs[n].ble_trigger = onoff; // On
+				update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 			}
 		} else {
+			// Off
 			g_zcl_onOffAttrs[n].ble_trigger = onoff;
 		    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
 		}
@@ -220,6 +248,30 @@ static void zb_moving(u8 n, u8 onoff) {
 	}
 }
 
+#else // ZCL_ILLUMINANCE_LEVEL_SENSING
+
+static void zb_moving(u8 n, u8 onoff) {
+	u32 min_lx = (u32)g_zcl_illuminanceAttrs.minLevelLx[n];
+	if(g_zcl_illuminanceAttrs.measuredVal[n] != 0xffff
+		&& min_lx != 0) {
+		if(onoff) {
+			// On
+			if(g_zcl_onOffAttrs[n].ble_trigger == 0 // first On?
+			&& ble_illuminance[n] < min_lx) {
+				g_zcl_onOffAttrs[n].ble_trigger = onoff;
+			    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+			}
+		} else {
+			// Off
+			g_zcl_onOffAttrs[n].ble_trigger = onoff;
+		    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+		}
+	} else {
+		g_zcl_onOffAttrs[n].ble_trigger = onoff;
+	    update_enable[n] |= FLG_UPDATE_TRG | FLG_UPDATE_FLG;
+	}
+}
+#endif // ZCL_ILLUMINANCE_LEVEL_SENSING
 #endif // ZCL_ILLUMINANCE_MEASUREMENT
 
 
@@ -232,7 +284,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 	u8 * pmac = dev_MAC[n];
 	if(len > sizeof(adv_xiaomi_t) - 6) {
 #if	USE_DEBUG_SCAN
-		sws_printf("x[%d]: ", n);
+		sws_printf("BLE#x[%d]: ", n);
 		sws_print_hex_dump((u8 *)p, len + 1);
 		sws_putchar('\n');
 #endif
@@ -390,7 +442,7 @@ void filter_qingping_ad(padv_qingping_t p, int n) {
 	padv_struct_qingping_t ps = (padv_struct_qingping_t) &p->data;
 	int len = p->size;
 #if	USE_DEBUG_SCAN
-	sws_printf("q[%d]: ", n);
+	sws_printf("BLE#q[%d]: ", n);
 	sws_print_hex_dump((u8 *)p, len + 1);
 	sws_putchar('\n');
 #endif
@@ -447,7 +499,7 @@ __attribute__((optimize("-Os")))
 void filter_custom_ad(adv_custom_t *p, int n) {
 	if(p->size == sizeof(adv_custom_t) - 1) {
 #if	USE_DEBUG_SCAN
-		sws_printf("c[%d]: ", n);
+		sws_printf("BLE#c[%d]: ", n);
 		sws_print_hex_dump((u8 *)p, sizeof(adv_custom_t));
 		sws_putchar('\n');
 #endif
@@ -484,7 +536,7 @@ void filter_custom_ad(adv_custom_t *p, int n) {
 #endif
 			return;
 #if	USE_DEBUG_SCAN
-		sws_printf("c[%d]: ", n);
+		sws_printf("BLE#c[%d]: ", n);
 		sws_print_hex_dump((u8 *)&pp->data, sizeof(adv_pvvx_data_t));
 		sws_putchar('\n');
 #endif
@@ -513,7 +565,7 @@ void filter_bthome_ad(padv_bthome_t p, int n) {
 	int len = p->size;
 	if(len > sizeof(padv_bthome_t)) {
 #if	USE_DEBUG_SCAN
-		sws_printf("b[%d]: ", n);
+		sws_printf("BLE#b[%d]: ", n);
 		sws_print_hex_dump((u8 *)p, len + 1);
 		sws_putchar('\n');
 #endif
@@ -655,7 +707,7 @@ int scanning_event_callback(u32 h, u8 *p, int n) {
 							memcpy(prev_advs[n], pa->data, adlen);
 							pad_uuid16_t pd = (pad_uuid16_t)pa->data;
 #if	USE_DEBUG_SCAN > 2
-							sws_printf("s[%d]: ", n);
+							sws_printf("BLE#s[%d]: ", n);
 							sws_print_hex_dump((u8 *)pd, adlen);
 							sws_putchar('\n');
 #endif

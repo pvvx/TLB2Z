@@ -53,6 +53,7 @@ int RxTxWrite(void * p) {
 					        		16,
 									bindkey[i]) == NV_SUCC) {
 #endif
+
 					memcpy(&send_buf[2], bindkey[i], 16);
 					send_buf[1] = i;
 					olen = 17 + 1;
@@ -79,6 +80,7 @@ int RxTxWrite(void * p) {
 									dev_MAC[i]);
 #endif
 				}
+
 #if USE_EEP
 				if (flash_read_cfg(dev_MAC[i], 0, EEP_ID_DMAC(i), 6) == 6) {
 #else
@@ -103,9 +105,7 @@ int RxTxWrite(void * p) {
 				memcpy(&g_zcl_illuminanceAttrs.minLevelLx,
 					&req->dat[1],
 					sizeof(g_zcl_illuminanceAttrs.minLevelLx));
-				nv_flashWriteNew(1, NV_MODULE_APP, NV_ITEM_APP_ILLUMINANCE,
-				        		sizeof(g_zcl_illuminanceAttrs.minLevelLx),
-								(u8 *)&g_zcl_illuminanceAttrs.minLevelLx);
+				zcl_illuminance_save();
 			}
 			memcpy(&send_buf[1],
 				g_zcl_illuminanceAttrs.minLevelLx,

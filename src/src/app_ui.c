@@ -78,21 +78,21 @@ s32 zclLightTimerCb(void *arg)
 {
 	u32 interval = 0;
 
-	if(g_sensorAppCtx.sta == g_sensorAppCtx.oriSta){
-		g_sensorAppCtx.times--;
-		if(g_sensorAppCtx.times <= 0){
-			g_sensorAppCtx.timerLedEvt = NULL;
+	if(g_devAppCtx.sta == g_devAppCtx.oriSta){
+		g_devAppCtx.times--;
+		if(g_devAppCtx.times <= 0){
+			g_devAppCtx.timerLedEvt = NULL;
 			return -1;
 		}
 	}
 
-	g_sensorAppCtx.sta = !g_sensorAppCtx.sta;
-	if(g_sensorAppCtx.sta){
+	g_devAppCtx.sta = !g_devAppCtx.sta;
+	if(g_devAppCtx.sta){
 		light_on();
-		interval = g_sensorAppCtx.ledOnTime;
+		interval = g_devAppCtx.ledOnTime;
 	}else{
 		light_off();
-		interval = g_sensorAppCtx.ledOffTime;
+		interval = g_devAppCtx.ledOffTime;
 	}
 	return interval;
 }
@@ -100,31 +100,31 @@ s32 zclLightTimerCb(void *arg)
 void light_blink_start(u8 times, u16 ledOnTime, u16 ledOffTime)
 {
 	u32 interval = 0;
-	g_sensorAppCtx.times = times;
+	g_devAppCtx.times = times;
 
-	if(!g_sensorAppCtx.timerLedEvt){
-		if(g_sensorAppCtx.oriSta){
+	if(!g_devAppCtx.timerLedEvt){
+		if(g_devAppCtx.oriSta){
 			light_off();
-			g_sensorAppCtx.sta = 0;
+			g_devAppCtx.sta = 0;
 			interval = ledOffTime;
 		}else{
 			light_on();
-			g_sensorAppCtx.sta = 1;
+			g_devAppCtx.sta = 1;
 			interval = ledOnTime;
 		}
-		g_sensorAppCtx.ledOnTime = ledOnTime;
-		g_sensorAppCtx.ledOffTime = ledOffTime;
-		g_sensorAppCtx.timerLedEvt = TL_ZB_TIMER_SCHEDULE(zclLightTimerCb, NULL, interval);
+		g_devAppCtx.ledOnTime = ledOnTime;
+		g_devAppCtx.ledOffTime = ledOffTime;
+		g_devAppCtx.timerLedEvt = TL_ZB_TIMER_SCHEDULE(zclLightTimerCb, NULL, interval);
 	}
 }
 
 void light_blink_stop(void)
 {
-	if(g_sensorAppCtx.timerLedEvt){
-		TL_ZB_TIMER_CANCEL(&g_sensorAppCtx.timerLedEvt);
-		g_sensorAppCtx.timerLedEvt = NULL;
-		g_sensorAppCtx.times = 0;
-		if(g_sensorAppCtx.oriSta){
+	if(g_devAppCtx.timerLedEvt){
+		TL_ZB_TIMER_CANCEL(&g_devAppCtx.timerLedEvt);
+		g_devAppCtx.timerLedEvt = NULL;
+		g_devAppCtx.times = 0;
+		if(g_devAppCtx.oriSta){
 			light_on();
 		}else{
 			light_off();
@@ -180,9 +180,9 @@ void task_keys(void) {
 		}
 	} else {
 		// ble_wrk.keyPressedTime = clock_time();
-		if(!g_sensorAppCtx.timerLedEvt) {
+		if(!g_devAppCtx.timerLedEvt) {
 #ifdef GPIO_RELAY
-			if(g_sensorAppCtx.oriSta){
+			if(g_devAppCtx.oriSta){
 				light_on();
 			}else{
 				light_off();

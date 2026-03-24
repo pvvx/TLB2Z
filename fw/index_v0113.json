@@ -1,0 +1,41 @@
+[
+    {
+        "fileVersion": 18034689,
+        "fileSize": 161922,
+        "manufacturerCode": 4417,
+        "imageType": 8720,
+        "sha512": "bb17cac925eab3d936893c4dc10b93e4f51e1a9b226e8a280b30411d5f5dafb433c6944a4e5cd86425ca8f77281f3011dbdc8b9fdc54fd278912650b7f770804",
+        "otaHeaderString": "B2Z:TB03F-bz",
+        "modelId": "TB03F-bz",
+        "manufacturerName": [
+            "B2Z"
+        ],
+        "url": "https://github.com/pvvx/TLB2Z/raw/master/fw/1141-2210-01133001-tb3f.zigbee"
+    },
+    {
+        "fileVersion": 18034689,
+        "fileSize": 162066,
+        "manufacturerCode": 4417,
+        "imageType": 8747,
+        "sha512": "a709200d2f3ae3f8dd1c86d3efb32f25b2acc42fa4aa307f68961c47ef6046a571f198125796c82cd34e8d3442d6ee2164cd408c5ef45eda7a702a0538e6b6f8",
+        "otaHeaderString": "B2Z:REL-BZ01",
+        "modelId": "REL-BZ01",
+        "manufacturerName": [
+            "B2Z"
+        ],
+        "url": "https://github.com/pvvx/TLB2Z/raw/master/fw/1141-222b-01133001-ts01.zigbee"
+    },
+    {
+        "fileVersion": 18034689,
+        "fileSize": 163762,
+        "manufacturerCode": 4417,
+        "imageType": 8748,
+        "sha512": "2958cd7336dde6c4be0a75b04262a233e5af0a305cc80b15f523041f988fe77d8ea032918800d9ba89864fc836faf12a77e0e565142a1e5c3c589e50e5dc3a82",
+        "otaHeaderString": "B2Z:ZG-807Z",
+        "modelId": "ZG-807Z",
+        "manufacturerName": [
+            "B2Z"
+        ],
+        "url": "https://github.com/pvvx/TLB2Z/raw/master/fw/1141-222c-01133001-zg807z.zigbee"
+    }
+]

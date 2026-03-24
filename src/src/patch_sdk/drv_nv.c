@@ -24,6 +24,7 @@
  *******************************************************************************************************/
 
 #include "../tl_common.h"
+#include "sws_printf.h"
 
 #if FLASH_CAP_SIZE_1M
 u32 g_u32MacFlashAddr = FLASH_ADDR_OF_MAC_ADDR_1M;
@@ -572,7 +573,7 @@ static nv_sts_t nv_flashWriteNewHandler(bool forceChgSec, u8 single, u16 id, u8 
 	u32 moduleStartAddr = MODULES_START_ADDR(id);
 
 	s32 i = 0;
-
+	sws_printf("NV#wr[%d] %02x,%02x\n", len, id, itemId);
 	/* check item length, if  */
 	if(NV_SECTOR_SIZE(id) < ITEM_TOTAL_LEN(len) + MODULE_INFO_SIZE(id)){
 		return NV_NOT_ENOUGH_SAPCE;
@@ -804,6 +805,8 @@ nv_sts_t nv_flashReadNew(u8 single, u8 id, u8 itemId, u16 len, u8 *buf){
 	if(id == NV_MODULE_NWK_FRAME_COUNT){
 		return NV_INVALID_MODULS;
 	}
+
+	sws_printf("NV#rd[%d] %02x,%02x\n", len, id, itemId);
 
 	ret = nv_sector_read(id, MODULE_SECTOR_NUM, &sectInfo);
 	if(ret != NV_SUCC){

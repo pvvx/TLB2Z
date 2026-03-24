@@ -112,7 +112,7 @@ void app_onOffUpdate(u8 cmd, u8 n)
 #ifdef GPIO_RELAY
 		if(!n) {
 			gpio_write(GPIO_RELAY, onOff);
-			g_sensorAppCtx.oriSta = onOff;
+			g_devAppCtx.oriSta = onOff;
 			if(onOff){
 				light_on();
 			}else{

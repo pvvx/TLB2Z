@@ -61,7 +61,7 @@ typedef struct{
 	app_linkKey_info_t tcLinkKey;
 } app_ctx_t;
 
-extern app_ctx_t g_sensorAppCtx;
+extern app_ctx_t g_devAppCtx;
 
 /**
  *  @brief Defined for BLE work
@@ -138,11 +138,16 @@ typedef struct{
 #ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
 	u16 minLevelLx[MAX_SCAN_DEVS];
 #endif
+#ifdef ZCL_ILLUMINANCE_LEVEL_SENSING
+	u8  levelStatus[MAX_SCAN_DEVS];
+#endif
 } zcl_illuminanceAttr_t;
 
+#ifdef ZCL_CUSTOM_ATTR_ILLUMINANCE_LEVEL
 typedef struct{
 	u16 minLevelLx[MAX_SCAN_DEVS];
 } zcl_nv_illuminance_t;
+#endif
 
 /**
  *  @brief Defined for group cluster attributes

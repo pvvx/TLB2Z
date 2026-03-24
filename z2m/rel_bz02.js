@@ -16,6 +16,7 @@ export default {
      m.temperature({"endpointNames":["1","2","3"]}),
      m.humidity({"endpointNames":["1","2","3"]}),
      m.commandsOnOff({commands: ["on", "off"], bind: true, "endpointNames":["1","2","3"]}),
+     '''
      m.enumLookup({
       name: 'illuminance_level_status',
       lookup: {on_target: 0, below_target: 1, above_target: 2},
@@ -31,6 +32,7 @@ export default {
       valueMin: 0, valueMax: 65534,
       access: 'ALL',
       endpointNames:["1","2","3"]}),
+     '''
      m.identify(),
     ],
     configure: async (device, coordinatorEndpoint, logger) => {
