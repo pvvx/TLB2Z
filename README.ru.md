@@ -38,6 +38,8 @@ Z2M содержит ряд ошибок:
 
 Использование Z2M не рекомендуется с устройствами, работающими в соответствии со спецификациями Zigbee 3.0.
 
+ZHA не имеет полной поддержки спецификаций Zigbee 3.0.
+
 ## Основные технические характеристики
 
 * Прием BLE рекламы до 3-х термометров-гигрометров или детекторов движения и освещенности с переводом показаний в Zigbee.
@@ -125,14 +127,17 @@ Z2M содержит ряд ошибок:
 | 1 | 0x0001 Power Configuration | 0x0061 BatteryPercentageRemaining | 3 |
 | 1 | 0x0006 On/Off | 0x0000 OnOff | 1 |
 | 1 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 1 |
+| 1 | 0x0401 Illuminance Level Sensing | 0x0000 LevelStatus | 1 |
 | 1 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 1 |
 | 1 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 1 |
 | 2 | 0x0006 On/Off | 0x0000 OnOff | 2 |
 | 2 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 2 |
+| 2 | 0x0401 Illuminance Level Sensing | 0x0000 LevelStatus | 2 |
 | 2 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 2 |
 | 2 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 2 |
 | 3 | 0x0006 On/Off | 0x0000 OnOff | 3 |
 | 3 | 0x0400 Illuminance Measurement | 0x0000 MeasuredValue | 3 |
+| 3 | 0x0401 Illuminance Level Sensing | 0x0000 LevelStatus | 3 |
 | 3 | 0x0402 Temperature Measurement | 0x0000 MeasuredValue | 3 |
 | 3 | 0x0405 Relative Humidity Measurement | 0x0000 MeasuredValue  | 3 |
 
@@ -146,6 +151,7 @@ Z2M содержит ряд ошибок:
 | BatteryVoltage | 360 sec | 3600 sec | 0 |
 | BatteryPercentageRemaining | 360 sec | 3600 sec | 0 |
 | Illuminance Measurement | 30 sec | 180 sec | 0 |
+| Illuminance Level Sensing | 0 sec | 3600 sec | 0 |
 | Temperature Measurement | 30 sec | 180 sec | 10 (0.1 C) |
 | Relative Humidity Measurement | 30 sec | 180 sec | 50 (0.5 %) |
 
@@ -161,6 +167,6 @@ Z2M содержит ряд ошибок:
 | 1 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 1 |
 | 2 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 2 |
 | 3 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 3 |
-| 1 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 1 |
-| 2 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 2 |
-| 3 | 0x0400 Illuminance Measurement | 0xF000 Motion Illuminance Level | 3 |
+| 1 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 1 |
+| 2 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 2 |
+| 3 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 3 |
