@@ -47,30 +47,88 @@ static ev_timer_event_t *onWithTimedOffTimerEvt[MAX_SCAN_DEVS];
 /**********************************************************************
  * FUNCTIONS
  */
-void remoteCmdOnOff(u8 srcEp, u8 cmd) {
-    epInfo_t dstEpInfo;
-    TL_SETSTRUCTCONTENT(dstEpInfo, 0);
 
-    dstEpInfo.profileId = HA_PROFILE_ID;
-
-    dstEpInfo.dstAddrMode = APS_DSTADDR_EP_NOTPRESETNT;
-
-    /* command 0x00 - off, 0x01 - on, 0x02 - toggle */
-
-    switch(cmd) {
-        case ZCL_CMD_ONOFF_OFF:
-            zcl_onOff_offCmd(srcEp, &dstEpInfo, FALSE);
-            break;
-        case ZCL_CMD_ONOFF_ON:
-            zcl_onOff_onCmd(srcEp, &dstEpInfo, FALSE);
-            break;
-        case ZCL_CMD_ONOFF_TOGGLE:
-            zcl_onOff_toggleCmd(srcEp, &dstEpInfo, FALSE);
-            break;
-        default:
-            break;
+void newCmdOnOff(u8 srcEp, u8 on_state) {
+	if(srcEp == APP_ENDPOINT1) {
+#ifdef GPIO_RELAY
+		gpio_write(GPIO_RELAY, on_state);
+#endif
+		g_devAppCtx.oriSta = on_state;
+		if(on_state){
+			light_on();
+		} else {
+			light_off();
+		}
+	}
+#if USE_RETRY_ONOFF
+	int send_flg = 0;
+    for (uint8_t j = 0; j < APS_BINDING_TABLE_NUM; j++) {
+    	aps_binding_entry_t *bind_tbl = &g_apsBindingTbl[j];
+        if (bind_tbl->used
+         && bind_tbl->clusterId == ZCL_CLUSTER_GEN_ON_OFF
+		 && bind_tbl->srcEp == srcEp) {
+        	bind_tbl->used = 1; // restart On/Off
+        	send_flg = 1;
+        }
     }
+	if(send_flg)
+#endif
+	{
+		if(zb_isDeviceJoinedNwk()) {
+		    epInfo_t dstEpInfo;
+		    TL_SETSTRUCTCONTENT(dstEpInfo, 0);
+
+			sws_printf("OnOffrm ep:%d, cmd:%d\n", srcEp, on_state);
+		    dstEpInfo.profileId = HA_PROFILE_ID;
+
+		    dstEpInfo.dstAddrMode = APS_DSTADDR_EP_NOTPRESETNT;
+#if USE_RETRY_ONOFF
+		    dstEpInfo.txOptions = APS_TX_OPT_ACK_TX;
+#endif
+		    /* command 0x00 - off, 0x01 - on, 0x02 - toggle */
+		    zcl_sendCmd(srcEp, &dstEpInfo, ZCL_CLUSTER_GEN_ON_OFF,
+		    	on_state, TRUE,
+		    	ZCL_FRAME_CLIENT_SERVER_DIR,
+				FALSE, 0, ZCL_SEQ_NUM, 0, NULL);
+		}
+	}
 }
+
+#if USE_RETRY_ONOFF
+void afTestOnOffCb(void *arg) {
+	apsdeDataConf_t *pApsDataCnf = (apsdeDataConf_t *)arg;
+	if(zb_isDeviceJoinedNwk()
+		&& pApsDataCnf->clusterId == ZCL_CLUSTER_GEN_ON_OFF) {
+	    for (uint8_t j = 0; j < APS_BINDING_TABLE_NUM; j++) {
+	    	aps_binding_entry_t *bind_tbl = &g_apsBindingTbl[j];
+	        if (bind_tbl->used
+	         && bind_tbl->clusterId == ZCL_CLUSTER_GEN_ON_OFF
+			 && bind_tbl->srcEp == pApsDataCnf->srcEndpoint
+			 && !memcmp(&pApsDataCnf->dstAddr, &bind_tbl->dstExtAddrInfo, sizeof(pApsDataCnf->dstAddr))) {
+	        	sws_printf("aps: %08p:%02x %04x:%02x %02x\n",
+	        			&pApsDataCnf->dstAddr.addr_long,
+	        			pApsDataCnf->dstEndpoint,
+	        			pApsDataCnf->clusterId,
+	        			pApsDataCnf->srcEndpoint,
+	        			pApsDataCnf->status
+	        	);
+        		zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(pApsDataCnf->srcEndpoint - APP_ENDPOINT1);
+        		if(g_devAppCtx.utc_time_sec - pOnOff->timeStamp < USE_RETRY_ONOFF) {
+        			if(pApsDataCnf->status == APS_STATUS_NO_ACK // 0xA7
+        				|| pApsDataCnf->status == MAC_STA_NO_ACK) { // 0xE9
+    	        		bind_tbl->used = pApsDataCnf->dstEndpoint + 1; // save dstEndpoint
+        			} else { // APS_STATUS_SUCCESS | APS_STATUS_SHORT_ADDR_REQUESTING
+    	        		bind_tbl->used = 1; // APS_STATUS_SUCCESS
+        			}
+        		} else { // время повторов вышло, больше не проверять
+        			pOnOff->timeStamp = 0;
+	        		bind_tbl->used = 1;
+	        	}
+	        }
+	    }
+	}
+}
+#endif
 
 /*********************************************************************
  * @fn      app_onOffUpdate
@@ -100,38 +158,44 @@ void app_onOffUpdate(u8 cmd, u8 n)
     //update attributes
     if (onOff == ZCL_ONOFF_STATUS_ON) {
         pOnOff->globalSceneControl = TRUE;
-        pOnOff->onOff = ZCL_ONOFF_STATUS_ON;
         if (pOnOff->onTime == 0) {
             pOnOff->offWaitTime = 0;
         }
     } else {
-        pOnOff->onOff = ZCL_ONOFF_STATUS_OFF;
         pOnOff->onTime = 0;
     }
-	if(dev_MAC[n][5] == 0) {
-#ifdef GPIO_RELAY
+    pOnOff->onOff = onOff;
+   	zcl_onOffAttr_save(n);
+	if(dev_MAC[n][5] == 0) { // работа от On/Off
 		if(!n) {
+#ifdef GPIO_RELAY
 			gpio_write(GPIO_RELAY, onOff);
+#endif
 			g_devAppCtx.oriSta = onOff;
-			if(onOff){
+			if(onOff) {
 				light_on();
-			}else{
+			} else {
 				light_off();
 		   }
 		}
+		pOnOff->onOffrm = onOff;
+#if USE_RETRY_ONOFF
+		pOnOff->timeStamp = g_devAppCtx.utc_time_sec;
 #endif
-		g_zcl_onOffAttrs[n].onOffrm = onOff;
-		remoteCmdOnOff(n + APP_ENDPOINT1, onOff);
+	    newCmdOnOff(n + APP_ENDPOINT1, onOff);
 	} else {
+		// работа от BLE
 		if(onOff == ZCL_ONOFF_STATUS_OFF) {
 			// отключить (срабатывание от BLE)
 			pOnOff->onOffrm = ZCL_ONOFF_STATUS_OFF;
-			remoteCmdOnOff(n + APP_ENDPOINT1, ZCL_ONOFF_STATUS_OFF);
+#if USE_RETRY_ONOFF
+			pOnOff->timeStamp = g_devAppCtx.utc_time_sec;
+#endif
+		    newCmdOnOff(n + APP_ENDPOINT1, onOff);
 		} else {
-			// работа от BLE
+			// работа от BLE, обрабатывается в app_zb_task()
 		}
 	}
-   	zcl_onOffAttr_save(n);
 }
 
 /*********************************************************************

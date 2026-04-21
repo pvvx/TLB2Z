@@ -9,7 +9,7 @@ TEL_CHIP := $(POJECT_DEF) -DMCU_CORE_8258=1 -DEND_DEVICE=1 -DMCU_STARTUP_8258=1 
 
 LIBS := -lble_8258 -ldrivers_8258 -lzb_ed 
 
-PGM_PORT?=COM15
+PGM_PORT?=COM5
 PGM_PORT_BAUD?=1500000
 
 PROJECT_PATH ?= .
@@ -216,10 +216,20 @@ stop:
 go:
 	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -m
 
-TADDR?=0x00848494
-TLEN?=256
-test_damp:
-	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b$(PGM_PORT_BAUD) -z10 ds $(TADDR) $(TLEN)
+TADDR?=0x00848F00
+TLEN?=512
+test_dump:
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z11 -c -g ds $(TADDR) $(TLEN)
+
+SWSBUF?=0x0849000	
+sws_printf:
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b1500000 sws $(SWSBUF)
+	
+rst_sws_pr:		
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -b1500000 -z15 -s -m -o $(SWSBUF) ds $(SWSBUF) 2 
+
+flash_printf: $(BIN_FILE)
+	@$(PYTHON) $(MAKE_PATH)/TlsrPgm.py -p$(PGM_PORT) -z11 -a-70 -m -w -o $(SWSBUF) we 0 $(BIN_FILE)
 
 install: $(TC32_PATH)
 	@echo "TC32 installed."

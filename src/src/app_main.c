@@ -196,9 +196,9 @@ static void user_app_init(void)
 	zcl_init(app_zclProcessIncomingMsg);
 
 	/* Register endPoint */
-	af_endpointRegister(APP_ENDPOINT1, (af_simple_descriptor_t *)&app_simpleDesc1, zcl_rx_handler, NULL);
-	af_endpointRegister(APP_ENDPOINT2, (af_simple_descriptor_t *)&app_simpleDesc2, zcl_rx_handler, NULL);
-	af_endpointRegister(APP_ENDPOINT3, (af_simple_descriptor_t *)&app_simpleDesc3, zcl_rx_handler, NULL);
+	af_endpointRegister(APP_ENDPOINT1, (af_simple_descriptor_t *)&app_simpleDesc1, zcl_rx_handler, afTestOnOffCb);
+	af_endpointRegister(APP_ENDPOINT2, (af_simple_descriptor_t *)&app_simpleDesc2, zcl_rx_handler, afTestOnOffCb);
+	af_endpointRegister(APP_ENDPOINT3, (af_simple_descriptor_t *)&app_simpleDesc3, zcl_rx_handler, afTestOnOffCb);
 
 	zcl_reportingTabInit();
 
@@ -357,39 +357,52 @@ void user_init(bool isRetention)
  * @return  None
  */
 static void test_ble_trigger(void) {
-	u8 on_state;
 	for(int n = 0; n < MAX_SCAN_DEVS; n++) {
 		zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet(n);
-		if(dev_MAC[n][5] && pOnOff->onOff) {
-			// работа от BLE
-			if(update_enable[n] & FLG_UPDATE_TRG) {
-				update_enable[n] &= ~FLG_UPDATE_TRG;
-				on_state = (pOnOff->ble_trigger)? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
-				if(on_state != pOnOff->onOffrm) {
-					sws_printf("OnOffrm %d:%d\n", n + 1, on_state);
-#ifdef GPIO_RELAY
-					if(!n) {
-						gpio_write(GPIO_RELAY, on_state);
-						g_devAppCtx.oriSta = on_state;
-						if(on_state){
-							light_on();
-						}else{
-							light_off();
-						}
-					}
+		if(dev_MAC[n][5] 	// MAC задан
+		  && pOnOff->onOff	// работа от BLE включена
+		  && (update_enable[n] & FLG_UPDATE_TRG)) { // триггер BLE обновлен
+			update_enable[n] &= ~FLG_UPDATE_TRG;
+			u8 on_state = (pOnOff->ble_trigger)? ZCL_CMD_ONOFF_ON : ZCL_CMD_ONOFF_OFF;
+			if(on_state != pOnOff->onOffrm) {
+				// новое состояние
+				pOnOff->onOffrm = on_state;
+#if USE_RETRY_ONOFF
+				pOnOff->timeStamp = g_devAppCtx.utc_time_sec;
 #endif
-					pOnOff->onOffrm = on_state;
-					remoteCmdOnOff(APP_ENDPOINT1 + n, on_state);
-					pOnOff->ble_trigger_tik = g_devAppCtx.utc_time_sec;
-				}
-			} else if(pOnOff->ble_trigger_tik) {
-				if(g_devAppCtx.utc_time_sec - pOnOff->ble_trigger_tik >= 3) {
-					sws_printf("OnOff2rm %d:%d\n", n + 1, pOnOff->onOffrm);
-					remoteCmdOnOff(APP_ENDPOINT1 + n, pOnOff->onOffrm);
-					pOnOff->ble_trigger_tik = 0;
-				}
+				newCmdOnOff(APP_ENDPOINT1 + n, on_state);
 			}
 		}
+#if USE_RETRY_ONOFF
+		if(pOnOff->timeStamp
+		  && g_devAppCtx.utc_time_sec - pOnOff->timeStamp < USE_RETRY_ONOFF) {
+		    for (uint8_t j = 0; j < APS_BINDING_TABLE_NUM; j++) {
+		    	aps_binding_entry_t *bind_tbl = &g_apsBindingTbl[j];
+		        if (bind_tbl->used > 1 // статус не APS_STATUS_SUCCESS
+		         && bind_tbl->clusterId == ZCL_CLUSTER_GEN_ON_OFF
+				 && bind_tbl->srcEp == APP_ENDPOINT1 + n) {
+				    sws_printf("RetryOnOff dst:%08p:%02x, ep:%02x, cmd:%02x\n",
+				    		&bind_tbl->dstExtAddrInfo, bind_tbl->used - 1,
+							APP_ENDPOINT1 + n, pOnOff->onOffrm);
+					epInfo_t dstEpInfo;
+				    TL_SETSTRUCTCONTENT(dstEpInfo, 0);
+				    dstEpInfo.profileId = HA_PROFILE_ID;
+				    dstEpInfo.txOptions = APS_TX_OPT_ACK_TX;
+				    dstEpInfo.dstEp = bind_tbl->used - 1;
+		        	bind_tbl->used = 1; // откл. повтор
+				    dstEpInfo.dstAddrMode = bind_tbl->dstAddrMode;
+				    memcpy(&dstEpInfo.dstAddr, &bind_tbl->dstExtAddrInfo,
+				    		sizeof(dstEpInfo.dstAddr));
+				    /* command 0x00 - off, 0x01 - on, 0x02 - toggle */
+				    zcl_sendCmd(APP_ENDPOINT1 + n, &dstEpInfo, ZCL_CLUSTER_GEN_ON_OFF,
+				    	pOnOff->onOffrm, TRUE,
+				    	ZCL_FRAME_CLIENT_SERVER_DIR,
+						FALSE, 0, ZCL_SEQ_NUM, 0, NULL);
+				    return;
+		        }
+		    }
+		}
+#endif
 	}
 }
 #endif

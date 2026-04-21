@@ -11,8 +11,8 @@
 
 #if (BOARD == BOARD_DEBUG)
 
-#define SWS_PRINTF_MODE		0
-#define UART_PRINTF_MODE	1
+#define SWS_PRINTF_MODE		1
+#define GPIO_PRINTF_MODE	0
 
 #define BLE_MODEL_STR 			{"DEBUG"}
 #define BLE_MAN_STR 			{"TLB2Z"}
@@ -74,14 +74,12 @@
 #define PD2_INPUT_ENABLE	1
 #define PD2_FUNC			AS_GPIO
 
-
 // RELAY
 #define GPIO_RELAY			GPIO_PB4
 #define PB4_DATA_OUT		LED_OFF
 #define PB4_OUTPUT_ENABLE	1
 #define PB4_INPUT_ENABLE	1
 #define PB4_FUNC			AS_GPIO
-
 
 // I2C
 #define USE_I2C_DRV			I2C_DRV_NONE

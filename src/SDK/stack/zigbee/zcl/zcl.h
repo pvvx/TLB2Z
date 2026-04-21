@@ -443,7 +443,7 @@ typedef struct _attribute_packed_{
 	u8	reportableChange[REPORTABLE_CHANGE_MAX_ANALOG_SIZE];
 	u8	prevData[REPORTABLE_CHANGE_MAX_ANALOG_SIZE];
 	u8	used;
-} reportCfgInfo_t; //37-bytes
+} reportCfgInfo_t; //37-bytes x ZCL_REPORTING_TABLE_NUM
 
 #ifndef ZCL_REPORTING_TABLE_NUM
 #define ZCL_REPORTING_TABLE_NUM		4

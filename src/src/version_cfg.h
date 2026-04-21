@@ -46,7 +46,7 @@
 
 /* Board define */
 #ifndef BOARD
-#define BOARD					BOARD_ZB_TS0001
+#define BOARD					BOARD_DEBUG
 #endif
 
 /* Chip IDs */

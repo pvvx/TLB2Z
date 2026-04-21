@@ -114,13 +114,13 @@ extern "C" {
 #endif
 
 /* Debug mode config (sws_printf()) */
-#ifndef UART_PRINTF_MODE
-#define	UART_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
+#ifndef GPIO_PRINTF_MODE
+#define	GPIO_PRINTF_MODE				0	// pin: DEBUG_INFO_TX_PIN, soft UART 1Mb/s
 #endif
 #ifndef SWS_PRINTF_MODE
 #define SWS_PRINTF_MODE         		1   // pin: SWS, Telink SWire
 #endif
-#define USE_DEBUG_PRINTF		(UART_PRINTF_MODE || SWS_PRINTF_MODE)
+#define USE_DEBUG_PRINTF		(GPIO_PRINTF_MODE || SWS_PRINTF_MODE)
 
 #ifndef ZIGBEE_TUYA_OTA
 #define ZIGBEE_TUYA_OTA 	0
@@ -136,15 +136,15 @@ extern "C" {
 #define MIN_REPORT_INTERVAL 	3 // second
 #define MIN_REPORT_INTERVAL_MS 	(MIN_REPORT_INTERVAL*1000) // msecond
 
-#define VOLTAGE_DETECT_ENABLE						0
+#define VOLTAGE_DETECT_ENABLE		0
 
 /* Watch dog module */
-#define MODULE_WATCHDOG_ENABLE						0
+#define MODULE_WATCHDOG_ENABLE		0
 
-#define USB_PRINTF_MODE         		0
+#define USB_PRINTF_MODE         	0
 
 /* UART module */
-#define	MODULE_UART_ENABLE							0
+#define	MODULE_UART_ENABLE			0
 
 #if (ZBHCI_USB_PRINT || ZBHCI_USB_CDC || ZBHCI_USB_HID || ZBHCI_UART)
 	#define ZBHCI_EN								1
@@ -166,6 +166,7 @@ extern "C" {
 #define FIND_AND_BIND_SUPPORT						0
 #define ZCL_POWER_CFG_SUPPORT						1
 #define ZCL_ON_OFF_SUPPORT							1
+#define USE_RETRY_ONOFF								600 // sec, =0 Off
 #define SCAN_TRG_ENABLE								ZCL_ON_OFF_SUPPORT
 #define ZCL_IAS_ZONE_SUPPORT						0
 #define ZCL_TEMPERATURE_MEASUREMENT_SUPPORT			1
@@ -222,14 +223,7 @@ typedef enum{
 	EV_POLL_MAX,
 }ev_poll_e;
 
-#if USE_DEBUG_PRINTF
 #include "sws_printf.h"
-#else
-#define sws_printf(...)
-#define sws_puts(...)
-#define sws_putchar(...)
-#define sws_print_hex_dump(...)
-#endif
 
 /**********************************************************************
  * Sensor configuration

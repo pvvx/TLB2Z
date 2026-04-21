@@ -35,7 +35,7 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
 void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd);
 void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd);
 #endif
-void app_zclDfltRspCmd(u8 endpoint, u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd);
+void app_zclDfltRspCmd(aps_data_ind_t * pIndInfo, zclDefaultRspCmd_t *pDftRspCmd);
 #ifdef ZCL_IDENTIFY
 void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 #endif
@@ -50,7 +50,7 @@ void app_zclIdentifyCmdHandler(u8 endpoint, u16 srcAddr, u16 identifyTime);
 /**********************************************************************
  * FUNCTIONS
  */
-
+// af_endpointRegister brc_toggleEvt apsde-data.conf
 /*********************************************************************
  * @fn      app_zclProcessIncomingMsg
  *
@@ -91,7 +91,7 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
 			break;
 #endif
 		case ZCL_CMD_DEFAULT_RSP:
-			app_zclDfltRspCmd(endpoint, cluster, pInHdlrMsg->attrCmd);
+			app_zclDfltRspCmd(&pInHdlrMsg->msg->indInfo, pInHdlrMsg->attrCmd);
 			break;
 		default:
 			break;
@@ -111,8 +111,6 @@ void app_zclProcessIncomingMsg(zclIncoming_t *pInHdlrMsg)
 void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
 {
 	sws_printf("ZCL#rdrspcmd %d:0x%04x\n", endpoint, clusterId);
-    //printf("app_zclReadRspCmd\n");
-
 }
 #endif	/* ZCL_READ */
 
@@ -129,8 +127,6 @@ void app_zclReadRspCmd(u8 endpoint, u16 clusterId, zclReadRspCmd_t *pReadRspCmd)
 void app_zclWriteRspCmd(u8 endpoint, u16 clusterId, zclWriteRspCmd_t *pWriteRspCmd)
 {
 	sws_printf("ZCL#wrrspcmd %d:0x%04x\n", endpoint, clusterId);
-    //printf("app_zclWriteRspCmd\n");
-
 }
 
 /*********************************************************************
@@ -220,11 +216,10 @@ void app_zclWriteReqCmd(u8 endpoint, u16 clusterId, zclWriteCmd_t *pWriteReqCmd)
  *
  * @return  None
  */
-void app_zclDfltRspCmd(u8 endpoint, u16 clusterId, zclDefaultRspCmd_t *pDftRspCmd)
+void app_zclDfltRspCmd(aps_data_ind_t * pIndInfo, zclDefaultRspCmd_t *pDftRspCmd)
 {
-	sws_printf("ZCL#dfrspcmd %d:0x%04x\n", endpoint, clusterId);
-    //printf("app_zclDfltRspCmd\n");
-
+	sws_printf("ZCL#defresp: dst:%04x:%02x, src:%08p:%02x,", pIndInfo->dst_addr, pIndInfo->dst_ep, pIndInfo->src_ext_addr, pIndInfo->src_ep);
+	sws_printf("cl:%04x, cmd:%02x, st:%02x\n", pIndInfo->cluster_id, pDftRspCmd->commandID, pDftRspCmd->statusCode);
 }
 
 #ifdef ZCL_REPORT
@@ -260,8 +255,6 @@ void app_zclCfgReportCmd(u8 endpoint, u16 clusterId, zclCfgReportCmd_t *pCfgRepo
 void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pCfgReportRspCmd)
 {
 	sws_printf("ZCL#cfgrprsp :0x%04x\n", endpoint, clusterId);
-    //printf("app_zclCfgReportRspCmd\n");
-
 }
 
 /*********************************************************************
@@ -276,8 +269,6 @@ void app_zclCfgReportRspCmd(u8 endpoint, u16 clusterId, zclCfgReportRspCmd_t *pC
 void app_zclReportCmd(u8 endpoint, u16 clusterId, zclReportCmd_t *pReportCmd)
 {
 	sws_printf("ZCL#rpcmd %d:0x%04x\n", endpoint, clusterId);
-    //printf("app_zclReportCmd\n");
-
 }
 #endif	/* ZCL_REPORT */
 

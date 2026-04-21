@@ -75,11 +75,23 @@ void adc_set_gpio_calib_vref(u16 x) {
 
 _attribute_ram_code_sec_
 void adc_channel_init(ADC_InputPchTypeDef p_ain) {
-	adc_power_on_sar_adc(0);
+	adc_power_on_sar_adc(0); // power off sar adc
 	adc_reset_adc_module(); // reset whole digital adc module
-	/* enable signal of 24M clock to sar adc */
-	analog_write(areg_clk_setting, analog_read(areg_clk_setting) | FLD_CLK_24M_TO_SAR_EN);
+	adc_enable_clk_24m_to_sar_adc(1); // enable signal of 24M clock to sar adc
 	adc_set_sample_clk(5); // set adc clk as 4MHz
+	//dfifo_disable_dfifo2(); // disable misc channel data dfifo
+#if 1
+	analog_write(areg_adc_pga_ctrl, 0xE5);
+	//adc_set_state_length(1023, 0, 15); // ADC_SAMPLE_RATE_23K: R_max_mc=1023,R_max_s=15
+	adc_set_state_length(240, 0, 10); 	 // ADC_SAMPLE_RATE_96K: R_max_mc=240, R_max_s=10
+	analog_write(areg_adc_chn_en, 0x24);
+	analog_write(areg_adc_vref_vbat_div, 0x10);
+	analog_write(anareg_adc_res_m, 0x43);
+	analog_write(areg_ain_scale, 0xFD);
+	analog_write(areg_adc_tsmaple_m, 0x01);
+	analog_write(areg_adc_vref, 0x2A);
+	adc_set_ain_chn_misc(p_ain, GND);
+#else
 	pga_left_chn_power_on(0);
 	pga_right_chn_power_on(0);
 	adc_set_left_right_gain_bias(GAIN_STAGE_BIAS_PER100, GAIN_STAGE_BIAS_PER100);
@@ -97,27 +109,27 @@ void adc_channel_init(ADC_InputPchTypeDef p_ain) {
 	adc_set_ain_pre_scaler(ADC_PRESCALER_1F8);
 	//set NORMAL mode
 	adc_set_mode(ADC_NORMAL_MODE);
+#endif
 }
 
 _attribute_ram_code_sec_
 u16 get_adc_mv(int flg) { // ADC_InputPchTypeDef
 	volatile unsigned int adc_dat_buf[ADC_BUF_COUNT];
+	u32 adc_average;
+	u16 adc_sample[ADC_BUF_COUNT]; // = { 0 };
 	u16 temp;
+	u16 rp = 0;
 	int i, j;
 	adc_power_on_sar_adc(1); // + 0.4 mA
 	adc_reset_adc_module();
-	u32 t0 = clock_time();
-	u16 adc_sample[ADC_BUF_COUNT]; // = { 0 };
-	u32 adc_average;
 	for (i = 0; i < ADC_BUF_COUNT; i++) {
 		adc_dat_buf[i] = 0;
 	}
-	while (!clock_time_exceed(t0, 25)); //wait at least 2 sample cycle(f = 96K, T = 10.4us)
 	adc_config_misc_channel_buf((u16 *) adc_dat_buf, sizeof(adc_dat_buf));
 	dfifo_enable_dfifo2();
-	sleep_us(20);
 	for (i = 0; i < ADC_BUF_COUNT; i++) {
-		while (!adc_dat_buf[i]);
+		while(rp == reg_dfifo2_wptr);
+		rp = reg_dfifo2_wptr; // 0,4,8,c,10,14,18,1c
 		if (adc_dat_buf[i] & BIT(13)) {
 			adc_sample[i] = 0;
 		} else {

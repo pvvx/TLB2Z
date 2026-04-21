@@ -172,17 +172,19 @@ typedef struct {
  *  @brief Defined for on/off cluster attributes
  */
 typedef struct{
-	u32 ble_trigger_tik;
-	u8  onOff;
-	u8  onOffrm;
-	u8  ble_trigger;
-#ifdef ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
-	u8  onoffbType;
+#if USE_RETRY_ONOFF
+	u32 timeStamp; // utc_time_sec - timeStamp < USE_RETRY_ONOFF (sec)
 #endif
 	u16	onTime;
 	u16	offWaitTime;
+	u8  onOff;		// разрешение для работы On/Off реле и remote On/Off
+	u8  onOffrm; 	// состояние срабатывания от BLE для remote On/Off
+	u8  ble_trigger; // состояние принятого BLE триггера
 	u8	startUpOnOff;
 	u8  globalSceneControl;
+#ifdef ZCL_CUSTOM_ATTR_ONOFF_BLE_TYPE
+	u8  onoffbType; // BTHome тип On/Off
+#endif
 }zcl_onOffAttr_t;
 
 /**
@@ -301,7 +303,13 @@ void app_otaProcessMsgHandler(u8 evt, u8 status);
 
 status_t app_onOffCb(zclIncomingAddrInfo_t *pAddrInfo, u8 cmdId, void *cmdPayload);
 void app_onOffUpdate(u8 cmd, u8 n);
-void remoteCmdOnOff(u8 srcEp, u8 cmd);
+//status_t remoteCmdOnOff(u8 srcEp, u8 cmd);
+void newCmdOnOff(u8 srcEp, u8 on_state);
+#if USE_RETRY_ONOFF
+void afTestOnOffCb(void *arg);
+#else
+#define afTestOnOffCb NULL
+#endif
 //void app_onOffInit(void);
 nv_sts_t zcl_onOffAttr_restore(u8 n);
 nv_sts_t zcl_onOffAttr_save(u8 n);

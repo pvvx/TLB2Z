@@ -19,8 +19,8 @@
 #include "app_ui.h"
 #include "zcl_illuminance_level_sensing.h"
 
-#if USE_DEBUG_PRINTF
-#define USE_DEBUG_SCAN		1	// 0,1,2,3
+#if SWS_PRINTF
+#define USE_DEBUG_SCAN		0	// 0,1,2,3
 #else
 #define USE_DEBUG_SCAN		0	// 0,1,2,3
 #endif
@@ -160,13 +160,13 @@ static const u16 log_table[91] = {
 static const u32 powers[8] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000};
 
 /**
- * Вычисляет 10000 * log10(x) для 1 <= x <= 3576000
+ * Вычисляет 10000 * log10(x + 1) для 1 <= x <= 3576000
  * с использованием целочисленной арифметики и таблицы логарифмов.
  */
 static u16 calk_10000_log10(u32 x) {
-	if (x < 1)
+	if (!x)
 		return 0;
-	else if(x >= 3576000)
+	else if(++x >= 3576000)
 		return 65534;
 
 	// Определяем порядок B: 10^B <= x < 10^(B+1)

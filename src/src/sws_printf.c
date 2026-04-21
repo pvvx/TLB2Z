@@ -1,84 +1,28 @@
-/**************************************************
+/*****************************************************************
  * @file     sws_printf.c
  *
- * @brief    This is the source file for TLSR8258
+ * @brief    This is the source file for SWS printf() Version 2.0
  *
  * @author	 pvvx
  *
- *************************************************/
+ ****************************************************************/
 #include "tl_common.h"
-#include "app_cfg.h"
-#if USE_DEBUG_PRINTF
 #include "sws_printf.h"
 
+#if SWS_PRINTF
+
 #if SWS_PRINTF_MODE
-/* SWS send buffer */
-#define psws_buffer (sws_buffer_t *)&T_rfStatusDbg
-//_sws_buffer_in_retention_ram_
-//sws_buffer_t sws_buffer;
-#endif
 
-#if UART_PRINTF_MODE
-
-#ifdef DEBUG_INFO_TX_PIN
- #define TX_PIN_OUTPUT_REG		reg_gpio_out(DEBUG_INFO_TX_PIN)
- #define DEBUG_TX_PIN_INIT()	do{	\
-									gpio_set_func(DEBUG_INFO_TX_PIN, AS_GPIO);							\
-									gpio_set_output_en(DEBUG_INFO_TX_PIN, 1);							\
-									gpio_setup_up_down_resistor(DEBUG_INFO_TX_PIN, PM_PIN_PULLUP_1M); 	\
-									gpio_write(DEBUG_INFO_TX_PIN, 1);									\
-								}while(0)
-#else
-	#error	"DEBUG_INFO_TX_PIN is undefined!"
-#endif
-
-
-_attribute_ram_code_
-void sws_putchar(unsigned char c)
-{
-	u8 j = 0;
-	u32 t1 = 0, t2 = 0;
-
-#if defined(MCU_CORE_TL321X) || defined(MCU_CORE_TL721X)
-	u16 tmp_bit0 = (DEBUG_INFO_TX_PIN & 0xff)<<8;
-	u16 tmp_bit1 = DEBUG_INFO_TX_PIN & 0xff;
-	u16 bit[10] = {0};
-#else
-	u8 tmp_bit0 = TX_PIN_OUTPUT_REG & (~(DEBUG_INFO_TX_PIN & 0xff));
-	u8 tmp_bit1 = TX_PIN_OUTPUT_REG | (DEBUG_INFO_TX_PIN & 0xff);
-	u8 bit[10] = {0};
-#endif
-
-	bit[0] = tmp_bit0;
-	bit[1] = (c & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[2] = ((c >> 1) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[3] = ((c >> 2) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[4] = ((c >> 3) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[5] = ((c >> 4) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[6] = ((c >> 5) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[7] = ((c >> 6) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[8] = ((c >> 7) & 0x01) ? tmp_bit1 : tmp_bit0;
-	bit[9] = tmp_bit1;
-	u8 r = irq_disable();// enable this may disturb time sequence, but if disable unrecognizable code will show
-	t1 = clock_time();
-	for(j = 0; j < 10; j++){
-		t2 = t1;
-
-		while(t1 - t2 < BIT_INTERVAL){
-			t1 = clock_time();
-		}
-
-		TX_PIN_OUTPUT_REG = bit[j];       //send bit0
-	}
-	irq_restore(r);
+void sws_init(void) {
+	psws_buffer->id = 0x55;
+//	psws_buffer->len = 0;
 }
-#endif
 
-#if SWS_PRINTF_MODE
 /* Checking and waiting waiting for the transfer to end (buffer to be ready to fill) */
 int sws_ready(void) {
 	unsigned int tt;
 	sws_buffer_t *p = psws_buffer;
+	p->id = 0x55;
 	if (p->len == SWS_BUF_CLOSED)
 		// Wait for the next opening
 		return 0;
@@ -127,7 +71,58 @@ void sws_buffer_flush(void) {
 	}
 }
 
-#endif // SWS_PRINTF_MODE
+#else // GPIO_PRINTF_MODE
+
+#ifndef DEBUG_INFO_TX_PIN
+ #define	DEBUG_INFO_TX_PIN	GPIO_SWS
+#endif
+
+#ifndef GPIO_BAUDRATE
+ #define	1000000 // 1MBit
+#endif
+
+
+void sws_init(void) {
+	gpio_set_func(DEBUG_INFO_TX_PIN, AS_GPIO);
+	gpio_set_output_en(DEBUG_INFO_TX_PIN, 1);
+	gpio_setup_up_down_resistor(DEBUG_INFO_TX_PIN, PM_PIN_PULLUP_1M);
+	gpio_write(DEBUG_INFO_TX_PIN, 1);
+}
+
+_attribute_ram_code_
+void sws_putchar(unsigned char c)
+{
+	u8 j = 0;
+	u32 t1 = 0, t2 = 0;
+
+	u8 tmp_bit0 = reg_gpio_out(DEBUG_INFO_TX_PIN) & (~(DEBUG_INFO_TX_PIN & 0xff));
+	u8 tmp_bit1 = reg_gpio_out(DEBUG_INFO_TX_PIN) | (DEBUG_INFO_TX_PIN & 0xff);
+	u8 bit[10] = {0};
+
+	bit[0] = tmp_bit0;
+	bit[1] = (c & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[2] = ((c >> 1) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[3] = ((c >> 2) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[4] = ((c >> 3) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[5] = ((c >> 4) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[6] = ((c >> 5) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[7] = ((c >> 6) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[8] = ((c >> 7) & 0x01) ? tmp_bit1 : tmp_bit0;
+	bit[9] = tmp_bit1;
+	u8 r = irq_disable(); // enable this may disturb time sequence, but if disable unrecognizable code will show
+	t1 = clock_time();
+	for(j = 0; j < 10; j++){
+		t2 = t1;
+		while(t1 - t2 < (16000000/GPIO_BAUDRATE)){
+			t1 = clock_time();
+		}
+
+		reg_gpio_out(DEBUG_INFO_TX_PIN) = bit[j];       //send bit0
+	}
+	irq_restore(r);
+}
+
+#endif // SWS_PRINTF_MODE / GPIO_PRINTF_MODE
 
 //------ sws_puts -----------
 /* Write a string to the send buffer */
@@ -152,9 +147,11 @@ typedef char *va_list;
 #define OCTAL_OUTPUT        8
 #define HEX_OUTPUT          16
 
+const char tab_hex_ascii[] = "0123456789ABCDEF";
+// extern const char tab_hex_ascii[15];
+
 static void puti(unsigned int num, int base, int w)
 {
-	unsigned char re[] = "0123456789ABCDEF";
 	unsigned char buf[50];
     int cnt = 0;
 
@@ -162,7 +159,7 @@ static void puti(unsigned int num, int base, int w)
     *addr = '\0';
 
     do {
-        *--addr = re[num % base];
+        *--addr = tab_hex_ascii[num % base];
         num /= base;
         cnt++;
     } while (num != 0 && cnt < 49);
@@ -172,6 +169,16 @@ static void puti(unsigned int num, int base, int w)
     }
 
     sws_puts((char *)addr);
+}
+
+/* sws print hex dump */
+void sws_print_hex_dump(void * d, int len) {
+	unsigned char *p = (unsigned char *)d;
+	while(len--) {
+		unsigned char c = *p++;
+		sws_putchar(tab_hex_ascii[c >> 4]);
+		sws_putchar(tab_hex_ascii[c & 0x0f]);
+	}
 }
 
 /* printf */
@@ -186,6 +193,7 @@ int sws_printf(const char *format, ...)
     va_list arg_ptr;
 #if SWS_PRINTF_MODE
     sws_buffer_t *p = psws_buffer;
+	p->id = 0x55;
     if (p->len == SWS_BUF_CLOSED)
     	// Wait for the next opening
 		return 0;
@@ -220,6 +228,9 @@ int sws_printf(const char *format, ...)
 //            } else if (span == 'o') {
 //                j = va_arg(arg_ptr, unsigned int);//get octal value
 //                puti(j, OCTAL_OUTPUT, w);
+            } else if (span == 'p') {
+                j = va_arg(arg_ptr, unsigned int);//get octal value
+                sws_print_hex_dump((void *)j, w);
             } else if (span == 'x') {
                 j = va_arg(arg_ptr, unsigned int);//get hex value
                 puti(j, HEX_OUTPUT, w);
@@ -236,20 +247,5 @@ int sws_printf(const char *format, ...)
     return 0;
 }
 
-extern unsigned char * str_bin2hex(unsigned char *d, unsigned char *s, int len);
 
-void sws_print_hex_dump(unsigned char * p, int len) {
-	unsigned char buf[33];
-	while(len) {
-		int cnt = sizeof(buf)/2;
-		if(len < cnt)
-			cnt = len;
-		*(str_bin2hex(buf, p, cnt)) = 0;
-		sws_puts((char *)buf);
-		p += cnt;
-		len -= cnt;
-	}
-}
-
-
-#endif // USE_DEBUG_PRINTF
+#endif // SWS_PRINTF

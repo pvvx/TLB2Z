@@ -222,16 +222,17 @@ void zbdemo_bdbCommissioningCb(u8 status, void *arg){
 		case BDB_COMMISSION_STA_NOT_PERMITTED:
 			break;
 		case BDB_COMMISSION_STA_NO_SCAN_RESPONSE:
-			//break;
+			break;
 		case BDB_COMMISSION_STA_PARENT_LOST:
 			sws_puts("BDB#parent_lost\n");
+			// zb_rejoinSecModeSet(REJOIN_SECURITY); // only new SDK_z
 			zb_rejoinReq(zb_apsChannelMaskGet(), g_bdbAttrs.scanDuration);
 			light_blink_start(5, 500, 500);
 			break;
 		case BDB_COMMISSION_STA_REJOIN_FAILURE:
 			sws_puts("BDB#rejoin_failure\n");
 			if(!g_devAppCtx.timerRejoinBackoffEvt){
-				g_devAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 10 * 1000);
+				g_devAppCtx.timerRejoinBackoffEvt = TL_ZB_TIMER_SCHEDULE(app_rejoinBackoff, NULL, 60 * 1000);
 			}
 			light_blink_start(7, 500, 500);
 			break;

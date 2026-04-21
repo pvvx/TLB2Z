@@ -1,13 +1,14 @@
 /*
  * flash_eep.c
  *
- *  Created on: 19/01/2015
- *      Author: pvvx
+ *  EEP Version 2.0
+ *  Author: pvvx
  */
 //#include <stdint.h>
 #include "tl_common.h"
 #if USE_EEP
 #include "flash_eep.h"
+#include "sws_printf.h"
 
 #define FEEP_CODE_ATTR
 #define FEEP_DATA_ATTR
@@ -26,7 +27,7 @@
 #define min(a, b)  ((a < b)? a : b)
 #endif
 
-#if USE_DEBUG_PRINTF
+#if SWS_PRINTF
 #define eep_printf	sws_printf
 #define eep1_printf(...)
 //#define eep1_printf(...)
@@ -86,7 +87,7 @@ static inline void _flash_write_obj(u32 faddr, feep_obj_t * pobj)
  ------------------------------------*/
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
-LOCAL u32 get_addr_bscfg(u8 nv) {
+LOCAL u32 get_addr_bscfg(int nv) {
 	u32 faddr = (nv)? FMEMORY_EEP_BASE_ADDR2 : FMEMORY_EEP_BASE_ADDR1;
 #else
 LOCAL u32 get_addr_bscfg(void) {
@@ -176,9 +177,9 @@ LOCAL u32 get_addr_idobj(u32 faddr, fobj_head_t * pobj)
 	return reta;
 }
 
-//extern u32 T_rfStatusCnt;
-//extern u8  T_rfStatusDbg[256];
-#define buf_id 	T_rfStatusDbg
+#define set_flag_eep_id(b, n)	b[(n)>>3] |= 1 << ((n) & 7)
+#define check_flag_eep_id(b, n)	b[(n)>>3] &= 1 << ((n) & 7)
+
 /*=============================================================================
    FunctionName : pack_eep_fmem
 
@@ -186,17 +187,16 @@ LOCAL u32 get_addr_idobj(u32 faddr, fobj_head_t * pobj)
   ---------------------------------------------------------------------------*/
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
-LOCAL u32 pack_eep_fmem(u8 bank, u32 sec_faddr) {
+LOCAL u32 pack_eep_fmem(unsigned int bank, u32 sec_faddr) {
+	eep_printf("EEP#pack: %d\n", bank);
 #else
 LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
+	eep_printf("EEP#pack\n");
 #endif
-	//u8 buf_id[255];
-
+	u8 buf_id[256>>3] = {0};
 	feep_obj_t fobj;
 	fobj_head_t rh;
 	u32 fnewseg, faddr, rdaddr, wraddr, endrdaddr;
-	eep_printf("EEP#pack: %d\n", bank);
-	memset((u8 *)buf_id, 0, 256);
 	// вычислить следующий сектор банка и конец текущего сектора
 	fnewseg = sec_faddr + FLASH_SECTOR_SIZE;
 	endrdaddr = fnewseg;
@@ -232,7 +232,7 @@ LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
 			continue;
 		}
 		// объект уже записан в новый сектор ?
-		if(buf_id[rh.n.id]) {
+		if(check_flag_eep_id(buf_id, rh.n.id)) {
 			// уже записан в новый сектор
 			// шаг на следующий адрес в старом секторе
 			rdaddr += sizeof(rh) + rh.n.size;
@@ -252,7 +252,7 @@ LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
 		fobj.h.n.id = rh.n.id;
 		if((faddr = get_addr_idobj(rdaddr, &fobj.h)) != 0) {
 			// есть такой id
-			buf_id[rh.n.id] = 1; // выставить флаг обработки
+			set_flag_eep_id(buf_id, rh.n.id); // выставить флаг обработки
 			if(fobj.h.n.size > MAX_FOBJ_SIZE) {
 				// объект не прописался (сбой во время записи данных и размера)
 				rdaddr += sizeof(rh) + MAX_FOBJ_SIZE;
@@ -289,10 +289,11 @@ LOCAL u32 pack_eep_fmem(u32 sec_faddr) {
 //-----------------------------------------------------------------------------
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
-s32 flash_write_cfg(void *ptr, u8 bank, u8 id, u8 size) {
+s32 flash_write_cfg(void *ptr, unsigned int bank, unsigned int id, size_t size) {
 	eep_printf("EEP#wr_obj[%d]: %d,%02x\n", size, bank, id);
 #else
-s32 flash_write_cfg(void *ptr, u8 id, u8 size) {
+s32 flash_write_cfg(void *ptr, unsigned int id, size_t size) {
+	eep_printf("EEP#wr_obj[%d]: %02x\n", size, id);
 #endif
 	u32 faddr, saddr;
 	feep_obj_t fobj;
@@ -388,10 +389,11 @@ void flash_erase_all_cfg(void) {
 //-----------------------------------------------------------------------------
 FEEP_CODE_ATTR
 #if USE_EEP_BANKS
-s32 flash_read_cfg(void *ptr, u8 bank, u8 id, u8 maxsize) {
+s32 flash_read_cfg(void *ptr, unsigned int bank, unsigned int id, size_t maxsize) {
 	eep_printf("EEP#rd_obj[%d]: %d,%02x\n", maxsize, bank, id);
 #else
-s32 flash_read_cfg(void *ptr, u8 id, u8 maxsize) {
+s32 flash_read_cfg(void *ptr, unsigned int id, size_t maxsize) {
+	eep_printf("EEP#rd_obj[%d]: %02x\n", maxsize, id);
 #endif
 	u32 faddr, saddr;
 	fobj_head_t rh;
@@ -416,32 +418,32 @@ s32 flash_read_cfg(void *ptr, u8 id, u8 maxsize) {
 }
 //=============================================================================
 FEEP_CODE_ATTR
+/* ver = (SW version << 16) | (HW ) version */
 bool flash_supported_eep_ver(u32 min_ver, u32 new_ver) {
+	bool ret = false;
 	u32 tmp;
 #if USE_EEP_BANKS
 	if (flash_read_cfg(&tmp, 0, EEP_ID_VER, sizeof(tmp))
 #else
 	if (flash_read_cfg(&tmp, EEP_ID_VER, sizeof(tmp))
 #endif
-		== sizeof(tmp) && tmp >= min_ver) {
+		== sizeof(tmp)
+		&& (tmp & 0xffff) == (new_ver & 0xffff)
+		&& tmp >= min_ver) {
 		if(tmp != new_ver) {
-			tmp = new_ver;
-#if USE_EEP_BANKS
-			flash_write_cfg(&tmp, 0, EEP_ID_VER, sizeof(tmp));
-#else
-			flash_write_cfg(&tmp, EEP_ID_VER, sizeof(tmp));
-#endif
+			ret = true;
 		}
-		return true;
+	} else {
+		flash_erase_all_cfg();
 	}
+	eep_printf("EEP#init: %08x:%08x\n", tmp, new_ver);
 	tmp = new_ver;
-	flash_erase_all_cfg();
 #if USE_EEP_BANKS
 	flash_write_cfg(&tmp, 0, EEP_ID_VER, sizeof(tmp));
 #else
 	flash_write_cfg(&tmp, EEP_ID_VER, sizeof(tmp));
 #endif
-	return false;
+	return ret;
 }
 
 #endif // USE_EEP

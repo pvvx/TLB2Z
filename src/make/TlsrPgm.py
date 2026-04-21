@@ -17,14 +17,14 @@ import io
 
 __progname__ = 'TLSR82xx TlsrPgm'
 __filename__ = 'TlsrPgm'
-__version__ = '23.03.26'
+__version__ = '13.04.26'
 
 DEFAULT_UART_BAUD = 230400
 
 FLASH_SECTOR_SIZE = 4096
 
-sws_flg = 2
-sws_addr = 0
+#sws_flg = 2
+#sws_addr = 0
 sws_enable = False
 pgm = {}
 
@@ -179,8 +179,8 @@ class TLSRPGM:
 	pgm_clk = 24
 	pgm_swdiv = 5
 	pgm_swaddrlen = 3
-	pgm_swbuf = [b'\x5a\x00\x06\x02\x00\x05']
-	
+	pgm_swbuf = b'\x5a\x00\x06\x02\x00\x05'
+
 	pgm_chip = '?'
 	#-----------------------------------------------
 	# Functions for an PGM device
@@ -311,6 +311,9 @@ class TLSRPGM:
 		elif self.pgm_cid == 0x5327:
 			self.pgm_chip = 'TLSR8269'
 			self.pgm_clk = 32
+		elif self.pgm_cid == 0x5591:
+			self.pgm_chip = 'TLSR8208'
+			self.pgm_clk = 32
 		else:
 			self.pgm_clk = 32
 			self.pgm_chip = '?'
@@ -438,7 +441,7 @@ class TLSRPGM:
 		if data == None:
 			print('\rError Write Flash Status! (%d)' % self.err, file=sys.stderr)
 			return None
-		if not self.WaitingFlashReady(10):
+		if not self.WaitingFlashReady():
 			return None
 		#data = self.command(struct.pack('<BBHHB', self.CMD_FLASH_WRRD, 0, 0, 1, 5), 7)
 		#if data == None:
@@ -464,24 +467,36 @@ class TLSRPGM:
 		print('CPU PC=0x%08x' % self.ext_pc, '([0x0602] = 0x%02x)' % data[4])
 		return True
 	# Dump Ext. Chip regs
-	def DumpChipRegs(self, offset = 0x60, rdsize = 0x20):
-		data = self.command(struct.pack('<BBHH', self.CMD_SWIRE_READ, offset & 0xff, (offset>>8) & 0xffff, rdsize), rdsize+6)
-		if data == None or self.wcnt != rdsize:
-			print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
-			return False
+	def DumpChipRegs(self, offset = 0x60, size = 0x20):
 		print('-------------------------------------------------------')
 		print('\rREGISTERS:')
-		hex_dump(offset, data[4:rdsize+4])
+		rdsize = self.MAX_BUF_READ_SIZE
+		while size > 0:
+			if rdsize > size:
+				rdsize = size
+			data = self.command(struct.pack('<BBHH', self.CMD_SWIRE_READ, offset & 0xff, (offset>>8) & 0xffff, rdsize), rdsize+6)
+			if data == None or self.wcnt != rdsize:
+				print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
+				return False
+			hex_dump(offset, data[4:rdsize+4])
+			offset += rdsize
+			size -= rdsize
 		return True
 	# Dump Ext. Chip Flash
-	def DumpChipFlash(self, offset = 0x0, rdsize = 0x20):
-		data = self.command(struct.pack('<BBHH', self.CMD_FLASH_READ, offset & 0xff, (offset>>8) & 0xffff, rdsize), rdsize+6)
-		if data == None or self.wcnt != rdsize:
-			print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
-			return False
+	def DumpChipFlash(self, offset = 0x0, size = 0x20):
 		print('-------------------------------------------------------')
 		print('\rFLASH:')
-		hex_dump(offset, data[4:rdsize+4])
+		rdsize = self.MAX_BUF_READ_SIZE
+		while size > 0:
+			if rdsize > size:
+				rdsize = size
+			data = self.command(struct.pack('<BBHH', self.CMD_FLASH_READ, offset & 0xff, (offset>>8) & 0xffff, rdsize), rdsize+6)
+			if data == None or self.wcnt != rdsize:
+				print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
+				return False
+			hex_dump(offset, data[4:rdsize+4])
+			offset += rdsize
+			size -= rdsize
 		return True
 	# Dump Ext. Chip Ana regs
 	def DumpChipARegs(self, offset = 0x0, rdsize = None):
@@ -501,7 +516,12 @@ class TLSRPGM:
 		hex_dump(offset, data[4:rdsize+4])
 		return True
 	# Dump Ext. Chip FlashUID
-	def DumpChipFlashUID(self, offset = 0, rdsize = 0x20):
+	def DumpChipFlashUID(self, offset = 0, rdsize = None):
+		if rdsize == None:
+			if self.ext_chip == 'TLSR8208':
+				rdsize = 0x10
+			else:
+				rdsize = 0x20
 		rdsize +=4 # +4 dimmy
 		data = self.command(struct.pack('<BBHHB', self.CMD_FLASH_WRRD, offset & 0xff, (offset>>8) & 0xffff, rdsize, 0x4B), rdsize+6)
 		if data == None or self.wcnt != rdsize + 1:
@@ -529,6 +549,8 @@ class TLSRPGM:
 			self.ext_chip = 'TLSR8267'
 		elif self.ext_cid == 0x5327:
 			self.ext_chip = 'TLSR8269'
+		elif self.ext_cid == 0x5591:
+			self.ext_chip = 'TLSR8208'
 		else:
 			self.ext_chip = None
 		if self.ext_chip == None:
@@ -579,6 +601,13 @@ class TLSRPGM:
 			offset += rdsize
 		print('\r                               \r',  end = '')
 		return True
+	# Read Reg/Sram Data 
+	def ReadRegsData(self, offset = 0x800000, size = 4):
+		data = self.command(struct.pack('<BBHH', self.CMD_SWIRE_READ, offset & 0xff, (offset>>8) & 0xffff, size), size+6)
+		if data == None or self.wcnt != size:
+			print('Error Read SWire data! (%d)' % self.err, file=sys.stderr)
+			return None
+		return data
 	# Write Reg/Sram Data 
 	def WriteRegsData(self, offset = 0x602, wdata = b'\x05'):
 		offset &= 0xffffff
@@ -792,8 +821,8 @@ class TLSRPGM:
 		else:
 			msk_bit = 0x02
 		if (x[0] & msk_bit) != 0 or (x[3] & msk_bit) == 0:
-			x[0] &= ~msk_bit
-			x[3] |= msk_bit # reg 0x64
+			x[0] &= ~msk_bit # reg 0x61 reg_rst1
+			x[3] |= msk_bit # reg 0x64 reg_clk_en1
 			data = self.command(struct.pack('<BBH', self.CMD_SWIRE_WRITE, offset & 0xff, (offset>>8) & 0xffff) + x, 6)
 			if data == None or self.wcnt != rdsize:
 				#print('Error!') 
@@ -976,40 +1005,16 @@ class TLSRPGM:
 			print('\r\nError unlock Flash!', file=sys.stderr) 
 			return None
 		return ret
-	def SwsPrintf(self, offset = 0, flg = 1):
-		offset &= 0xffffff
-		if flg == 0:
-			wdata = 0xff
-			s = 'Close '
-		elif flg == 1:
-			wdata = 0
-			s = 'Open '
-		elif flg == 2:
-			s = 'Continue '
-			flg = 2
-		else:
-			s = 'Next '
-			flg = 3
-		sws_addr = offset
-		sws_flg = flg
-		if flg < 2:
-			print('%sSWS Printf at SRAM address 0x%06x...' % (s, offset), end = '')
-			data = self.command(struct.pack('<BBHB', self.CMD_SWS_PRINTF, offset & 0xff, (offset>>8) & 0xffff, wdata), 6)
-			if data == None or self.wcnt != 1:
-				print('error!', flush=True)
-				return False
-			print('ok')
-			if flg == 0:
-				return True
-		if flg == 2:
-			print('%sSWS Printf at SRAM address 0x%06x...' % (s, offset), end = '')
-			data = self.command(struct.pack('<BBH', self.CMD_SWS_PRINTF, offset & 0xff, (offset>>8) & 0xffff), 6)
-			if data == None or self.wcnt != 0:
-				print('error!', flush=True)
-				return False
-			print('ok')
-			if flg == 0:
-				return True
+	def SwsPrintf(self, offset = 0x84E700):
+		if self.pgm_ver_int < 8:
+			print('Attention: this program requires PGM version 0.0.0.8 or higher!')
+			return False
+		print('Open SWS Printf at SRAM address 0x%06x...' % (offset), end = '')
+		data = self.command(struct.pack('<BBHB', self.CMD_SWS_PRINTF, offset & 0xff, (offset>>8) & 0xffff, 0), 6)
+		if data == None or self.wcnt != 1:
+			print('error!', flush=True)
+			return False
+		print('ok')
 		self._port.timeout = 0.01
 		sws_enable = True
 		while sws_enable: #TODO
@@ -1018,14 +1023,128 @@ class TLSRPGM:
 				print('Keyboard Break!')
 				break
 			try:
-				rblk = self._port.read(254)
+				rblk = self._port.read(253)
 			except:
 				#print('Error read %s!' % (self.port))
 				return False
 			if len(rblk) != 0:
-				print(rblk.decode(errors='ignore'), end = '', flush=True)
+				print(rblk.decode(encoding='ascii', errors='ignore'), end = '', flush=True) # encoding="utf-8" 
 		return True
-		
+	# Dump OTP registers
+	def DumpOTPRegs(self, offset = 0x3fc0, size = None):
+		print('-------------------------------------------------------')
+		print('\rOTP: ')
+		if size == None:
+			size = 0x40
+		if size <= 0:
+			print('Read Size = 0!', file=sys.stderr)
+			return False
+		if self.ext_chip != 'TLSR8208':
+			print('Read OTP only for TLSR8208!', file=sys.stderr)
+			return False
+		regs = self.ReadRegsData(0x80010,2)
+		if regs == None:
+			return False
+		#if not self.WriteRegsData(0x80011, b'\x10'):
+		#	return False
+		if not self.WriteRegsData(0x80011, b'\x30'):
+			return False
+		time.sleep(0.01)
+		if regs[5] != 0x03:
+			if not self.WriteRegsData(0x80010, b'\x03'):
+				return False
+		rdsize = 4
+		tmp = self.ReadRegsData(0x80017, 1) # reg_otp_dat
+		if tmp == None:
+			return False
+		status =  ~tmp[5]
+		addr = offset;
+		data = bytearray()
+		while size > 0:
+			if rdsize > size:
+				rdsize = size
+			if not self.WriteRegsData(0x80014, struct.pack('<H', offset & 0xffff)): # reg_otp_pa = addr;
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			tmp = self.ReadRegsData(0x8001C, 4) # reg_otp_rd_dat
+			if tmp == None:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			tmp = self.ReadRegsData(0x80017, 1) # reg_otp_dat
+			if (tmp[5] & status) != 0:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			tmp = self.ReadRegsData(0x8001C, 4) # reg_otp_rd_dat
+			if tmp == None:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			data += tmp[4:rdsize+4]
+			size -= rdsize
+			offset += rdsize
+			if (size <= 0) or len(data) == 16:
+				hex_dump(addr & 0xffff, data)
+				data = bytearray()
+				addr += 16
+		if not self.WriteRegsData(0x80010, regs[4:6]):
+			return False
+		return True
+
+	# Read Blocks OTP to stream
+	def ReadBlockOTP(self, stream, offset = 0x0000, size = None):
+		if size == None:
+			size = 0x4000
+		if size <= 0:
+			print('\nRead Size = 0!', file=sys.stderr)
+			return False
+		if self.ext_chip != 'TLSR8208':
+			print('\nRead OTP only for TLSR8208!', file=sys.stderr)
+			return False
+		#if not self.EnableClkALGM():
+		#	return False
+		regs = self.ReadRegsData(0x80010,2)
+		if regs == None:
+			return False
+		#if not self.WriteRegsData(0x80011, b'\x10'):
+		#	return False
+		if not self.WriteRegsData(0x80011, b'\x30'):
+			return False
+		time.sleep(0.01)
+		#if regs[5] != 0x03:
+		if not self.WriteRegsData(0x80010, b'\x03'):
+			return False
+		rdsize = 4
+		print('\rRead from 0x%06x...' % offset, end = '')
+		data = self.ReadRegsData(0x80017, 1) # reg_otp_dat
+		if data == None:
+			return False
+		status =  ~data[5]
+		while size > 0:
+			if rdsize > size:
+				rdsize = size
+			if (size & 0x3f) == 0:
+				print('\rRead from 0x%06x...' % offset, end = '')
+			if not self.WriteRegsData(0x80014, struct.pack('<H', offset & 0xffff)): # reg_otp_pa = addr;
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			data = self.ReadRegsData(0x8001C, 4) # reg_otp_rd_dat
+			if data == None:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			data = self.ReadRegsData(0x80017, 1) # reg_otp_dat
+			if (data[5] & status) != 0:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			data = self.ReadRegsData(0x8001C, 4) # reg_otp_rd_dat
+			if data == None:
+				print('\r\nError Read OTP data at 0x%06x! ' % offset, end = '', file=sys.stderr)
+				return False
+			stream.write(data[4:rdsize + 4]);
+			size -= rdsize
+			offset += rdsize
+		if not self.WriteRegsData(0x80010, regs[4:6]):
+			return False
+		print('\r                               \r',  end = '')
+		return True
 
 def signal_handler(signal, frame):
 	print()
@@ -1095,17 +1214,22 @@ def main():
 		help='Soft Reset (MCU Reboot) (post main processing)',
 		action="store_true")
 	parser.add_argument(
-		'-w', '--wrktime',
-		help='Show Worked Time',
-		action="store_true")
-	parser.add_argument(
 		'-d', '--div',
 		help='Set the SWire transfer rate divisor',
 		type=arg_auto_int,
 		default = 0)
 	parser.add_argument(
+		'-o', '--osws',
+		help='Open SWS Printf (post main processing)',
+		type=arg_auto_int,
+		default = 0)
+	parser.add_argument(
 		'-u', '--u2b',
 		help='Use 2 bytes swire address (TLSR826x)',
+		action="store_true")
+	parser.add_argument(
+		'-w', '--wrktime',
+		help='Show Worked Time',
 		action="store_true")
 	subparsers = parser.add_subparsers(
 			dest='operation',
@@ -1186,6 +1310,13 @@ def main():
 	parser_read_flash.add_argument('filename', help='Name of binary file')
 
 	parser_read_flash = subparsers.add_parser(
+			'ro',
+			help='Read TLSR8208 OTP to binary file')
+	parser_read_flash.add_argument('address', help='Start address', type=arg_auto_int)
+	parser_read_flash.add_argument('size', help='Size of region', type=arg_auto_int)
+	parser_read_flash.add_argument('filename', help='Name of binary file')
+
+	parser_read_flash = subparsers.add_parser(
 			'wa',
 			help='Write file to Analog Registers')
 	parser_read_flash.add_argument('address', help='Start address', type=arg_auto_int)
@@ -1206,6 +1337,11 @@ def main():
 	parser_read_flash = subparsers.add_parser(
 			'da',
 			help='Dump Analog Registers')
+	parser_read_flash.add_argument('address', help='Start address', type=arg_auto_int)
+	parser_read_flash.add_argument('size', help='Size of region', type=arg_auto_int)
+	parser_read_flash = subparsers.add_parser(
+			'do',
+			help='Dump TLSR8208 OTP register')
 	parser_read_flash.add_argument('address', help='Start address', type=arg_auto_int)
 	parser_read_flash.add_argument('size', help='Size of region', type=arg_auto_int)
 	parser_read_flash = subparsers.add_parser(
@@ -1232,12 +1368,12 @@ def main():
 		swd = args.div
 	if args.u2b:
 		if pgm.pgm_swaddrlen != 2 or pgm.pgm_swdiv != swd:
-			if not pgm.SetPgmConfig(swdiv = swd, swaddrlen=2, swbuf = b'\x5a\x00\x06\x02\x00\x05'):
+			if not pgm.SetPgmConfig(swdiv = swd, swaddrlen=2):
 				pgm.close()
 				sys.exit(1)
 	else:
 		if pgm.pgm_swaddrlen != 3 or pgm.pgm_swdiv != swd:
-			if not pgm.SetPgmConfig(swdiv = swd, swaddrlen=3, swbuf = b'\x5a\x00\x06\x02\x00\x05'):
+			if not pgm.SetPgmConfig(swdiv = swd, swaddrlen=3):
 				pgm.close()
 				sys.exit(1)
 	# set speed up?
@@ -1305,6 +1441,7 @@ def main():
 	print('=== Process ===========================================')
 	if args.operation == 'rs' \
 	or args.operation == 'rf' \
+	or args.operation == 'ro' \
 	or args.operation == 'ra':
 		offset = args.address & 0x00ffffff
 		size = args.size & 0x00ffffff
@@ -1334,6 +1471,17 @@ def main():
 			offset &= 0x00ff
 			print('Read Analog Registers from 0x%06x to 0x%06x...' % (offset, offset + size))
 			ret = pgm.ReadBlockAnalogRegs(stream, offset, size)
+		elif args.operation == 'ro':
+			if not pgm.ReadChipID():
+				pgm.close()
+				sys.exit(1)
+			if pgm.ext_chip != 'TLSR8208':
+				print('\r\nRead OTP only for TLSR8208!', file=sys.stderr)
+				pgm.close()
+				sys.exit(1)
+			offset &= 0xffff
+			print('Read OTP from 0x%06x to 0x%06x...' % (offset, offset + size))
+			ret = pgm.ReadBlockOTP(stream, offset, size)
 		stream.close
 		if not ret:
 			pgm.close()
@@ -1349,7 +1497,7 @@ def main():
 			stream = open(args.filename, 'rb')
 			size = os.path.getsize(args.filename)
 		except:
-			print('Error: Not open input file <%s>!' % args.fldr, file=sys.stderr)
+			print('Error: Not open input file <%s>!' % args.filename, file=sys.stderr)
 			pgm.close()
 			sys.exit(1)
 		ret = False
@@ -1422,6 +1570,10 @@ def main():
 		or not pgm.DumpChipRegs():
 			pgm.close()
 			sys.exit(1)
+		if pgm.ext_chip == 'TLSR8208':
+			if not pgm.DumpOTPRegs():
+				pgm.close()
+				sys.exit(1)
 	elif args.operation == 'ds':
 		if not pgm.DumpChipRegs(args.address, args.size):
 			pgm.close()
@@ -1435,12 +1587,18 @@ def main():
 			pgm.close()
 			sys.exit(1)
 	elif args.operation == 'dc':
-		#print('CPU Run...', end = ' ')
-		#if not pgm.WriteRegsData(0x602, b'\x88'):
-		#	pgm.close()
-		#	sys.exit(1)
-		#print('ok')
 		if not pgm.TestDebugPC(args.time, args.address):
+			pgm.close()
+			sys.exit(1)
+	elif args.operation == 'do':
+		if not pgm.ReadChipID():
+			pgm.close()
+			sys.exit(1)
+		if pgm.ext_chip != 'TLSR8208':
+			print('\r\nRead OTP only for TLSR8208!', file=sys.stderr)
+			pgm.close()
+			sys.exit(1)
+		if not pgm.DumpOTPRegs(args.address, args.size):
 			pgm.close()
 			sys.exit(1)
 	elif args.operation == 'sws':
@@ -1473,8 +1631,10 @@ def main():
 			sys.exit(1)
 	else:
 		print('No action assigned.')
-	if args.run or args.go or args.mrst:
+	if args.run or args.go or args.mrst or args.osws != 0:
 		print('=== Post-Process ======================================')
+	else:
+		print('Done')
 	# Commands / flags post main processing
 	if args.run:
 		print('CPU Run...', end = ' ')
@@ -1498,6 +1658,10 @@ def main():
 		# Second time slice
 		t2 = time.time()
 		print(" Worked Time: %.3f sec" % (t2-t1))
+	if args.osws != 0:
+		if not pgm.SwsPrintf(args.osws):
+			pgm.close()
+			sys.exit(1)
 	pgm.close()
 	sys.exit(0)
 
