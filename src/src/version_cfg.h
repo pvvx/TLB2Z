@@ -72,7 +72,7 @@
 #endif
 
 #define APP_RELEASE				0x01	//BCD app release "0.2"
-#define APP_BUILD				0x13	//BCD app build "0.3"
+#define APP_BUILD				0x14	//BCD app build "0.3"
 #define STACK_RELEASE			0x30	//BCD stack release 3.0
 #define STACK_BUILD				0x01	//BCD stack build 01
 
