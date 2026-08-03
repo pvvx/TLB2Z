@@ -41,7 +41,7 @@ enum { // mijia ble version 5
 	MI_DATA_ID_RSSI					=0x1003,
 	MI_DATA_ID_Temperature			=0x1004,
 	MI_DATA_ID_SwitchTemperature	=0x1005, // 2 bytes, switch, temp in 1 C
-	MI_DATA_ID_SwitchHumidity		=0x1006, // 2 bytes, switch,in 0.1 %
+	MI_DATA_ID_SwitchHumidity		=0x1006, // 2 bytes, switch, in 0.1 %
 	MI_DATA_ID_LightIlluminance		=0x1007,
 	MI_DATA_ID_SoilMoisture			=0x1008,
 	MI_DATA_ID_SoilECvalue			=0x1009,

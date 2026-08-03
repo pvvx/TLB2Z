@@ -274,7 +274,6 @@ static void zb_moving(u8 n, u8 onoff) {
 #endif // ZCL_ILLUMINANCE_LEVEL_SENSING
 #endif // ZCL_ILLUMINANCE_MEASUREMENT
 
-
 //u8 x_buf[16];
 __attribute__((optimize("-Os")))
 void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
@@ -376,7 +375,7 @@ void filter_xiaomi_ad(padv_xiaomi_t p, int n) {
 					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_ub[0]*100; // in 1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 				} else if(ps->id == MI_DATA_ID_SwitchHumidity && ps->size >= 2) { // Switch + Humidity
-					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[1]*10;  // in 0.1 %
+					g_zcl_relHumidityAttrs.measuredValue[n] = ps->data_us[0]*10;  // in 0.1 %
 					update_enable[n] |= FLG_UPDATE_HUMI | FLG_UPDATE_FLG;
 				} else if((ps->id == MI_DATAF_ID_Humidity || ps->id == MI_DATAF_ID2_Humidity)
 					&& ps->size >= 4) { // Humidity, float

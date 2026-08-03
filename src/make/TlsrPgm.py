@@ -24,7 +24,7 @@ except ImportError:
 
 __progname__ = 'TLSR82xx TlsrPgm'
 __filename__ = 'TlsrPgm'
-__version__ = '23.04.26.3'
+__version__ = '26.04.26'
 
 DEFAULT_UART_BAUD = 230400
 
@@ -187,7 +187,7 @@ class TLSRPGM:
 	pgm_swdiv = 5
 	pgm_swaddrlen = 3
 	pgm_swbuf = b'\x5a\x00\x06\x02\x00\x05'
-
+	ext_chip = None
 	pgm_chip = '?'
 	#-----------------------------------------------
 	# Functions for an PGM device
@@ -903,25 +903,33 @@ class TLSRPGM:
 	# Dump CPU registers
 	def DumpCPURegs(self):
 		print('-------------------------------------------------------')
+		if self.pgm_swaddrlen == 2 and self.ext_chip == None:
+			self.ReadChipID()
 		print('CPU registers:')
 		rblk = self.ReadRegsData(0x0680,128)
 		if rblk == None:
 			return False
 		regs = struct.unpack('<IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII', rblk[4:132])
 		print("flg: 0x%08x (psr)" % regs[16])
-		print("r00: 0x%08x" %  regs[0])
-		print("r01: 0x%08x" %  regs[1])
-		print("r02: 0x%08x" %  regs[2])
+		if self.ext_chip == 'TLSR8266':
+			print("r00: 0x%08x ???: 0x%08x" %  (regs[0], regs[17]))
+			print("r01: 0x%08x" %  regs[1])
+			print("r02: 0x%08x s02: 0x%08x" %  (regs[2], regs[18]))
+		else:
+			print("r00: 0x%08x s00: 0x%08x" %  (regs[0], regs[17]))
+			print("r01: 0x%08x" %  regs[1])
+			print("r02: 0x%08x" %  regs[2])
 		for i in range(8):
 			print("r%02d: 0x%08x s%02d: 0x%08x" % (i+3, regs[i+3], i+3, regs[i+19]))
 		print("r11: 0x%08x (fp) 0x%08x" % (regs[11], regs[11+16]))
 		print("r12: 0x%08x (ip) 0x%08x" % (regs[12], regs[12+16]))
 		print("r13: 0x%08x (sp) 0x%08x" % (regs[13], regs[13+16]))
 		print("r14: 0x%08x (lr) 0x%08x" % (regs[14], regs[14+16]))
-		print("r15: 0x%08x (pc) 0x%08x" % (regs[15], regs[18]))
-		print("r??: 0x%08x" % regs[17])
-
-		print("m64: 0x%08x =(mul32*32)>>32" % regs[31]) # 0x6fc = (mul32*32)>>32
+		if self.ext_chip == 'TLSR8266':
+			print("r15: 0x%08x (pc)" % (regs[15]))
+		else:
+			print("r15: 0x%08x (pc) 0x%08x" % (regs[15], regs[18]))
+			print("m64: 0x%08x =(mul32*32)>>32" % regs[31]) # 0x6fc = (mul32*32)>>32
 
 		rblk = self.ReadRegsData(regs[13], 48)
 		if rblk == None:
@@ -990,8 +998,11 @@ class TLSRPGM:
 			twait_sec = 1
 		if wraddr != None and wrdata != None:
 			data = self.command(struct.pack('<BBHBH', self.CMD_WAIT_RESP, offset & 0xff, (offset>>8) & 0xffff, wraddr & 0xff, (wraddr>>8) & 0xffff) + wrdata, 6)
-		else:
+		elif wraddr == None and wrdata == None:
 			data = self.command(struct.pack('<BBH', self.CMD_WAIT_RESP, offset & 0xff, (offset>>8) & 0xffff), 6)
+		else:
+			print('Invalid arguments Wait Response command!') 
+			return False
 		if data == None:
 			print('Error Wait Respone command! (%d)' % self.err, file=sys.stderr) 
 			return False
@@ -1024,10 +1035,28 @@ class TLSRPGM:
 					print('\rReg at 0x%06x=0x%08x   ' % (offset, self.ext_pc))
 				if wraddr != None and wrdata != None:
 					if wraddr == 0x602 and (wrdata == b'\x05' or wrdata == b'\x06'):
+						data = self.command(struct.pack('<BBHH', self.CMD_SWIRE_READ, wraddr & 0xff, (wraddr>>8) & 0xffff, 1), 7)
+						if data == None or self.wcnt != 1:
+							print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
+							return False
 						if wrdata == b'\x05':
+							if data[4] != 5:
+								print('\rError: CPU capture failed! ([0x0602] = 0x%02x)' % data[4], file=sys.stderr) 
+								return False
 							print('CPU Stopped ([0x0602] = 0x05)')
 						if wrdata == b'\x06':
+							if data[4] != 6:
+								print('\rError: CPU capture failed! ([0x0602] = 0x%02x)' % data[4], file=sys.stderr) 
+								return False
 							print('CPU Stall ([0x0602] = 0x06)')
+						offset = 0x6bc
+						data = self.command(struct.pack('<BBHH', self.CMD_SWIRE_READ, offset & 0xff, (offset>>8) & 0xffff, 4), 10)
+						if data == None or self.wcnt != 4:
+							print('\rError Read SWire data! (%d)' % self.err, file=sys.stderr) 
+							return False
+						self.ext_pc = struct.unpack('<I', data[4:8])
+						print('CPU PC=0x%08x' % self.ext_pc)
+						return True
 					else:
 						s = hex2str(wrdata)
 						print('Wr [0x%06x] = %s)' %(wraddr, s))
@@ -1741,10 +1770,6 @@ def main():
 			pgm.close()
 			sys.exit(1)
 	elif args.operation == 'wsd':
-		if args.exs != 0:
-			if not pgm.setextadr(args.exs):
-				pgm.close()
-				sys.exit(1)
 		offset = args.address & 0x00ffffff
 		dw = args.value & 0xffffffff
 		print('Write 32 bits word 0x%08x to 0x%06x...' % (dw, offset))
@@ -1752,15 +1777,7 @@ def main():
 		if ret == None:
 			pgm.close()
 			sys.exit(1)
-		if args.exs != 0:
-			if not pgm.setextadr(0):
-				pgm.close()
-				sys.exit(1)
 	elif args.operation == 'bkp':
-		if args.u2b:
-			print('bkp - Not work for TLSR826x!')
-			pgm.close()
-			sys.exit(1)
 		dw = args.address & 0x00ffffff
 		print('Write break-point adress 0x%06x...' % dw)
 		#pgm.setextadr(0x40)
@@ -1781,10 +1798,6 @@ def main():
 			pgm.close()
 			sys.exit(1)
 	elif args.operation == 'stp':
-		if args.u2b:
-			print('stp - Not work for TLSR826x!')
-			pgm.close()
-			sys.exit(1)
 		if args.count < 1:
 			print('Error count:', args.count)
 			pgm.close()
