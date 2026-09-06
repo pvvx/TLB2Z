@@ -1,6 +1,6 @@
 @set TLSDK=D:\MCU\TelinkIoTStudio
 @set PATH=%TLSDK%\bin;%TLSDK%\opt\tc32\bin;%TLSDK%\mingw\bin;%TLSDK%\opt\tc32\tc32-elf\bin;%PATH%
-@set SWVER=_v0114
+@set SWVER=_v0116
 @del /Q .\bin
 make -s -j clean
 make -s -j VERSION_BIN=%SWVER% PROJECT_NAME=ts01 POJECT_DEF="-DBOARD=BOARD_TS0001_TZ3000_RBZ -DSWS_PRINTF_MODE=0" ZNAME="B2Z:REL-BZ01"

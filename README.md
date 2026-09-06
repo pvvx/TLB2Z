@@ -155,9 +155,9 @@ Note: On the TB-03F, for PROG, connect SWS to ground
 | 1 | 0x0006 On/Off | 0x4003 StartUpOnOff | 1 |
 | 2 | 0x0006 On/Off | 0x4003 StartUpOnOff | 2 |
 | 3 | 0x0006 On/Off | 0x4003 StartUpOnOff | 3 |
-| 1 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 1 |
-| 2 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 2 |
-| 3 | 0x0006 On/Off | 0xF001 OnOff BTHome Code | 3 |
+| 1 | 0x0006 On/Off | 0xF001 Trigger BTHome Code | 1 |
+| 2 | 0x0006 On/Off | 0xF001 Trigger BTHome Code | 2 |
+| 3 | 0x0006 On/Off | 0xF001 Trigger BTHome Code | 3 |
 | 1 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 1 |
 | 2 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 2 |
 | 3 | 0x0401 Illuminance Level Sensing | 0x0010 Illuminance Target Level | 3 |
